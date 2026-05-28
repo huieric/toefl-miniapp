@@ -38,7 +38,7 @@ export const authAPI = {
 export const questionAPI = {
   list: (params) => http.get('/questions', { params }),
   getById: (id) => http.get(`/questions/${id}`),
-  getBySubject: (subject, params) => http.get(`/questions/${subject}`, { params }),
+  getBySubject: (subject, params) => http.get('/questions', { params: { subject, ...params } }),
   upload: (formData, onProgress) =>
     http.post('/questions/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },

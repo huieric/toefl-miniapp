@@ -2,19 +2,9 @@
   <div class="page-container">
     <div class="page-header"><h2>阅读练习</h2></div>
 
-    <!-- 模拟数据提示 -->
-    <el-alert
-      v-if="usingMock"
-      title="当前显示模拟数据，实际数据需连接后端服务"
-      type="warning"
-      show-icon
-      :closable="false"
-      style="margin-bottom: 16px;"
-    />
-
-    <div class="card" v-loading="uploading">
+    <div class="card" v-loading="uploading || loading">
       <el-empty v-if="!loading && !list.length" description="暂无阅读题目">
-        <el-button type="primary" @click="triggerUpload">上传/导入题目</el-button>
+        <el-button type="primary" @click="triggerUpload">上传PDF题目</el-button>
         <input
           ref="fileInputRef"
           type="file"
@@ -26,13 +16,16 @@
       <el-table v-else :data="list" stripe @row-click="goDetail" style="cursor: pointer;">
         <el-table-column type="index" label="#" width="50" />
         <el-table-column prop="title" label="题目" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="type" label="题型" width="100">
+          <template #default="{ row }">{{ typeLabel(row.type) }}</template>
+        </el-table-column>
         <el-table-column prop="difficulty" label="难度" width="80">
           <template #default="{ row }">
-            <el-tag :type="diffTag(row.difficulty)" size="small">{{ row.difficulty || '中等' }}</el-tag>
+            <el-tag :type="diffTag(row.difficulty)" size="small">{{ diffLabel(row.difficulty) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="添加时间" width="160">
-          <template #default="{ row }">{{ fmt(row.createdAt) }}</template>
+        <el-table-column prop="created_at" label="添加时间" width="160">
+          <template #default="{ row }">{{ fmt(row.created_at) }}</template>
         </el-table-column>
       </el-table>
     </div>
@@ -57,56 +50,21 @@ const router = useRouter()
 const list = ref([])
 const loading = ref(false)
 const uploading = ref(false)
-const usingMock = ref(false)
 const fileInputRef = ref(null)
 const progressVisible = ref(false)
 const uploadProgress = ref(0)
 
-const mockData = [
-  {
-    id: 'mock_1',
-    _id: 'mock_1',
-    title: 'TPO 1 - The Origins of Theater',
-    difficulty: '中等',
-    createdAt: '2026-05-01T00:00:00Z'
-  },
-  {
-    id: 'mock_2',
-    _id: 'mock_2',
-    title: 'TPO 2 - Desert Formation',
-    difficulty: '困难',
-    createdAt: '2026-05-02T00:00:00Z'
-  },
-  {
-    id: 'mock_3',
-    _id: 'mock_3',
-    title: 'TPO 3 - Architecture',
-    difficulty: '中等',
-    createdAt: '2026-05-03T00:00:00Z'
-  },
-  {
-    id: 'mock_4',
-    _id: 'mock_4',
-    title: 'TPO 4 - Petroleum Resources',
-    difficulty: '简单',
-    createdAt: '2026-05-04T00:00:00Z'
-  },
-  {
-    id: 'mock_5',
-    _id: 'mock_5',
-    title: 'TPO 5 - Minerals and Plants',
-    difficulty: '困难',
-    createdAt: '2026-05-05T00:00:00Z'
-  }
-]
-
+const diffMap = { easy: '简单', medium: '中等', hard: '困难' }
+const diffLabel = (d) => diffMap[d] || d || '中等'
 const diffTag = (d) => {
-  if (d === '简单') return 'success'
-  if (d === '困难') return 'danger'
+  if (d === 'easy') return 'success'
+  if (d === 'hard') return 'danger'
   return 'warning'
 }
+const typeMap = { detail: '细节题', inference: '推断题', vocabulary: '词汇题', summary: '总结题', purpose: '目的题' }
+const typeLabel = (t) => typeMap[t] || t || '--'
 const fmt = (d) => d ? new Date(d).toLocaleDateString('zh-CN') : '--'
-const goDetail = (row) => router.push(`/reading/${row._id || row.id}`)
+const goDetail = (row) => router.push(`/reading/${row.id}`)
 
 const triggerUpload = () => {
   fileInputRef.value?.click()
@@ -129,8 +87,8 @@ const handleFileChange = async (e) => {
 
   try {
     await questionAPI.upload(formData, (pct) => { uploadProgress.value = pct })
-    ElMessage.success('上传成功，题目已导入')
-    // 刷新列表
+    ElMessage.success('上传成功，正在后台解析题目')
+    await new Promise(r => setTimeout(r, 2000))
     await fetchList()
   } catch (err) {
     ElMessage.error(err.response?.data?.message || err.message || '上传失败')
@@ -145,18 +103,13 @@ const fetchList = async () => {
   loading.value = true
   try {
     const res = await questionAPI.getBySubject('reading')
-    const data = res.data?.list || res.data?.questions || res.data || []
-    if (data.length) {
-      list.value = data
-      usingMock.value = false
-    } else {
-      list.value = mockData
-      usingMock.value = true
-    }
+    // getBySubject 调用 /questions?subject=reading，返回 { code, data: { list, total, ... } }
+    const data = res.data?.data?.list || res.data?.list || res.data || []
+    list.value = Array.isArray(data) ? data : []
   } catch (e) {
-    console.error('API 调用失败，使用模拟数据:', e)
-    list.value = mockData
-    usingMock.value = true
+    console.error('获取阅读题目失败:', e)
+    list.value = []
+    ElMessage.error('获取题目失败，请检查网络连接')
   } finally {
     loading.value = false
   }

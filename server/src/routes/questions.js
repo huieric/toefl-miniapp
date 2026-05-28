@@ -133,14 +133,19 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// GET /api/questions/:id - 题目详情
+// GET /api/questions/:id - 题目详情（仅当id为数字时）
 router.get('/:id', auth, async (req, res) => {
   try {
     const { id } = req.params;
 
+    // 非数字ID（如"reading"）可能是前端误调用，重定向到列表查询
+    if (!/^\d+$/.test(id)) {
+      return res.status(400).json({ code: 400, message: '无效的题目ID' });
+    }
+
     const question = (await db.query(
       'SELECT * FROM questions WHERE id = $1 AND status = $2',
-      [id, 'approved']
+      [parseInt(id), 'approved']
     )).rows[0];
 
     if (!question) {
