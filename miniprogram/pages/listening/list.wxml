@@ -1,0 +1,26 @@
+<!--pages/listening/list.wxml - 听力题列表-->
+<view class="page-list">
+  <view class="filter-bar flex items-center gap-sm p-md">
+    <view class="filter-item {{currentFilter === 'all' ? 'active' : ''}}" bindtap="setFilter" data-value="all">全部</view>
+    <view class="filter-item {{currentFilter === 'conversation' ? 'active' : ''}}" bindtap="setFilter" data-value="conversation">对话</view>
+    <view class="filter-item {{currentFilter === 'lecture' ? 'active' : ''}}" bindtap="setFilter" data-value="lecture">讲座</view>
+  </view>
+
+  <view class="question-list p-md" wx:if="{{list.length > 0}}">
+    <view class="question-card card" wx:for="{{list}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="flex items-center justify-between mb-sm">
+        <view class="flex items-center gap-sm">
+          <text class="tag tag-listening">听力</text>
+          <text class="tag tag-{{item.difficulty}}">{{item.difficulty === 'easy' ? '简单' : item.difficulty === 'medium' ? '中等' : '困难'}}</text>
+        </view>
+        <text class="text-sm text-hint">{{item.type}}</text>
+      </view>
+      <view class="card-title">{{item.title}}</view>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:else>
+    <text class="empty-icon">🎧</text>
+    <text class="empty-text">暂无听力题目</text>
+  </view>
+</view>

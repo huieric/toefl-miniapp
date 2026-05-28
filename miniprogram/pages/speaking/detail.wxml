@@ -1,0 +1,54 @@
+<!--pages/speaking/detail.wxml - 口语详情页-->
+<view class="page-detail" wx:if="{{question}}">
+  <view class="question-card card">
+    <view class="flex items-center gap-sm mb-md">
+      <text class="tag tag-speaking">口语</text>
+      <text class="text-sm text-hint">{{question.type === 'independent' ? '独立口语' : '综合口语'}}</text>
+    </view>
+    <view class="card-title">{{question.title}}</view>
+    <view class="card-desc mt-sm">{{question.content}}</view>
+  </view>
+
+  <!-- 准备倒计时 -->
+  <view class="timer-section card text-center" wx:if="{{status === 'preparing'}}">
+    <view class="timer-label text-secondary">准备时间</view>
+    <view class="timer-countdown {{prepTime <= 5 ? 'urgent' : ''}}">{{prepTime}}s</view>
+    <view class="text-sm text-hint mt-sm">请思考你的回答要点</view>
+  </view>
+
+  <!-- 录音界面 -->
+  <view class="record-section card text-center" wx:if="{{status === 'recording'}}">
+    <view class="timer-label text-secondary">录音中...</view>
+    <view class="timer-countdown {{recordTime <= 5 ? 'urgent' : ''}}">{{recordTime}}s</view>
+    <!-- 录音波形动画 -->
+    <view class="wave-container flex items-center justify-center mt-md">
+      <view class="wave-bar" wx:for="{{[1,2,3,4,5,6,7,8]}}" wx:key="index" style="animation-delay: {{item * 0.1}}s"></view>
+    </view>
+  </view>
+
+  <!-- 录音按钮 -->
+  <view class="action-section text-center mt-lg" wx:if="{{status === 'idle'}}">
+    <button class="record-btn" bindtap="startRecording">
+      <text class="record-icon">🎤</text>
+      <text>开始录音</text>
+    </button>
+    <text class="text-sm text-hint mt-sm block">最长45秒</text>
+  </view>
+
+  <view class="action-section text-center mt-lg" wx:if="{{status === 'preparing'}}">
+    <button class="skip-btn btn-outline" bindtap="startRecording">跳过准备，开始录音</button>
+  </view>
+
+  <view class="action-section text-center mt-lg" wx:if="{{status === 'recording'}}">
+    <button class="stop-btn btn-danger" bindtap="stopRecording">停止录音</button>
+  </view>
+
+  <!-- 提交 -->
+  <view class="submit-section p-md" wx:if="{{status === 'done'}}">
+    <view class="card text-center">
+      <view class="record-success mb-md">✅ 录音完成</view>
+      <button class="btn-play" bindtap="playRecording">▶ 回放录音</button>
+    </view>
+    <button class="btn-primary btn-block mt-lg" bindtap="submitAnswer">提交答案</button>
+  </view>
+</view>

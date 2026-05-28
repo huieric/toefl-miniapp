@@ -1,0 +1,10 @@
+/* components/audio-player/audio-player.wxss */
+.audio-player { display: flex; align-items: center; gap: 16rpx; padding: 16rpx 20rpx; background: #f8f8f8; border-radius: 16rpx; }
+.play-btn { width: 64rpx; height: 64rpx; border-radius: 50%; background: #4A90D9; color: #fff; border: none; display: flex; align-items: center; justify-content: center; font-size: 28rpx; flex-shrink: 0; }
+.progress-section { min-width: 0; }
+.progress-bar { height: 8rpx; background: #ddd; border-radius: 4rpx; overflow: hidden; }
+.progress-current { height: 100%; background: #4A90D9; border-radius: 4rpx; }
+.time-row { margin-top: 4rpx; }
+.time-text { font-size: 20rpx; color: #999; }
+.speed-btn { flex-shrink: 0; }
+.speed-text { font-size: 22rpx; color: #4A90D9; font-weight: 600; }

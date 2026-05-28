@@ -1,0 +1,5 @@
+/* components/timer/timer.wxss */
+.timer-display { display: inline-block; }
+.timer-text { font-size: 32rpx; font-weight: 700; font-family: monospace; color: #333; }
+.timer-text.urgent { color: #FF4D4F; animation: blink 0.8s infinite; }
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }

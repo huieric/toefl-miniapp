@@ -1,0 +1,23 @@
+/* pages/writing/detail.wxss */
+.page-detail { padding: 24rpx; min-height: 100vh; padding-bottom: 120rpx; }
+
+.editor-section { padding: 24rpx; }
+
+.editor-textarea {
+  width: 100%;
+  min-height: 400rpx;
+  font-size: 28rpx;
+  line-height: 1.8;
+  color: #333;
+  background: #F9FAFB;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  box-sizing: border-box;
+}
+
+.word-count { color: #999; font-size: 24rpx; }
+.word-count.good { color: #52C41A; }
+
+.editor-tip { padding: 0 8rpx; }
+
+.submit-section { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1rpx solid #eee; padding-bottom: env(safe-area-inset-bottom); }

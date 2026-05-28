@@ -1,0 +1,33 @@
+<!--pages/auth/auth.wxml - 授权登录页-->
+<view class="page-auth">
+  <view class="auth-container">
+    <view class="auth-logo">
+      <text class="logo-text">T</text>
+    </view>
+    <view class="auth-title">托福备考助手</view>
+    <view class="auth-sub">智能备考，高效提分</view>
+
+    <view class="auth-features flex flex-col gap-sm mt-lg">
+      <view class="feature-item flex items-center gap-sm">
+        <text class="feature-icon">📚</text>
+        <text>海量真题 + AI评分</text>
+      </view>
+      <view class="feature-item flex items-center gap-sm">
+        <text class="feature-icon">🤖</text>
+        <text>AI口语写作陪练</text>
+      </view>
+      <view class="feature-item flex items-center gap-sm">
+        <text class="feature-icon">📊</text>
+        <text>智能学习计划 + 遗忘曲线</text>
+      </view>
+    </view>
+
+    <button class="btn-primary btn-block login-btn" bindtap="handleLogin" loading="{{loading}}">
+      微信一键登录
+    </button>
+
+    <view class="privacy-tip text-hint text-sm text-center mt-sm">
+      登录即表示同意《用户协议》和《隐私政策》
+    </view>
+  </view>
+</view>

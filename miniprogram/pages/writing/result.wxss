@@ -1,0 +1,6 @@
+/* writing/result.wxss */
+@import "../reading/result.wxss";
+.result-header { background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%); }
+.score-item { padding: 20rpx 0; border-bottom: 1rpx solid #f0f0f0; }
+.score-item:last-child { border-bottom: none; }
+.suggestion-item { padding: 8rpx 0; }

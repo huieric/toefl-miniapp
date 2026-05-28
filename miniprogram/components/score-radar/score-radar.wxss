@@ -1,0 +1,3 @@
+/* components/score-radar/score-radar.wxss */
+.radar-container { width: 500rpx; height: 500rpx; margin: 0 auto; }
+.radar-canvas { width: 500rpx; height: 500rpx; }

@@ -1,0 +1,4 @@
+<!--components/score-radar/score-radar.wxml - 雷达图组件-->
+<view class="radar-container">
+  <canvas type="2d" id="radarCanvas" class="radar-canvas"></canvas>
+</view>

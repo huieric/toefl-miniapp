@@ -1,0 +1,40 @@
+<!--pages/writing/detail.wxml - 写作详情页-->
+<view class="page-detail" wx:if="{{question}}">
+  <view class="question-card card">
+    <view class="flex items-center gap-sm mb-md">
+      <text class="tag tag-writing">写作</text>
+      <text class="text-sm text-hint">{{question.type === 'independent' ? '独立写作' : '综合写作'}}</text>
+    </view>
+    <view class="card-title">{{question.title}}</view>
+    <view class="card-desc mt-sm">{{question.content}}</view>
+  </view>
+
+  <!-- 编辑器区域 -->
+  <view class="editor-section card mt-md">
+    <view class="editor-header flex items-center justify-between mb-sm">
+      <text class="text-sm text-secondary">你的文章</text>
+      <view class="flex items-center gap-sm">
+        <timer duration="{{30}}" bind:timeout="onTimeUp" />
+        <text class="word-count {{essay.length > 300 ? 'good' : ''}}">{{essay.length}}字</text>
+      </view>
+    </view>
+    <textarea
+      class="editor-textarea"
+      placeholder="请输入你的文章（至少300词）..."
+      value="{{essay}}"
+      bindinput="onEssayInput"
+      maxlength="5000"
+      auto-height
+      focus
+    />
+    <view class="editor-tip text-sm text-hint mt-sm">
+      建议字数：300-400词 | 时间：30分钟
+    </view>
+  </view>
+
+  <view class="submit-section p-md">
+    <button class="btn-primary btn-block" bindtap="submitAnswer" disabled="{{essay.length < 50}}">
+      {{submitting ? '正在AI评分...' : '提交并获取AI评分'}}
+    </button>
+  </view>
+</view>

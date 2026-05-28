@@ -1,0 +1,25 @@
+<!--pages/profile/feedback.wxml - 意见反馈-->
+<view class="page-feedback">
+  <view class="form card">
+    <view class="form-item">
+      <text class="form-label">反馈类型</text>
+      <view class="type-picker flex gap-sm">
+        <view class="type-item {{feedbackType === 'bug' ? 'active' : ''}}" bindtap="setType" data-value="bug">BUG反馈</view>
+        <view class="type-item {{feedbackType === 'suggest' ? 'active' : ''}}" bindtap="setType" data-value="suggest">功能建议</view>
+        <view class="type-item {{feedbackType === 'other' ? 'active' : ''}}" bindtap="setType" data-value="other">其他</view>
+      </view>
+    </view>
+
+    <view class="form-item mt-lg">
+      <text class="form-label">详细描述</text>
+      <textarea placeholder="请详细描述你的问题或建议..." value="{{content}}" bindinput="onInput" maxlength="500" auto-height />
+    </view>
+
+    <view class="form-item mt-lg">
+      <text class="form-label">联系方式（选填）</text>
+      <input placeholder="微信号或邮箱" value="{{contact}}" bindinput="onContactInput" />
+    </view>
+
+    <button class="btn-primary btn-block mt-lg" bindtap="submitFeedback" disabled="{{!content}}">提交反馈</button>
+  </view>
+</view>

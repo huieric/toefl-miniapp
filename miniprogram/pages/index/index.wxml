@@ -1,0 +1,112 @@
+<!--pages/index/index.wxml - 首页-->
+<view class="page-index">
+  <!-- 欢迎卡片 -->
+  <view class="welcome-card card">
+    <view class="welcome-header flex items-center justify-between">
+      <view class="flex-1">
+        <view class="welcome-title">Hi，{{userInfo.nickname || '托福考生'}}</view>
+        <view class="welcome-sub" wx:if="{{plan}}">距考试还有 <text class="text-primary text-bold">{{plan.daysRemaining}}</text> 天</view>
+        <view class="welcome-sub" wx:else>设置考试目标，开始备考</view>
+      </view>
+      <image class="welcome-avatar" src="{{userInfo.avatarUrl || '/assets/default-avatar.png'}}" mode="aspectFill"></image>
+    </view>
+    <!-- 今日进度 -->
+    <view class="today-progress mt-md" wx:if="{{todayTasks}}">
+      <view class="progress-label flex justify-between items-center mb-sm">
+        <text class="text-sm text-secondary">今日学习进度</text>
+        <text class="text-sm text-primary">{{todayTasks.completedTasks}}/{{todayTasks.totalTasks}}</text>
+      </view>
+      <progress-bar percent="{{todayTasks.progress || 0}}" />
+    </view>
+  </view>
+
+  <!-- 快捷入口 -->
+  <view class="section-title card-title">备考练习</view>
+  <view class="quick-grid flex flex-wrap gap-sm">
+    <view class="quick-item" bindtap="goToSubject" data-subject="reading">
+      <view class="quick-icon" style="background:#E3F2FD;">阅</view>
+      <text>阅读</text>
+    </view>
+    <view class="quick-item" bindtap="goToSubject" data-subject="listening">
+      <view class="quick-icon" style="background:#F3E5F5;">听</view>
+      <text>听力</text>
+    </view>
+    <view class="quick-item" bindtap="goToSubject" data-subject="speaking">
+      <view class="quick-icon" style="background:#FFF8E1;">说</view>
+      <text>口语</text>
+    </view>
+    <view class="quick-item" bindtap="goToSubject" data-subject="writing">
+      <view class="quick-icon" style="background:#E8F5E9;">写</view>
+      <text>写作</text>
+    </view>
+  </view>
+
+  <!-- 功能入口 -->
+  <view class="section-title card-title mt-lg">更多功能</view>
+  <view class="func-list card">
+    <view class="func-item flex items-center justify-between" bindtap="goToMockExam">
+      <view class="flex items-center gap-sm">
+        <text class="func-icon">📝</text>
+        <text>全真模拟考</text>
+      </view>
+      <text class="text-hint">></text>
+    </view>
+    <view class="divider"></view>
+    <view class="func-item flex items-center justify-between" bindtap="goToWrongBook">
+      <view class="flex items-center gap-sm">
+        <text class="func-icon">📖</text>
+        <text>错题集</text>
+        <view class="badge" wx:if="{{wrongCount > 0}}">{{wrongCount}}</view>
+      </view>
+      <text class="text-hint">></text>
+    </view>
+    <view class="divider"></view>
+    <view class="func-item flex items-center justify-between" bindtap="goToAiTalk">
+      <view class="flex items-center gap-sm">
+        <text class="func-icon">🤖</text>
+        <text>AI陪练</text>
+      </view>
+      <text class="text-hint">></text>
+    </view>
+    <view class="divider"></view>
+    <view class="func-item flex items-center justify-between" bindtap="goToPlan">
+      <view class="flex items-center gap-sm">
+        <text class="func-icon">📅</text>
+        <text>学习计划</text>
+      </view>
+      <text class="text-hint">></text>
+    </view>
+  </view>
+
+  <!-- 今日任务 -->
+  <view class="section-title card-title mt-lg" wx:if="{{todayTasks && todayTasks.tasks.length > 0}}">今日任务</view>
+  <view class="today-tasks card" wx:if="{{todayTasks && todayTasks.tasks.length > 0}}">
+    <view class="task-item flex items-center gap-sm" wx:for="{{todayTasks.tasks}}" wx:key="id">
+      <view class="task-check {{item.isCompleted ? 'checked' : ''}}" bindtap="toggleTask" data-id="{{item.id}}">
+        <text wx:if="{{item.isCompleted}}">✓</text>
+      </view>
+      <view class="flex-1">
+        <text class="task-title {{item.isCompleted ? 'task-done' : ''}}">{{item.title}}</text>
+        <text class="task-desc text-sm text-secondary">{{item.description}}</text>
+      </view>
+      <tag class="tag tag-{{item.subject}}">{{item.subject}}</tag>
+    </view>
+  </view>
+
+  <!-- 学习统计 -->
+  <view class="section-title card-title mt-lg">学习统计</view>
+  <view class="stats-grid flex gap-sm">
+    <view class="stat-card card flex-1">
+      <text class="stat-num text-primary">{{stats.totalStudyMinutes || 0}}</text>
+      <text class="stat-label text-sm text-secondary">学习分钟</text>
+    </view>
+    <view class="stat-card card flex-1">
+      <text class="stat-num text-primary">{{stats.totalQuestions || 0}}</text>
+      <text class="stat-label text-sm text-secondary">做题数</text>
+    </view>
+    <view class="stat-card card flex-1">
+      <text class="stat-num text-primary">{{stats.accuracy || 0}}%</text>
+      <text class="stat-label text-sm text-secondary">正确率</text>
+    </view>
+  </view>
+</view>

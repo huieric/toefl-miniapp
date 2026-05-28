@@ -1,0 +1,39 @@
+<!--pages/upload/index.wxml - PDF上传页-->
+<view class="page-upload">
+  <view class="upload-area card text-center" wx:if="{{!uploading && !parseResult}}">
+    <text class="upload-icon">📄</text>
+    <text class="upload-title">上传托福题目</text>
+    <text class="upload-desc text-sm text-hint">支持PDF格式的托福真题</text>
+    <button class="btn-primary btn-block mt-lg" bindtap="chooseFile">选择文件</button>
+    <text class="upload-tip text-xs text-hint mt-sm">格式：PDF，大小不超过20MB</text>
+  </view>
+
+  <!-- 上传进度 -->
+  <view class="upload-progress card text-center" wx:if="{{uploading}}">
+    <text class="upload-status text-md text-primary">正在上传...</text>
+    <progress-bar percent="{{progress}}" />
+    <text class="text-sm text-hint mt-sm">{{progress}}%</text>
+  </view>
+
+  <!-- 解析结果 -->
+  <view class="parse-result card" wx:if="{{parseResult}}">
+    <view class="result-header text-center">
+      <text class="text-success text-xl">✅ 解析成功</text>
+    </view>
+    <view class="result-detail mt-md">
+      <view class="detail-row flex justify-between">
+        <text class="text-hint">文件名</text><text class="text-md">{{parseResult.fileName}}</text>
+      </view>
+      <view class="detail-row flex justify-between">
+        <text class="text-hint">题目数量</text><text class="text-md">{{parseResult.questionCount}} 题</text>
+      </view>
+      <view class="detail-row flex justify-between">
+        <text class="text-hint">科目</text><text class="text-md">{{parseResult.subject}}</text>
+      </view>
+      <view class="detail-row flex justify-between">
+        <text class="text-hint">状态</text><text class="text-success">已入库待审核</text>
+      </view>
+    </view>
+    <button class="btn-outline btn-block mt-lg" bindtap="resetUpload">继续上传</button>
+  </view>
+</view>

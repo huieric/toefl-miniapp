@@ -1,0 +1,38 @@
+<!--pages/mock-exam/exam.wxml - 模拟考考试界面-->
+<view class="page-exam">
+  <!-- 顶部进度 -->
+  <view class="exam-header p-md flex items-center justify-between">
+    <text class="exam-subject">{{sections[currentSection].label}}</text>
+    <timer duration="{{sections[currentSection].duration}}" bind:timeout="onSectionTimeUp" />
+  </view>
+
+  <!-- 题目区域 -->
+  <view class="exam-content" wx:if="{{currentSection === 0}}">
+    <!-- 阅读: 文章 + 题目 -->
+    <scroll-view class="reading-area" scroll-y>
+      <view class="passage">{{readingPassage}}</view>
+    </scroll-view>
+  </view>
+
+  <view class="exam-content" wx:if="{{currentSection === 1}}">
+    <!-- 听力 -->
+    <view class="listening-area text-center">听力section - 请佩戴耳机</view>
+  </view>
+
+  <view class="exam-content" wx:if="{{currentSection === 2}}">
+    <!-- 口语 -->
+    <view class="speaking-area text-center">口语section - 准备录音</view>
+  </view>
+
+  <view class="exam-content" wx:if="{{currentSection === 3}}">
+    <!-- 写作 -->
+    <textarea class="writing-area" placeholder="请输入你的文章..."></textarea>
+  </view>
+
+  <!-- 底部操作 -->
+  <view class="exam-footer p-md safe-bottom flex items-center justify-between">
+    <text class="text-sm text-secondary">Section {{currentSection + 1}}/4</text>
+    <button class="btn-primary" bindtap="nextSection" wx:if="{{currentSection < 3}}">下一科</button>
+    <button class="btn-primary" bindtap="submitExam" wx:else>提交考试</button>
+  </view>
+</view>

@@ -1,0 +1,5 @@
+/* mock-exam/result.wxss */
+@import "../reading/result.wxss";
+.result-header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+.score-row { padding: 20rpx 0; border-bottom: 1rpx solid #f0f0f0; }
+.score-row:last-child { border-bottom: none; }

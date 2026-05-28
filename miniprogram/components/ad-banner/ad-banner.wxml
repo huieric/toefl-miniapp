@@ -1,0 +1,13 @@
+<!--components/ad-banner/ad-banner.wxml-->
+<view class="ad-banner" wx:if="{{!hidden && ad}}" bindtap="onTap">
+  <image
+    class="ad-image"
+    src="{{ad.imageUrl || '/assets/ad-placeholder.png'}}"
+    mode="aspectFill"
+    lazy-load
+  />
+  <view class="ad-label">广告</view>
+</view>
+<view wx:elif="{{loading}}" class="ad-loading">
+  <view class="ad-placeholder"></view>
+</view>

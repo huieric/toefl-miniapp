@@ -1,0 +1,18 @@
+<!--pages/mock-exam/result.wxml - 模拟考成绩-->
+<view class="page-result">
+  <view class="result-header card">
+    <view class="result-score">87</view>
+    <view class="result-label">预估托福总分</view>
+  </view>
+  <view class="card mt-md">
+    <view class="card-title">各科成绩</view>
+    <score-radar scores="{{radarScores}}" />
+    <view class="subject-scores mt-md">
+      <view class="score-row flex items-center justify-between" wx:for="{{subjects}}" wx:key="subject">
+        <text class="text-md">{{item.subject}}</text>
+        <text class="text-xl text-bold text-primary">{{item.score}}<text class="text-sm text-hint">/30</text></text>
+      </view>
+    </view>
+  </view>
+  <view class="p-md"><button class="btn-primary btn-block" bindtap="goHome">返回首页</button></view>
+</view>

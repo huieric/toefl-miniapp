@@ -1,0 +1,26 @@
+<!--pages/speaking/list.wxml - 口语题列表-->
+<view class="page-list">
+  <view class="filter-bar flex items-center gap-sm p-md">
+    <view class="filter-item {{currentFilter === 'all' ? 'active' : ''}}" bindtap="setFilter" data-value="all">全部</view>
+    <view class="filter-item {{currentFilter === 'independent' ? 'active' : ''}}" bindtap="setFilter" data-value="independent">独立口语</view>
+    <view class="filter-item {{currentFilter === 'integrated' ? 'active' : ''}}" bindtap="setFilter" data-value="integrated">综合口语</view>
+  </view>
+
+  <view class="question-list p-md" wx:if="{{list.length > 0}}">
+    <view class="question-card card" wx:for="{{list}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="flex items-center justify-between mb-sm">
+        <view class="flex items-center gap-sm">
+          <text class="tag tag-speaking">口语</text>
+          <text class="tag tag-{{item.difficulty}}">{{item.difficulty === 'easy' ? '简单' : item.difficulty === 'medium' ? '中等' : '困难'}}</text>
+        </view>
+        <text class="text-sm text-hint">{{item.type === 'independent' ? '独立' : '综合'}}</text>
+      </view>
+      <view class="card-title">{{item.title}}</view>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:else>
+    <text class="empty-icon">🎤</text>
+    <text class="empty-text">暂无口语题目</text>
+  </view>
+</view>

@@ -1,0 +1,39 @@
+<!--pages/listening/detail.wxml - 听力详情页-->
+<view class="page-detail" wx:if="{{question}}">
+  <!-- 音频播放器 -->
+  <view class="player-section card">
+    <audio-player src="{{audioUrl}}" bind:ended="onAudioEnded" />
+    <view class="player-tip text-sm text-hint text-center mt-sm" wx:if="{{!audioPlayed}}">请先听音频，再答题</view>
+  </view>
+
+  <!-- 题目区域 -->
+  <view class="question-area p-md">
+    <view class="q-number text-sm text-hint mb-sm">第 {{currentQIndex + 1}} 题 / 共 {{questions.length}} 题</view>
+    <view class="q-text card-title">{{currentQuestion.title}}</view>
+    <view class="q-content text-secondary mb-md">{{currentQuestion.content}}</view>
+
+    <view class="options-list">
+      <view
+        class="option-item {{selectedAnswer === opt.label ? (submitted && opt.label !== currentQuestion.answer ? 'wrong' : '') : ''}} {{submitted && opt.label === currentQuestion.answer ? 'correct' : ''}}"
+        wx:for="{{currentQuestion.options}}"
+        wx:for-item="opt"
+        wx:key="label"
+        bindtap="selectAnswer"
+        data-label="{{opt.label}}"
+      >
+        <view class="option-label">{{opt.label}}</view>
+        <view class="option-text flex-1">{{opt.text}}</view>
+        <view class="option-icon" wx:if="{{submitted}}">
+          <text wx:if="{{opt.label === currentQuestion.answer}}">✓</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-bar flex items-center justify-between p-md safe-bottom">
+    <button class="btn-outline btn-sm" bindtap="prevQuestion" disabled="{{currentQIndex === 0}}">上一题</button>
+    <button class="btn-primary btn-sm" bindtap="submitAnswer" wx:if="{{!submitted}}" disabled="{{!selectedAnswer}}">提交</button>
+    <button class="btn-primary btn-sm" bindtap="nextQuestion" wx:if="{{submitted}}" disabled="{{currentQIndex === questions.length - 1}}">下一题</button>
+    <button class="btn-primary" bindtap="finishPractice" wx:if="{{submitted && currentQIndex === questions.length - 1}}">完成</button>
+  </view>
+</view>

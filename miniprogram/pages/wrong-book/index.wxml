@@ -1,0 +1,40 @@
+<!--pages/wrong-book/index.wxml - 错题集-->
+<view class="page-wrong-book">
+  <!-- Tab切换 -->
+  <view class="tabs flex">
+    <view class="tab-item {{currentTab === 'all' ? 'active' : ''}}" bindtap="switchTab" data-tab="all">全部</view>
+    <view class="tab-item {{currentTab === 'reading' ? 'active' : ''}}" bindtap="switchTab" data-tab="reading">阅读</view>
+    <view class="tab-item {{currentTab === 'listening' ? 'active' : ''}}" bindtap="switchTab" data-tab="listening">听力</view>
+    <view class="tab-item {{currentTab === 'speaking' ? 'active' : ''}}" bindtap="switchTab" data-tab="speaking">口语</view>
+    <view class="tab-item {{currentTab === 'writing' ? 'active' : ''}}" bindtap="switchTab" data-tab="writing">写作</view>
+  </view>
+
+  <!-- 复习计划 -->
+  <view class="review-plan card" wx:if="{{reviewCount > 0}}">
+    <view class="flex items-center justify-between">
+      <view>
+        <text class="text-primary text-bold">今日待复习 {{reviewCount}} 题</text>
+      </view>
+      <button class="btn-primary btn-sm" bindtap="goReview">开始复习</button>
+    </view>
+  </view>
+
+  <view class="wrong-list p-md" wx:if="{{list.length > 0}}">
+    <view class="wrong-card card" wx:for="{{list}}" wx:key="id">
+      <view class="flex items-center justify-between mb-sm">
+        <text class="tag tag-{{item.question_subject || 'reading'}}">{{item.question_subject || '阅读'}}</text>
+        <text class="text-sm text-hint">{{item.wrong_count || 1}}次错误</text>
+      </view>
+      <view class="card-title text-md">{{item.question_title || '题目'}}</view>
+      <view class="flex items-center justify-between mt-md">
+        <text class="text-sm text-hint">下次复习：{{item.next_review_at || '今日'}}</text>
+        <button class="btn-outline btn-sm" bindtap="redoQuestion" data-id="{{item.id}}">重做</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:else>
+    <text class="empty-icon">📖</text>
+    <text class="empty-text">暂无错题，继续保持！</text>
+  </view>
+</view>

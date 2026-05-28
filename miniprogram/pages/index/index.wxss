@@ -1,0 +1,165 @@
+/* pages/index/index.wxss */
+.page-index {
+  padding: 24rpx;
+  padding-bottom: 120rpx;
+}
+
+.welcome-card {
+  background: linear-gradient(135deg, #4A90D9 0%, #6BA5E7 100%);
+  color: #fff;
+}
+
+.welcome-card .welcome-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  margin-bottom: 8rpx;
+}
+
+.welcome-card .welcome-sub {
+  font-size: 26rpx;
+  opacity: 0.85;
+}
+
+.welcome-card .welcome-avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  border: 4rpx solid rgba(255,255,255,0.5);
+}
+
+.welcome-card .today-progress {
+  padding-top: 20rpx;
+  border-top: 1rpx solid rgba(255,255,255,0.3);
+}
+
+.welcome-card .progress-label {
+  color: rgba(255,255,255,0.9);
+}
+
+/* 快捷入口网格 */
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20rpx;
+  margin-bottom: 12rpx;
+}
+
+.quick-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+  padding: 24rpx 0;
+  background: #fff;
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.05);
+  font-size: 26rpx;
+  color: #333;
+}
+
+.quick-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #333;
+}
+
+/* 功能列表 */
+.func-list {
+  padding: 8rpx 28rpx;
+}
+
+.func-item {
+  padding: 24rpx 0;
+  font-size: 30rpx;
+}
+
+.func-icon {
+  font-size: 36rpx;
+}
+
+.badge {
+  background: #FF4D4F;
+  color: #fff;
+  font-size: 20rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  border-radius: 16rpx;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8rpx;
+}
+
+/* 今日任务 */
+.today-tasks {
+  padding: 16rpx 28rpx;
+}
+
+.task-item {
+  padding: 16rpx 0;
+}
+
+.task-check {
+  width: 40rpx;
+  height: 40rpx;
+  border: 3rpx solid #ccc;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.task-check.checked {
+  background: #4A90D9;
+  border-color: #4A90D9;
+}
+
+.task-title {
+  font-size: 28rpx;
+  display: block;
+}
+
+.task-desc {
+  display: block;
+  margin-top: 4rpx;
+}
+
+.task-done {
+  text-decoration: line-through;
+  color: #999;
+}
+
+/* 学习统计 */
+.stats-grid {
+  margin-bottom: 24rpx;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 24rpx 12rpx;
+}
+
+.stat-num {
+  display: block;
+  font-size: 40rpx;
+  font-weight: 700;
+}
+
+.stat-label {
+  display: block;
+  margin-top: 4rpx;
+}
+
+.section-title {
+  padding: 0 8rpx;
+  margin-bottom: 12rpx;
+}

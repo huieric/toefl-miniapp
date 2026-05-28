@@ -1,0 +1,8 @@
+/* wrong-book/index.wxss */
+.page-wrong-book { min-height: 100vh; padding-bottom: 40rpx; }
+.tabs { background: #fff; position: sticky; top: 0; z-index: 10; overflow-x: auto; white-space: nowrap; }
+.tab-item { display: inline-block; padding: 20rpx 24rpx; font-size: 26rpx; color: #666; }
+.tab-item.active { color: #4A90D9; font-weight: 600; border-bottom: 4rpx solid #4A90D9; }
+.review-plan { margin: 24rpx; }
+
+.wrong-card { border-left: 6rpx solid #FF4D4F; }

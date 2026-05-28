@@ -1,0 +1,4 @@
+<!--components/timer/timer.wxml - 倒计时组件-->
+<view class="timer-display">
+  <text class="timer-text {{urgent ? 'urgent' : ''}}">{{display}}</text>
+</view>

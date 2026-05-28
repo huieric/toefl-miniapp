@@ -1,0 +1,31 @@
+/* ai-talk/index.wxss */
+.page-ai-talk { padding-bottom: 80rpx; min-height: 100vh; }
+.hero-section { text-align: center; padding: 48rpx 28rpx; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
+.hero-icon { font-size: 72rpx; }
+.hero-title { font-size: 36rpx; font-weight: 700; margin: 16rpx 0 8rpx; }
+.hero-desc { font-size: 26rpx; opacity: 0.85; }
+
+.mode-card { text-align: center; padding: 32rpx 16rpx; }
+.mode-card:active { background: #f8f8f8; }
+.mode-icon { font-size: 48rpx; display: block; margin-bottom: 12rpx; }
+.mode-title { font-size: 28rpx; font-weight: 600; display: block; }
+.mode-desc { font-size: 22rpx; color: #999; display: block; margin-top: 4rpx; }
+
+.scene-item {
+  padding: 16rpx 24rpx;
+  background: #f5f5f5;
+  border-radius: 16rpx;
+  font-size: 24rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+  width: calc(33.33% - 12rpx);
+  box-sizing: border-box;
+}
+.scene-item:active { background: #e8e8e8; }
+.scene-icon { font-size: 32rpx; }
+
+.history-item { padding: 20rpx 24rpx; }
+.history-icon { font-size: 40rpx; }
+.block { display: block; }

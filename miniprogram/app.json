@@ -1,0 +1,80 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/auth/auth",
+    "pages/reading/list",
+    "pages/reading/detail",
+    "pages/reading/result",
+    "pages/listening/list",
+    "pages/listening/detail",
+    "pages/listening/result",
+    "pages/speaking/list",
+    "pages/speaking/detail",
+    "pages/writing/list",
+    "pages/writing/detail",
+    "pages/writing/result",
+    "pages/mock-exam/index",
+    "pages/mock-exam/exam",
+    "pages/mock-exam/result",
+    "pages/wrong-book/index",
+    "pages/wrong-book/redo",
+    "pages/ai-talk/index",
+    "pages/ai-talk/chat",
+    "pages/ai-talk/listen",
+    "pages/plan/index",
+    "pages/plan/daily",
+    "pages/plan/setup",
+    "pages/profile/index",
+    "pages/profile/feedback",
+    "pages/profile/history",
+    "pages/upload/index",
+    "pages/membership/index",
+    "pages/membership/plans",
+    "pages/membership/order",
+    "pages/membership/success"
+  ],
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#4A90D9",
+    "navigationBarTitleText": "托福备考助手",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F6F7FB"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#4A90D9",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "assets/tab-home.png",
+        "selectedIconPath": "assets/tab-home-active.png"
+      },
+      {
+        "pagePath": "pages/reading/list",
+        "text": "练习",
+        "iconPath": "assets/tab-practice.png",
+        "selectedIconPath": "assets/tab-practice-active.png"
+      },
+      {
+        "pagePath": "pages/ai-talk/index",
+        "text": "AI陪练",
+        "iconPath": "assets/tab-ai.png",
+        "selectedIconPath": "assets/tab-ai-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "assets/tab-profile.png",
+        "selectedIconPath": "assets/tab-profile-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "usingComponents": {
+    "ad-banner": "/components/ad-banner/ad-banner"
+  }
+}

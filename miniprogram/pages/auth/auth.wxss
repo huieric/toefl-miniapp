@@ -1,0 +1,77 @@
+/* pages/auth/auth.wxss */
+.page-auth {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+  background: linear-gradient(180deg, #E3F2FD 0%, #F6F7FB 60%);
+}
+
+.auth-container {
+  width: 100%;
+  max-width: 600rpx;
+}
+
+.auth-logo {
+  width: 140rpx;
+  height: 140rpx;
+  margin: 0 auto 32rpx;
+  background: linear-gradient(135deg, #4A90D9, #6BA5E7);
+  border-radius: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 30rpx rgba(74, 144, 217, 0.3);
+}
+
+.logo-text {
+  font-size: 72rpx;
+  font-weight: 800;
+  color: #fff;
+}
+
+.auth-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  text-align: center;
+  color: #1a1a1a;
+}
+
+.auth-sub {
+  font-size: 28rpx;
+  text-align: center;
+  color: #999;
+  margin-top: 12rpx;
+}
+
+.auth-features {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 32rpx;
+  margin: 48rpx 0;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.04);
+}
+
+.feature-item {
+  font-size: 28rpx;
+  color: #555;
+  padding: 12rpx 0;
+}
+
+.feature-icon {
+  font-size: 36rpx;
+}
+
+.login-btn {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  font-size: 34rpx;
+  border-radius: 48rpx;
+  margin-top: 20rpx;
+}
+
+.privacy-tip {
+  margin-top: 24rpx;
+}

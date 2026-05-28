@@ -1,0 +1,29 @@
+/* plan/daily.wxss */
+.page-daily { padding: 24rpx; min-height: 100vh; }
+.daily-header { text-align: center; padding: 32rpx; }
+.daily-date { font-size: 36rpx; font-weight: 700; }
+.daily-date-sm { font-size: 24rpx; }
+
+.task-card { padding: 24rpx; margin-bottom: 16rpx; }
+.task-done { opacity: 0.6; }
+.task-title.text-done { text-decoration: line-through; }
+
+.checkbox {
+  width: 48rpx; height: 48rpx;
+  border-radius: 50%;
+  border: 3rpx solid #ddd;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.checkbox.checked { background: #52C41A; border-color: #52C41A; }
+.checkbox.checked text { color: #fff; font-size: 28rpx; }
+
+.tag-sm { font-size: 20rpx; padding: 4rpx 12rpx; }
+.tag-reading { background: #E3F2FD; color: #1976D2; }
+.tag-listening { background: #F3E5F5; color: #7B1FA2; }
+.tag-speaking { background: #FFF3E0; color: #F57C00; }
+.tag-writing { background: #E8F5E9; color: #388E3C; }
+
+.text-xs { font-size: 20rpx; }
+
+.reminder { margin: 24rpx; padding: 24rpx; border-left: 6rpx solid #FF9800; }

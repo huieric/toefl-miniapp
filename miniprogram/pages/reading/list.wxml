@@ -1,0 +1,34 @@
+<!--pages/reading/list.wxml - 阅读题列表-->
+<view class="page-list">
+  <!-- 筛选栏 -->
+  <view class="filter-bar flex items-center gap-sm p-md">
+    <view class="filter-item {{currentFilter === 'all' ? 'active' : ''}}" bindtap="setFilter" data-value="all">全部</view>
+    <view class="filter-item {{currentFilter === 'easy' ? 'active' : ''}}" bindtap="setFilter" data-value="easy">简单</view>
+    <view class="filter-item {{currentFilter === 'medium' ? 'active' : ''}}" bindtap="setFilter" data-value="medium">中等</view>
+    <view class="filter-item {{currentFilter === 'hard' ? 'active' : ''}}" bindtap="setFilter" data-value="hard">困难</view>
+  </view>
+
+  <!-- 列表 -->
+  <view class="question-list p-md" wx:if="{{list.length > 0}}">
+    <view class="question-card card" wx:for="{{list}}" wx:key="id" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="flex items-center justify-between mb-sm">
+        <view class="flex items-center gap-sm">
+          <text class="tag tag-{{item.difficulty}}">{{item.difficulty === 'easy' ? '简单' : item.difficulty === 'medium' ? '中等' : '困难'}}</text>
+          <text class="tag tag-reading">阅读</text>
+        </view>
+        <text class="text-sm text-hint">{{item.type}}</text>
+      </view>
+      <view class="card-title">{{item.title}}</view>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:else>
+    <text class="empty-icon">📚</text>
+    <text class="empty-text">暂无阅读题目</text>
+  </view>
+
+  <!-- 加载更多 -->
+  <view class="loading-wrap" wx:if="{{hasMore && list.length > 0}}">
+    <text class="text-hint text-sm">加载中...</text>
+  </view>
+</view>

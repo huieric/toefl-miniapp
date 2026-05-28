@@ -1,0 +1,18 @@
+<!--components/audio-player/audio-player.wxml - 音频播放器组件-->
+<view class="audio-player">
+  <button class="play-btn" bindtap="togglePlay">
+    <text>{{playing ? '⏸' : '▶'}}</text>
+  </button>
+  <view class="progress-section flex-1">
+    <view class="progress-bar" bindtap="seek">
+      <view class="progress-current" style="width: {{progress}}%"></view>
+    </view>
+    <view class="time-row flex justify-between">
+      <text class="time-text">{{currentTimeStr}}</text>
+      <text class="time-text">{{durationStr}}</text>
+    </view>
+  </view>
+  <view class="speed-btn" bindtap="toggleSpeed">
+    <text class="speed-text">{{speed}}x</text>
+  </view>
+</view>

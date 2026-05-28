@@ -1,0 +1,40 @@
+<!--pages/writing/result.wxml - AI评分结果页-->
+<view class="page-result" wx:if="{{loaded}}">
+  <view class="result-header card">
+    <view class="result-score">{{result.score}}</view>
+    <view class="result-label">AI评分</view>
+  </view>
+
+  <view class="score-detail card mt-md">
+    <view class="card-title">评分详情</view>
+    <view class="score-item flex items-center justify-between" wx:for="{{dimensions}}" wx:key="label">
+      <text class="text-md">{{item.label}}</text>
+      <view class="flex items-center gap-sm">
+        <progress-bar percent="{{item.score * 3.33}}" />
+        <text class="text-primary text-bold">{{item.score}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="feedback card mt-md" wx:if="{{result.feedback}}">
+    <view class="card-title">AI批改建议</view>
+    <view class="card-desc">{{result.feedback}}</view>
+    <view class="suggestions mt-md" wx:if="{{result.suggestions && result.suggestions.length > 0}}">
+      <view class="suggestion-item flex gap-sm" wx:for="{{result.suggestions}}" wx:key="index">
+        <text class="text-primary">•</text>
+        <text class="text-md">{{item}}</text>
+      </view>
+    </view>
+    <view class="highlights mt-md" wx:if="{{result.highlights && result.highlights.length > 0}}">
+      <view class="card-title text-sm">亮点</view>
+      <view class="suggestion-item flex gap-sm" wx:for="{{result.highlights}}" wx:key="index">
+        <text class="text-success">✦</text>
+        <text class="text-md">{{item}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="btn-group p-md">
+    <button class="btn-primary btn-block" bindtap="goBack">继续练习</button>
+  </view>
+</view>

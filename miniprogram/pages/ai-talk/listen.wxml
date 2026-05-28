@@ -1,0 +1,29 @@
+<!--pages/ai-talk/listen.wxml - 听力沉浸模式-->
+<view class="page-listen">
+  <view class="listen-header card text-center">
+    <text class="listen-title">听力沉浸训练</text>
+    <text class="listen-desc">沉浸式英语听力环境，提升语感</text>
+  </view>
+
+  <view class="listen-mode card mt-md" wx:if="{{!started}}">
+    <view class="card-title">选择主题</view>
+    <view class="topic-grid flex flex-wrap gap-sm">
+      <view class="topic-item {{currentTopic === 'campus' ? 'active' : ''}}" bindtap="selectTopic" data-value="campus">校园对话</view>
+      <view class="topic-item {{currentTopic === 'lecture' ? 'active' : ''}}" bindtap="selectTopic" data-value="lecture">学术讲座</view>
+      <view class="topic-item {{currentTopic === 'daily' ? 'active' : ''}}" bindtap="selectTopic" data-value="daily">日常交流</view>
+      <view class="topic-item {{currentTopic === 'news' ? 'active' : ''}}" bindtap="selectTopic" data-value="news">新闻英语</view>
+    </view>
+    <button class="btn-primary btn-block mt-lg" bindtap="startListening">开始沉浸</button>
+  </view>
+
+  <view class="listen-active card mt-md text-center" wx:if="{{started}}">
+    <view class="audio-status">
+      <text class="status-text text-lg text-primary">🎧 正在播放</text>
+      <text class="text-sm text-hint mt-sm block">{{currentTopic === 'campus' ? '校园对话' : currentTopic === 'lecture' ? '学术讲座' : currentTopic === 'daily' ? '日常交流' : '新闻英语'}}</text>
+    </view>
+    <view class="wave-animation flex items-center justify-center gap-xs mt-lg">
+      <view class="bar" wx:for="{{[1,2,3,4,5,6,7,8,9,10]}}" wx:key="index"></view>
+    </view>
+    <button class="btn-outline mt-lg" bindtap="stopListening">结束</button>
+  </view>
+</view>

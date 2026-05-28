@@ -1,0 +1,31 @@
+/* ai-talk/listen.wxss */
+.page-listen { padding: 24rpx; min-height: 100vh; }
+.listen-header { padding: 40rpx; background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); color: #fff; }
+.listen-title { font-size: 36rpx; font-weight: 700; display: block; margin-bottom: 8rpx; }
+.listen-desc { font-size: 26rpx; opacity: 0.85; }
+
+.topic-grid { margin-top: 16rpx; }
+.topic-item { padding: 16rpx 32rpx; background: #f5f5f5; border-radius: 16rpx; font-size: 26rpx; color: #666; }
+.topic-item.active { background: #2196F3; color: #fff; }
+
+.listen-active { padding: 64rpx 24rpx; }
+.status-text { display: block; }
+.block { display: block; }
+.gap-xs { gap: 6rpx; }
+
+.wave-animation { height: 100rpx; }
+.wave-animation .bar {
+  width: 6rpx; background: #2196F3;
+  animation: waveAnim 1.2s ease-in-out infinite alternate;
+}
+.wave-animation .bar:nth-child(1) { height: 20rpx; animation-delay: 0s; }
+.wave-animation .bar:nth-child(2) { height: 30rpx; animation-delay: 0.1s; }
+.wave-animation .bar:nth-child(3) { height: 50rpx; animation-delay: 0.2s; }
+.wave-animation .bar:nth-child(4) { height: 40rpx; animation-delay: 0.3s; }
+.wave-animation .bar:nth-child(5) { height: 60rpx; animation-delay: 0.4s; }
+.wave-animation .bar:nth-child(6) { height: 60rpx; animation-delay: 0.5s; }
+.wave-animation .bar:nth-child(7) { height: 40rpx; animation-delay: 0.6s; }
+.wave-animation .bar:nth-child(8) { height: 50rpx; animation-delay: 0.7s; }
+.wave-animation .bar:nth-child(9) { height: 30rpx; animation-delay: 0.8s; }
+.wave-animation .bar:nth-child(10) { height: 20rpx; animation-delay: 0.9s; }
+@keyframes waveAnim { to { height: 80rpx; } }

@@ -1,0 +1,4 @@
+/* profile/history.wxss */
+.page-history { min-height: 100vh; }
+.history-card { padding: 24rpx; margin-bottom: 16rpx; }
+.tag { padding: 4rpx 16rpx; border-radius: 8rpx; font-size: 22rpx; }

@@ -1,0 +1,25 @@
+<!--pages/wrong-book/redo.wxml - 重做错题-->
+<view class="page-redo">
+  <view class="question-card card" wx:if="{{question}}">
+    <view class="card-title">{{question.title}}</view>
+    <view class="card-desc mt-sm">{{question.content}}</view>
+
+    <view class="options-list mt-lg">
+      <answer-card options="{{question.options}}" bind:select="onSelect" />
+    </view>
+  </view>
+
+  <view class="redo-footer p-md safe-bottom">
+    <view class="difficulty-slider mb-lg" wx:if="{{submitted}}">
+      <text class="text-sm text-secondary">这道题你回忆得如何？</text>
+      <view class="quality-buttons flex gap-sm mt-sm">
+        <button class="q-btn {{quality === 0 ? 'active' : ''}}" bindtap="setQuality" data-value="0">完全忘了</button>
+        <button class="q-btn {{quality === 2 ? 'active' : ''}}" bindtap="setQuality" data-value="2">有点印象</button>
+        <button class="q-btn {{quality === 4 ? 'active' : ''}}" bindtap="setQuality" data-value="4">经过思考</button>
+        <button class="q-btn {{quality === 5 ? 'active' : ''}}" bindtap="setQuality" data-value="5">非常轻松</button>
+      </view>
+    </view>
+    <button class="btn-primary btn-block" bindtap="submitAnswer" wx:if="{{!submitted}}" disabled="{{!selected}}">提交答案</button>
+    <button class="btn-primary btn-block" bindtap="confirmRedo" wx:if="{{submitted && quality !== null}}">确认完成</button>
+  </view>
+</view>

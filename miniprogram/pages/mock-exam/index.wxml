@@ -1,0 +1,27 @@
+<!--pages/mock-exam/index.wxml - 模拟考首页-->
+<view class="page-mock-exam">
+  <view class="exam-hero card">
+    <view class="exam-title">全真模拟考试</view>
+    <view class="exam-desc">模拟真实托福考试流程，包含阅读、听力、口语、写作四科，全程约3小时</view>
+    <view class="exam-info flex gap-lg mt-lg">
+      <view class="info-item flex-1"><text class="info-num text-primary">36</text><text class="info-label">阅读分钟</text></view>
+      <view class="info-item flex-1"><text class="info-num text-primary">41</text><text class="info-label">听力分钟</text></view>
+      <view class="info-item flex-1"><text class="info-num text-primary">17</text><text class="info-label">口语分钟</text></view>
+      <view class="info-item flex-1"><text class="info-num text-primary">50</text><text class="info-label">写作分钟</text></view>
+    </view>
+  </view>
+
+  <view class="exam-rules card mt-md">
+    <view class="card-title">考试规则</view>
+    <view class="rule-list">
+      <view class="rule-item flex gap-sm"><text class="rule-num">1</text><text>按顺序完成四科考试，不可跳题</text></view>
+      <view class="rule-item flex gap-sm"><text class="rule-num">2</text><text>考试过程中请勿切换页面，否则可能丢失进度</text></view>
+      <view class="rule-item flex gap-sm"><text class="rule-num">3</text><text>保持网络畅通，口语录音需要稳定网络</text></view>
+      <view class="rule-item flex gap-sm"><text class="rule-num">4</text><text>完成全部四科后自动生成总分报告</text></view>
+    </view>
+  </view>
+
+  <view class="p-md mt-lg">
+    <button class="btn-primary btn-block start-btn" bindtap="startExam">开始考试</button>
+  </view>
+</view>

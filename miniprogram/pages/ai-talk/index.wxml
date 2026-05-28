@@ -1,0 +1,63 @@
+<!--pages/ai-talk/index.wxml - AI陪练首页-->
+<view class="page-ai-talk">
+  <view class="hero-section card">
+    <view class="hero-icon">🤖</view>
+    <view class="hero-title">AI智能陪练</view>
+    <view class="hero-desc">随时随地练习口语和听力，AI实时对话反馈</view>
+  </view>
+
+  <view class="mode-cards flex gap-sm p-md">
+    <view class="mode-card card flex-1" bindtap="startChat" data-scene="free_talk">
+      <text class="mode-icon">💬</text>
+      <text class="mode-title">自由对话</text>
+      <text class="mode-desc">英语口语实战对话</text>
+    </view>
+    <view class="mode-card card flex-1" bindtap="startListen">
+      <text class="mode-icon">🎧</text>
+      <text class="mode-title">听力沉浸</text>
+      <text class="mode-desc">场景化听力特训</text>
+    </view>
+  </view>
+
+  <view class="scene-section p-md">
+    <view class="card-title">选择场景</view>
+    <view class="scene-grid flex flex-wrap gap-sm">
+      <view class="scene-item" bindtap="startChat" data-scene="free_talk">
+        <text class="scene-icon">🗣️</text>
+        <text>自由对话</text>
+      </view>
+      <view class="scene-item" bindtap="startChat" data-scene="campus">
+        <text class="scene-icon">🏫</text>
+        <text>校园场景</text>
+      </view>
+      <view class="scene-item" bindtap="startChat" data-scene="academic">
+        <text class="scene-icon">📖</text>
+        <text>学术讨论</text>
+      </view>
+      <view class="scene-item" bindtap="startChat" data-scene="daily">
+        <text class="scene-icon">🏠</text>
+        <text>日常生活</text>
+      </view>
+      <view class="scene-item" bindtap="startChat" data-scene="debate">
+        <text class="scene-icon">⚡</text>
+        <text>观点辩论</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 历史记录 -->
+  <view class="history-section p-md">
+    <view class="flex items-center justify-between mb-md">
+      <text class="card-title">历史记录</text>
+      <text class="text-sm text-primary" bindtap="loadHistory">查看全部</text>
+    </view>
+    <view class="history-item card flex items-center gap-sm" wx:for="{{history}}" wx:key="id" bindtap="goHistory" data-id="{{item.id}}">
+      <text class="history-icon">💬</text>
+      <view class="flex-1">
+        <text class="text-md block">{{item.scene_name || '自由对话'}}</text>
+        <text class="text-sm text-hint">{{item.created_at || '刚刚'}}</text>
+      </view>
+      <text class="text-primary">{{item.score || '-'}}分</text>
+    </view>
+  </view>
+</view>

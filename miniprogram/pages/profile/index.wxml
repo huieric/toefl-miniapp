@@ -1,0 +1,57 @@
+<!--pages/profile/index.wxml - 个人中心-->
+<view class="page-profile">
+  <view class="profile-header card">
+    <view class="user-section flex flex-col items-center">
+      <image class="avatar" src="{{userInfo.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"/>
+      <text class="nickname text-lg text-bold mt-sm">{{userInfo.nickName || '托福考生'}}</text>
+      <text class="text-sm text-hint mt-xs">目标 {{stats.target_score || 90}} 分 | 坚持 {{stats.total_days || 0}} 天</text>
+    </view>
+
+    <view class="stats-row flex gap-sm mt-lg">
+      <view class="stat-item flex-1 text-center">
+        <text class="stat-num text-primary text-xl text-bold">{{stats.total_practice || 0}}</text>
+        <text class="stat-label text-sm text-hint">做题总数</text>
+      </view>
+      <view class="stat-item flex-1 text-center">
+        <text class="stat-num text-primary text-xl text-bold">{{stats.total_minutes || 0}}h</text>
+        <text class="stat-label text-sm text-hint">学习时长</text>
+      </view>
+      <view class="stat-item flex-1 text-center">
+        <text class="stat-num text-primary text-xl text-bold">{{stats.accuracy || 0}}%</text>
+        <text class="stat-label text-sm text-hint">正确率</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="menu-section mt-md">
+    <view class="menu-group">
+      <view class="menu-title text-sm text-hint p-md">学习管理</view>
+      <view class="menu-item flex items-center justify-between" bindtap="goPage" data-url="/pages/plan/index">
+        <text>📅 学习计划</text><text class="text-hint">→</text>
+      </view>
+      <view class="menu-item flex items-center justify-between" bindtap="goPage" data-url="/pages/wrong-book/index">
+        <text>📖 错题集</text><text class="text-hint">→</text>
+      </view>
+      <view class="menu-item flex items-center justify-between" bindtap="goPage" data-url="/pages/profile/history">
+        <text>📊 学习记录</text><text class="text-hint">→</text>
+      </view>
+      <view class="menu-item flex items-center justify-between" bindtap="goPage" data-url="/pages/upload/index">
+        <text>📄 上传题目</text><text class="text-hint">→</text>
+      </view>
+    </view>
+
+    <view class="menu-group mt-md">
+      <view class="menu-title text-sm text-hint p-md">其他</view>
+      <view class="menu-item flex items-center justify-between" bindtap="goPage" data-url="/pages/profile/feedback">
+        <text>💬 意见反馈</text><text class="text-hint">→</text>
+      </view>
+      <view class="menu-item flex items-center justify-between" bindtap="showAbout">
+        <text>ℹ️ 关于我们</text><text class="text-hint">→</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="p-md mt-lg">
+    <button class="btn-outline btn-block" bindtap="logout">退出登录</button>
+  </view>
+</view>

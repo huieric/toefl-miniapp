@@ -1,0 +1,13 @@
+<!--components/answer-card/answer-card.wxml - 答题卡组件-->
+<view class="answer-card">
+  <view class="option-item {{selected === item.label ? 'selected' : ''}} {{showAnswer && item.label === answer ? 'correct' : ''}} {{showAnswer && selected === item.label && item.label !== answer ? 'wrong' : ''}}"
+    wx:for="{{options}}" wx:key="label"
+    bindtap="onTap" data-label="{{item.label}}">
+    <view class="option-label">{{item.label}}</view>
+    <view class="option-text">{{item.text}}</view>
+    <view class="option-icon" wx:if="{{showAnswer}}">
+      <text wx:if="{{item.label === answer}}" class="text-success">✓</text>
+      <text wx:elif="{{selected === item.label}}" class="text-danger">✗</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,10 @@
+/* upload/index.wxss */
+.page-upload { padding: 24rpx; min-height: 100vh; }
+.upload-area { padding: 64rpx 24rpx; }
+.upload-icon { font-size: 80rpx; display: block; margin-bottom: 16rpx; }
+.upload-title { font-size: 34rpx; font-weight: 700; display: block; margin-bottom: 8rpx; }
+.upload-desc { display: block; }
+.upload-tip { display: block; color: #bbb; }
+.upload-progress { padding: 40rpx 24rpx; }
+.detail-row { padding: 16rpx 0; border-bottom: 1rpx solid #f5f5f5; }
+.detail-row:last-child { border-bottom: none; }

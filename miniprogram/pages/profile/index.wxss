@@ -1,0 +1,15 @@
+/* profile/index.wxss */
+.page-profile { min-height: 100vh; padding-bottom: 80rpx; }
+.profile-header { padding: 48rpx 24rpx 32rpx; text-align: center; }
+.avatar { width: 140rpx; height: 140rpx; border-radius: 50%; border: 4rpx solid #fff; box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.1); background: #f0f0f0; }
+.nickname { }
+.stats-row { margin-top: 32rpx; }
+.stat-item { padding: 12rpx 0; }
+.stat-num { display: block; margin-bottom: 4rpx; }
+.stat-label { display: block; }
+
+.menu-group { background: #fff; }
+.menu-item { padding: 28rpx 24rpx; background: #fff; font-size: 28rpx; border-bottom: 1rpx solid #f5f5f5; }
+
+.flex-col { flex-direction: column; }
+.menu-title { background: #F6F7FB; }

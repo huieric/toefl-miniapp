@@ -1,0 +1,24 @@
+<!--pages/ai-talk/chat.wxml - AI陪练对话-->
+<view class="page-chat">
+  <scroll-view class="chat-messages" scroll-y scroll-into-view="msg-{{messages.length - 1}}" wx:if="{{messages.length > 0}}">
+    <view class="msg-item {{item.role === 'user' ? 'msg-user' : 'msg-ai'}}" wx:for="{{messages}}" wx:key="index" id="msg-{{index}}">
+      <view class="msg-bubble {{item.role === 'user' ? 'bubble-user' : 'bubble-ai'}}">
+        <text>{{item.content}}</text>
+        <view class="msg-score" wx:if="{{item.score}}"><text class="text-primary">评分: {{item.score}}/10</text></view>
+        <view class="msg-correction" wx:if="{{item.correction}}"><text class="text-warning">建议: {{item.correction}}</text></view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="chat-start text-center" wx:else>
+    <text class="empty-icon">💬</text>
+    <text class="text-md text-hint">开始对话吧!</text>
+  </view>
+
+  <!-- 输入区域 -->
+  <view class="chat-input safe-bottom">
+    <button class="voice-btn" bindtouchstart="startVoice" bindtouchend="stopVoice">🎤</button>
+    <input class="text-input" value="{{inputText}}" bindinput="onInput" placeholder="输入内容或按住语音" bindconfirm="sendText"/>
+    <button class="send-btn" bindtap="sendText" disabled="{{!inputText}}">发送</button>
+  </view>
+</view>

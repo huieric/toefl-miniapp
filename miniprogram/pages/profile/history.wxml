@@ -1,0 +1,20 @@
+<!--pages/profile/history.wxml - 学习历史记录-->
+<view class="page-history">
+  <view class="history-list p-md" wx:if="{{list.length > 0}}">
+    <view class="history-card card" wx:for="{{list}}" wx:key="id">
+      <view class="flex items-center justify-between mb-sm">
+        <text class="tag tag-{{item.subject}}">{{item.subject_label}}</text>
+        <text class="text-sm text-hint">{{item.created_at}}</text>
+      </view>
+      <view class="text-md text-bold">{{item.title || '练习记录'}}</view>
+      <view class="flex items-center justify-between mt-sm">
+        <text>正确率: <text class="text-primary">{{item.accuracy || 0}}%</text></text>
+        <text class="text-sm text-hint">用时 {{item.time_spent || 0}}分钟</text>
+      </view>
+    </view>
+  </view>
+  <view class="empty-state" wx:else>
+    <text class="empty-icon">📊</text>
+    <text class="empty-text">还没有学习记录</text>
+  </view>
+</view>

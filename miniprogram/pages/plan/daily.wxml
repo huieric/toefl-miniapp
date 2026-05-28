@@ -1,0 +1,38 @@
+<!--pages/plan/daily.wxml - 今日任务清单-->
+<view class="page-daily">
+  <view class="daily-header card">
+    <text class="daily-date">今日任务</text>
+    <text class="daily-date-sm text-hint">{{todayDate}}</text>
+    <view class="daily-progress mt-sm flex items-center gap-sm">
+      <progress-bar percent="{{dailyProgress}}" />
+      <text class="text-sm text-primary">{{dailyProgress}}%</text>
+    </view>
+  </view>
+
+  <view class="task-list p-md" wx:if="{{tasks.length > 0}}">
+    <view class="task-card card {{item.completed ? 'task-done' : ''}} flex items-center gap-sm" wx:for="{{tasks}}" wx:key="id" bindtap="toggleTask" data-index="{{index}}">
+      <view class="checkbox {{item.completed ? 'checked' : ''}}">
+        <text wx:if="{{item.completed}}">✓</text>
+      </view>
+      <view class="flex-1">
+        <text class="task-title text-md {{item.completed ? 'text-done' : ''}}">{{item.title}}</text>
+        <view class="flex items-center gap-sm mt-xs">
+          <text class="tag tag-sm tag-{{item.subject}}">{{item.subject_label || '阅读'}}</text>
+          <text class="text-xs text-hint">预计 {{item.estimated_minutes || 30}}分钟</text>
+        </view>
+      </view>
+      <text class="task-arrow text-hint">→</text>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:else>
+    <text class="empty-icon">🎯</text>
+    <text class="empty-text">今天任务都完成啦！</text>
+  </view>
+
+  <!-- 复习提醒 -->
+  <view class="reminder card" wx:if="{{reviewCount > 0}}">
+    <text class="text-primary text-bold">📚 今日待复习 {{reviewCount}} 道错题</text>
+    <button class="btn-outline btn-sm mt-sm" bindtap="goReview">去复习</button>
+  </view>
+</view>

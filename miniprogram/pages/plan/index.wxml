@@ -1,0 +1,59 @@
+<!--pages/plan/index.wxml - 学习计划总览-->
+<view class="page-plan">
+  <!-- 考试倒计时 -->
+  <view class="countdown-card card" wx:if="{{plan}}">
+    <view class="text-center">
+      <text class="countdown-label">距离考试还有</text>
+      <view class="countdown-days">{{daysLeft}}<text class="countdown-unit">天</text></view>
+      <view class="countdown-date">目标：{{plan.target_date || '未设置'}} | 目标分数：{{plan.target_score || '-'}}分</view>
+      <view class="current-level mt-sm"><text class="text-sm text-hint">当前水平：{{plan.current_level || '-'}}分</text></view>
+    </view>
+  </view>
+
+  <!-- 三阶段进度 -->
+  <view class="phase-section p-md" wx:if="{{plan}}">
+    <view class="card-title mb-md">学习阶段</view>
+    <view class="phases">
+      <view class="phase-item {{plan.current_phase >= 0 ? 'completed' : ''}}" wx:for="{{plan.phases || phases}}" wx:key="name">
+        <view class="phase-header flex items-center justify-between">
+          <view class="flex items-center gap-sm">
+            <view class="phase-circle {{plan.current_phase >= index ? 'active' : ''}}">{{index + 1}}</view>
+            <view>
+              <text class="text-md text-bold">{{item.name}}</text>
+              <text class="text-sm text-hint block">{{item.duration}}</text>
+            </view>
+          </view>
+          <progress-bar percent="{{item.progress}}" />
+        </view>
+        <view class="phase-tasks mt-sm"wx:if="{{item.tasks}}">
+          <text class="text-sm text-secondary">完成任务：{{item.completed}}/{{item.total}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 今日任务入口 -->
+  <view class="daily-entry card" bindtap="goDaily" wx:if="{{plan}}">
+    <view class="flex items-center justify-between">
+      <view class="flex items-center gap-sm">
+        <text class="text-xl">📋</text>
+        <text class="text-md text-bold">今日任务</text>
+      </view>
+      <view class="flex items-center gap-xs">
+        <text class="text-primary">{{todayCompleted}}/{{todayTotal}}</text>
+        <text class="text-hint">→</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{!plan}}">
+    <text class="empty-icon">📅</text>
+    <text class="empty-text">还没有学习计划</text>
+    <button class="btn-primary btn-sm mt-md" bindtap="goSetup">设定目标</button>
+  </view>
+
+  <view class="p-md" wx:if="{{plan}}">
+    <button class="btn-outline btn-block" bindtap="goSetup">调整目标</button>
+  </view>
+</view>

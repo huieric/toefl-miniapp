@@ -1,0 +1,64 @@
+<!--pages/plan/setup.wxml - 设定目标-->
+<view class="page-setup">
+  <view class="setup-header card text-center">
+    <text class="setup-icon">🎯</text>
+    <text class="setup-title">设定学习目标</text>
+    <text class="setup-desc">AI将为你生成个性化三阶段学习计划</text>
+  </view>
+
+  <view class="setup-form card mt-md">
+    <view class="form-item">
+      <text class="form-label">目标分数</text>
+      <view class="score-picker flex items-center gap-sm">
+        <button class="score-btn {{targetScore <= 70 ? 'active' : ''}}" bindtap="setScore" data-value="70">70+</button>
+        <button class="score-btn {{targetScore === 80 ? 'active' : ''}}" bindtap="setScore" data-value="80">80+</button>
+        <button class="score-btn {{targetScore === 90 ? 'active' : ''}}" bindtap="setScore" data-value="90">90+</button>
+        <button class="score-btn {{targetScore === 100 ? 'active' : ''}}" bindtap="setScore" data-value="100">100+</button>
+      </view>
+      <view class="flex items-center gap-sm mt-sm">
+        <text class="text-hint">自定义：</text>
+        <slider min="60" max="120" value="{{targetScore}}" bindchanging="onSlideScore" block-size="20" show-value/>
+      </view>
+    </view>
+
+    <view class="form-item mt-lg">
+      <text class="form-label">考试日期</text>
+      <picker mode="date" value="{{examDate}}" bindchange="onDateChange">
+        <view class="picker-value {{examDate ? '' : 'text-hint'}}">{{examDate || '请选择考试日期'}}</view>
+      </picker>
+    </view>
+
+    <view class="form-item mt-lg">
+      <text class="form-label">当前水平</text>
+      <view class="level-picker flex items-center gap-sm">
+        <button class="score-btn {{currentLevel === 50 ? 'active' : ''}}" bindtap="setLevel" data-value="50">初学者</button>
+        <button class="score-btn {{currentLevel === 70 ? 'active' : ''}}" bindtap="setLevel" data-value="70">中等</button>
+        <button class="score-btn {{currentLevel === 85 ? 'active' : ''}}" bindtap="setLevel" data-value="85">良好</button>
+      </view>
+    </view>
+
+    <view class="form-item mt-lg">
+      <text class="form-label">每日学习时长</text>
+      <view class="time-picker flex items-center gap-sm">
+        <button class="score-btn {{dailyHours === 1 ? 'active' : ''}}" bindtap="setHours" data-value="1">1小时</button>
+        <button class="score-btn {{dailyHours === 2 ? 'active' : ''}}" bindtap="setHours" data-value="2">2小时</button>
+        <button class="score-btn {{dailyHours === 3 ? 'active' : ''}}" bindtap="setHours" data-value="3">3小时</button>
+        <button class="score-btn {{dailyHours === 4 ? 'active' : ''}}" bindtap="setHours" data-value="4">4小时</button>
+      </view>
+    </view>
+
+    <view class="form-item mt-lg">
+      <text class="form-label">重点提升</text>
+      <view class="focus-picker flex flex-wrap gap-sm">
+        <view class="focus-item {{focus.includes('reading') ? 'active' : ''}}" bindtap="toggleFocus" data-value="reading">阅读</view>
+        <view class="focus-item {{focus.includes('listening') ? 'active' : ''}}" bindtap="toggleFocus" data-value="listening">听力</view>
+        <view class="focus-item {{focus.includes('speaking') ? 'active' : ''}}" bindtap="toggleFocus" data-value="speaking">口语</view>
+        <view class="focus-item {{focus.includes('writing') ? 'active' : ''}}" bindtap="toggleFocus" data-value="writing">写作</view>
+      </view>
+    </view>
+
+    <button class="btn-primary btn-block btn-lg mt-lg" bindtap="generatePlan" disabled="{{!examDate}}">
+      生成AI学习计划
+    </button>
+  </view>
+</view>

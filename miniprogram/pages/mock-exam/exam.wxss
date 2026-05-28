@@ -1,0 +1,10 @@
+/* mock-exam/exam.wxss */
+.page-exam { display: flex; flex-direction: column; height: 100vh; background: #F6F7FB; }
+.exam-header { background: #fff; border-bottom: 1rpx solid #eee; }
+.exam-subject { font-size: 32rpx; font-weight: 600; }
+.exam-content { flex: 1; overflow-y: auto; padding: 24rpx; }
+.reading-area { background: #fff; padding: 24rpx; border-radius: 12rpx; }
+.passage { font-size: 28rpx; color: #333; line-height: 1.8; }
+.listening-area, .speaking-area { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 32rpx; color: #999; }
+.writing-area { width: 100%; min-height: 60vh; padding: 20rpx; background: #fff; border-radius: 12rpx; font-size: 28rpx; }
+.exam-footer { background: #fff; border-top: 1rpx solid #eee; }

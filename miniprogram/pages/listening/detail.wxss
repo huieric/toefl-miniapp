@@ -1,0 +1,39 @@
+/* pages/listening/detail.wxss */
+.page-detail { display: flex; flex-direction: column; height: 100vh; background: #F6F7FB; }
+
+.player-section {
+  background: linear-gradient(135deg, #9C27B0 0%, #BA68C8 100%);
+  padding: 32rpx;
+}
+
+.question-area { flex: 1; overflow-y: auto; padding: 24rpx; }
+
+/* 选项样式复用阅读详情，颜色改为紫色 */
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx 24rpx;
+  background: #fff;
+  border: 2rpx solid #e8e8e8;
+  border-radius: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.option-item.correct { border-color: #52C41A; background: #F0FFF0; }
+.option-item.wrong { border-color: #FF4D4F; background: #FFF0F0; }
+
+.option-label {
+  width: 48rpx; height: 48rpx;
+  border-radius: 50%;
+  background: #f0f0f0;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 26rpx; flex-shrink: 0;
+}
+
+.option-item.correct .option-label { background: #52C41A; color: #fff; }
+.option-item.wrong .option-label { background: #FF4D4F; color: #fff; }
+
+.bottom-bar { background: #fff; border-top: 1rpx solid #eee; }
+
+.player-tip { color: rgba(255,255,255,0.8); }

@@ -1,0 +1,13 @@
+<!--pages/listening/result.wxml-->
+<view class="page-result" wx:if="{{loaded}}">
+  <view class="result-header card">
+    <view class="result-score">{{score}}</view>
+    <view class="result-label">听力得分（预估）</view>
+    <view class="result-meta flex justify-center gap-lg mt-md">
+      <view class="meta-item"><text class="meta-num text-primary">{{correct}}</text><text class="meta-label">正确</text></view>
+      <view class="meta-item"><text class="meta-num text-danger">{{wrong}}</text><text class="meta-label">错误</text></view>
+      <view class="meta-item"><text class="meta-num">{{timeStr}}</text><text class="meta-label">用时</text></view>
+    </view>
+  </view>
+  <view class="btn-group p-md"><button class="btn-primary btn-block" bindtap="goBack">继续练习</button></view>
+</view>

@@ -1,0 +1,3 @@
+/* listening/result.wxss */
+@import "../reading/result.wxss";
+.result-header { background: linear-gradient(135deg, #9C27B0 0%, #BA68C8 100%); }
