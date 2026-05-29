@@ -8,7 +8,7 @@
     <div class="card" v-loading="loading">
       <div class="question-block" v-if="question">
         <h4>题目</h4>
-        <p class="question-text">{{ question.question || question.stem }}</p>
+        <p class="question-text">{{ question.content || question.question || question.stem }}</p>
         <p class="question-hint" v-if="question.hint">提示：{{ question.hint }}</p>
       </div>
 
@@ -132,7 +132,7 @@ onMounted(async () => {
   loading.value = true
   try {
     const res = await questionAPI.getById(route.params.id)
-    question.value = res.data?.question || res.data || {}
+    question.value = res.data?.data || res.data || {}
   } catch (e) { ElMessage.error('加载题目失败') }
   finally { loading.value = false }
 })

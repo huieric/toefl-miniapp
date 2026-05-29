@@ -162,6 +162,7 @@ router.get('/:id', auth, async (req, res) => {
         title: question.title,
         content: question.content,
         options: question.options,
+        answer: question.answer,
         passageText: question.passage_text,
         audioUrl: question.audio_url,
       },

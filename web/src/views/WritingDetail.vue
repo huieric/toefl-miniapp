@@ -8,7 +8,7 @@
     <div class="card" v-loading="loading">
       <div class="question-block" v-if="question">
         <h4>题目要求</h4>
-        <div class="question-text" v-html="formatText(question.question || question.stem)"></div>
+        <div class="question-text" v-html="formatText(question.content || question.question || question.stem)"></div>
         <p class="word-hint" v-if="question.wordLimit">字数要求：{{ question.wordLimit }} 词</p>
       </div>
 
@@ -116,7 +116,7 @@ onMounted(async () => {
   loading.value = true
   try {
     const res = await questionAPI.getById(route.params.id)
-    question.value = res.data?.question || res.data || {}
+    question.value = res.data?.data || res.data || {}
     if (question.value.timeLimit) timeLimit.value = question.value.timeLimit
   } catch (e) { ElMessage.error('加载题目失败') }
   finally { loading.value = false }

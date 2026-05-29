@@ -7,15 +7,15 @@
 
     <div class="card" v-loading="loading">
       <!-- Passage -->
-      <div class="passage" v-if="question?.passage">
+      <div class="passage" v-if="question?.passageText">
         <h4>阅读文章</h4>
-        <div class="passage-content" v-html="formatPassage(question.passage)"></div>
+        <div class="passage-content" v-html="formatPassage(question.passageText)"></div>
       </div>
 
       <!-- Question -->
       <div class="question-block" v-if="question">
         <h4>题目</h4>
-        <p class="question-text">{{ question.question || question.stem }}</p>
+        <p class="question-text">{{ question.content || question.question || question.stem }}</p>
 
         <el-radio-group v-model="selected" class="options-group" size="large">
           <div
@@ -114,7 +114,7 @@ onMounted(async () => {
   loading.value = true
   try {
     const res = await questionAPI.getById(route.params.id)
-    question.value = res.data?.question || res.data || {}
+    question.value = res.data?.data || res.data || {}
     if (question.value.timeLimit) timeLimit.value = question.value.timeLimit
   } catch (e) { ElMessage.error('加载题目失败') }
   finally { loading.value = false }
