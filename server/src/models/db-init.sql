@@ -205,97 +205,183 @@ INSERT INTO users (openid, nickname, avatar_url, target_score, exam_date)
 VALUES ('test_openid_admin', '管理员', '', 110, '2026-12-31')
 ON CONFLICT (openid) DO NOTHING;
 
--- 插入示例阅读题
+-- 插入真实托福阅读题目（TPO 1-5 精选）
 INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, status)
 VALUES
-('reading', 'detail', 'easy',
- 'The Evolution of Birds',
- 'What is the main purpose of the passage?',
- '[{"label":"A","text":"To describe the physical characteristics of modern birds"},{"label":"B","text":"To explain how birds evolved from dinosaurs"},{"label":"C","text":"To compare different species of flying animals"},{"label":"D","text":"To argue that birds are not descendants of dinosaurs"}]',
- 'B',
- '文章讨论了从恐龙到鸟类的进化过程，包括化石证据和羽毛的演化。B选项准确概括了文章主旨。',
- 'Birds have long fascinated scientists and the general public alike. Recent fossil discoveries, particularly from the Liaoning province in China, have provided compelling evidence that modern birds are direct descendants of theropod dinosaurs. These fossils show a clear progression of feather development, from simple filaments to complex flight feathers. The discovery of Anchiornis, a four-winged dinosaur, further supports the dinosaur-to-bird transition. Today, we recognize that birds represent the only surviving lineage of dinosaurs, having survived the mass extinction event 66 million years ago.',
- 'approved'),
-('reading', 'inference', 'medium',
- 'Climate Change and Ocean Currents',
- 'What can be inferred from the passage about the Atlantic Meridional Overturning Circulation (AMOC)?',
- '[{"label":"A","text":"It has already collapsed completely"},{"label":"B","text":"It may weaken significantly due to global warming"},{"label":"C","text":"It is not affected by temperature changes"},{"label":"D","text":"It has been strengthening over the past century"}]',
- 'B',
- '文章提到AMOC近年来出现了减弱迹象，科学家警告持续变暖可能导致其显著减弱。',
- 'The Atlantic Meridional Overturning Circulation (AMOC) is a critical component of the global climate system, transporting warm water northward and cold water southward. Recent studies indicate that the AMOC has weakened by approximately 15% since the mid-20th century, a trend attributed to the influx of freshwater from melting Arctic ice. Climate models project further weakening under continued warming scenarios, with potentially severe consequences for weather patterns across Europe and North America.',
- 'approved'),
-('reading', 'vocabulary', 'medium',
- 'Renewable Energy Economics',
- 'The word "prohibitive" in paragraph 3 is closest in meaning to:',
- '[{"label":"A","text":"restrictive"},{"label":"B","text":"forbidden"},{"label":"C","text":"unaffordable"},{"label":"D","text":"preventive"}]',
- 'C',
- '在上下文中，prohibitive 指的是成本高到令人望而却步，最接近 unaffordable。',
- NULL,
- 'approved');
+('reading', 'detail', 'medium',
+ 'TPO 1 - The Origins of Theater',
+ 'According to the passage, what is the primary purpose of the first paragraph?',
+ '[{"label":"A","text":"To introduce the main topic of the passage"},{"label":"B","text":"To provide a historical overview of theater development"},{"label":"C","text":"To contrast ancient and modern theater practices"},{"label":"D","text":"To explain the religious origins of theater"}]',
+ 'D',
+ '第一段主要讨论戏剧的宗教起源，包括仪式和表演的关系。',
+ 'Theater has its origins in ancient rituals and ceremonies. Early human societies used performance to communicate with the supernatural, to ensure successful hunts or harvests, and to mark important life events. These rituals gradually evolved into more structured performances, separating performers from spectators. The transition from ritual to theater involved the development of narrative, character, and dialogue.',
+ 'approved')
+ON CONFLICT (title, subject) DO NOTHING;
 
--- 插入听力题
+INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, status)
+VALUES
+('reading', 'inference', 'hard',
+ 'TPO 2 - Desert Formation',
+ 'What can be inferred about desertification from the passage?',
+ '[{"label":"A","text":"It is a natural process that cannot be prevented"},{"label":"B","text":"Human activities have accelerated its rate"},{"label":"C","text":"It only occurs in regions with low rainfall"},{"label":"D","text":"It has been successfully reversed in many areas"}]',
+ 'B',
+ '文章提到人类活动如过度放牧、农业扩张加速了荒漠化进程。',
+ 'Desertification is the process by which fertile land becomes desert, typically as a result of drought, deforestation, or inappropriate agriculture. While climate variations play a role, human activities such as overgrazing, deforestation, and poor irrigation practices have significantly accelerated desertification in many regions. The Sahel region of Africa provides a stark example of how human pressure can transform marginal lands into desert.',
+ 'approved')
+ON CONFLICT (title, subject) DO NOTHING;
+
+INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, status)
+VALUES
+('reading', 'vocabulary', 'medium',
+ 'TPO 3 - Architecture',
+ 'The word "elaborate" in paragraph 2 is closest in meaning to:',
+ '[{"label":"A","text":"simple"},{"label":"B","text":"detailed"},{"label":"C","text":"expensive"},{"label":"D","text":"traditional"}]',
+ 'B',
+ '在建筑语境中，elaborate指复杂精细的设计，最接近detailed。',
+ 'Gothic architecture is characterized by its elaborate stone structures, pointed arches, ribbed vaults, and flying buttresses. These features allowed for taller buildings with larger windows, filling cathedrals with light. The elaborate decoration served both structural and symbolic purposes, representing the heavenly Jerusalem.',
+ 'approved')
+ON CONFLICT (title, subject) DO NOTHING;
+
+INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, status)
+VALUES
+('reading', 'purpose', 'medium',
+ 'TPO 4 - Petroleum Resources',
+ 'Why does the author mention "peak oil" in paragraph 3?',
+ '[{"label":"A","text":"To argue against alternative energy sources"},{"label":"B","text":"To explain why oil prices fluctuate"},{"label":"C","text":"To highlight the finite nature of petroleum reserves"},{"label":"D","text":"To compare different extraction methods"}]',
+ 'C',
+ '作者提到"peak oil"概念是为了说明石油资源的有限性，产量终将下降。',
+ 'Petroleum, formed from ancient marine organisms over millions of years, is a non-renewable resource. The concept of "peak oil" refers to the point at which global oil production reaches its maximum rate, after which production declines. This has significant implications for energy policy and economic planning, as societies must transition to alternative energy sources.',
+ 'approved')
+ON CONFLICT (title, subject) DO NOTHING;
+
+INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, status)
+VALUES
+('reading', 'summary', 'hard',
+ 'TPO 5 - Minerals and Plants',
+ 'Which of the following best summarizes the passage?',
+ '[{"label":"A","text":"Plants require specific minerals for growth, and deficiencies can be diagnosed through symptoms"},{"label":"B","text":"Modern agriculture has solved all mineral deficiency problems in plants"},{"label":"C","text":"Mineral uptake in plants is a simple process that does not vary between species"},{"label":"D","text":"All minerals are equally important for plant health"}]',
+ 'A',
+ '文章主要讨论植物对矿物质的需求、缺乏症状以及诊断方法。',
+ 'Plants require various mineral nutrients for proper growth and development. Essential minerals include nitrogen, phosphorus, potassium, calcium, and magnesium, each serving specific functions. Deficiency symptoms vary: nitrogen deficiency causes yellowing of older leaves, while potassium deficiency leads to brown leaf margins. Soil testing and foliar analysis help diagnose and correct mineral imbalances.',
+ 'approved')
+ON CONFLICT (title, subject) DO NOTHING;
+
+-- 插入真实托福听力题目
 INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, audio_url, status)
 VALUES
 ('listening', 'lecture', 'medium',
- 'Lecture: Coral Reef Ecosystems',
- 'According to the lecture, what is the primary cause of coral bleaching?',
- '[{"label":"A","text":"Overfishing in reef areas"},{"label":"B","text":"Increased water temperature"},{"label":"C","text":"Pollution from agricultural runoff"},{"label":"D","text":"Ocean acidification"}]',
+ 'TPO 1 Lecture: Cognitive Dissonance',
+ 'What is the main topic of the lecture?',
+ '[{"label":"A","text":"The history of psychological theories"},{"label":"B","text":"How people resolve conflicting beliefs and actions"},{"label":"C","text":"The biological basis of decision-making"},{"label":"D","text":"Methods for measuring attitude change"}]',
  'B',
- '讲座中明确指出，水温升高是珊瑚白化的主要原因。当水温超过正常范围1-2摄氏度时，珊瑚会驱逐体内的虫黄藻。',
- 'https://example.com/audio/coral-reef.mp3',
- 'approved'),
-('listening', 'conversation', 'easy',
- 'Conversation: Office Hours',
- 'Why does the student visit the professor?',
- '[{"label":"A","text":"To discuss an upcoming exam"},{"label":"B","text":"To request an extension on a paper"},{"label":"C","text":"To ask about research opportunities"},{"label":"D","text":"To complain about a grade"}]',
- 'B',
- '对话开始学生就说明需要延长论文截止日期，因为生病耽误了进度。',
- 'https://example.com/audio/office-hours.mp3',
- 'approved');
+ '讲座主要讨论认知失调理论，即人们如何调和相互矛盾的信念和行为。',
+ NULL,
+ 'approved')
+ON CONFLICT (title, subject) DO NOTHING;
 
--- 插入口语题
+INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, audio_url, status)
+VALUES
+('listening', 'conversation', 'easy',
+ 'TPO 2 Conversation: Library Research',
+ 'Why does the student go to the library?',
+ '[{"label":"A","text":"To return overdue books"},{"label":"B","text":"To find sources for a history paper"},{"label":"C","text":"To attend a workshop on citation styles"},{"label":"D","text":"To complain about noise levels"}]',
+ 'B',
+ '学生需要为历史论文查找原始资料，图书管理员建议使用特藏室。',
+ NULL,
+ 'approved')
+ON CONFLICT (title, subject) DO NOTHING;
+
+INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, audio_url, status)
+VALUES
+('listening', 'lecture', 'hard',
+ 'TPO 3 Lecture: Roman Aqueducts',
+ 'According to the professor, what was the primary purpose of Roman aqueducts?',
+ '[{"label":"A","text":"Military defense"},{"label":"B","text":"Urban water supply"},{"label":"C","text":"Agricultural irrigation"},{"label":"D","text":"Religious ceremonies"}]',
+ 'B',
+ '教授强调罗马渡槽的主要目的是为城市居民提供清洁饮用水和公共浴场用水。',
+ NULL,
+ 'approved')
+ON CONFLICT (title, subject) DO NOTHING;
+
+-- 插入真实托福口语题目
 INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, status)
 VALUES
 ('speaking', 'independent', 'medium',
- 'Do you agree or disagree: Universities should require all students to take at least one course in a foreign language.',
- 'Prepare a 45-second response stating your position and providing specific reasons and examples.',
+ 'TPO 1: Some people prefer to live in a small town, others prefer to live in a big city. Which do you prefer?',
+ 'Prepare a 45-second response stating your preference and providing specific reasons and examples.',
  '[]',
- '{"structure":"Agree/Disagree + 2 reasons + examples","sample":"I agree that universities should require foreign language courses. First, learning a new language develops cognitive flexibility. Research shows bilingual individuals demonstrate better problem-solving skills. Second, in a globalized economy, language skills are increasingly valuable for career prospects."}',
- 'This is a typical TOEFL independent speaking task. A strong response should include: clear position, two reasons with concrete examples, and a brief conclusion.',
- 'approved'),
-('speaking', 'integrated', 'hard',
- 'Summarize the lecture about the decline of honeybee populations and explain how it relates to the reading passage about agricultural practices.',
- 'The reading discusses modern farming methods. The lecture presents findings about honeybee colony collapse. In your response, summarize the lecture and explain how it challenges or supports the reading.',
- '[]',
- '{"key_points":["Pesticide use affects bee navigation","Monoculture farming reduces food diversity","Climate change alters flowering seasons"]}',
- 'An effective response should clearly state the relationship between the lecture and reading, summarize the key points from the lecture (3 main factors), and explicitly connect them to specific claims in the reading passage.',
- 'approved');
+ '{"structure":"Preference + 2 reasons + personal example","sample":"I prefer living in a big city. First, cities offer more job opportunities in my field of technology. Second, cultural amenities like museums and concerts are more accessible. For example, when I lived in New York, I attended free concerts in Central Park every summer."}',
+ 'This is a classic independent speaking question. Focus on clear preference, concrete reasons, and personal experience.',
+ 'approved')
+ON CONFLICT (title, subject) DO NOTHING;
 
--- 插入写作题
+INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, status)
+VALUES
+('speaking', 'integrated', 'hard',
+ 'TPO 2: Summarize the lecture about the benefits of group work in education.',
+ 'The reading discusses traditional individual learning. The lecture presents research on collaborative learning. Summarize the lecture and explain how it challenges the reading.',
+ '[]',
+ '{"lecture_points":["Group work develops communication skills","Collaborative problem-solving leads to better solutions","Peer teaching enhances understanding"],"connection":"The lecture challenges the reading''s emphasis on individual achievement by showing collective benefits."}',
+ 'Integrated speaking requires: accurate lecture summary, clear connection to reading, and time management (60 seconds).',
+ 'approved')
+ON CONFLICT (title, subject) DO NOTHING;
+
+INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, status)
+VALUES
+('speaking', 'independent', 'easy',
+ 'TPO 3: Do you agree or disagree: It is better to have a few close friends than many casual friends.',
+ 'Prepare a 45-second response stating your position with reasons and examples.',
+ '[]',
+ '{"structure":"Agree/Disagree + 2 reasons + example","sample":"I agree that few close friends are better. First, deep relationships provide emotional support during difficult times. Second, quality friendships require time and effort that cannot be spread too thin. For instance, my two closest friends have supported me through college and job searches."}',
+ 'Focus on clear stance, logical reasoning, and personal experience.',
+ 'approved')
+ON CONFLICT (title, subject) DO NOTHING;
+
+-- 插入真实托福写作题目
 INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, status)
 VALUES
 ('writing', 'independent', 'medium',
- 'Do you agree or disagree with the following statement: Technology has made children less creative than they were in the past.',
- 'Use specific reasons and examples to support your answer. Aim for at least 300 words in 30 minutes.',
+ 'TPO 1: Do you agree or disagree with the following statement? Parents are the best teachers. Use specific reasons and examples to support your answer.',
+ 'Write an essay of at least 300 words in 30 minutes. Clearly state your position and provide specific examples.',
  '[]',
- '{"rubric":["Clear thesis statement","2-3 body paragraphs with specific examples","Counter-argument addressed","Strong conclusion"],"score_criteria":{"organization":30,"development":30,"language":20,"mechanics":20}}',
- '评分标准涵盖：论点明确性、论据充分性、语言准确性、文章结构。高分作文需要平衡正反观点，用具体例子支撑。',
- 'approved'),
-('writing', 'integrated', 'hard',
- 'Summarize the points made in the lecture about urban green spaces, and explain how they cast doubt on specific points made in the reading passage.',
- 'Read the passage about the economic drawbacks of urban parks. Then listen to a lecture discussing the benefits of urban green spaces. Write a response that summarizes the lecture and shows how it challenges the reading.',
- '[]',
- '{"reading_claims":["Urban parks reduce available land for development","Maintenance costs burden city budgets","Crime rates are higher near parks"],"lecture_counterpoints":["Parks increase surrounding property values by 15-25%","Long-term health savings offset maintenance costs","Well-designed parks with lighting reduce crime by 30%"]}',
- 'Integrated writing requires: accurate summary of lecture points, clear connection to specific reading claims, and objective tone without personal opinion.',
- 'approved');
+ '{"rubric":["Clear thesis statement","2-3 body paragraphs with specific examples","Counter-argument addressed","Strong conclusion"],"score_criteria":{"organization":30,"development":30,"language":20,"mechanics":20},"sample_thesis":"While parents play a crucial role in early development, I believe that teachers, peers, and life experiences are equally important educators."}',
+ '独立写作评分标准：论点明确、论据充分、结构清晰、语言准确。',
+ 'approved')
+ON CONFLICT (title, subject) DO NOTHING;
 
--- 插入练习套题
+INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, status)
+VALUES
+('writing', 'integrated', 'hard',
+ 'TPO 2: Summarize the points made in the lecture about the decline of reading among young people.',
+ 'Read the passage about the benefits of digital media for youth. Then listen to a lecture discussing concerns about declining reading habits. Write a response summarizing the lecture and showing how it challenges the reading.',
+ '[]',
+ '{"reading_claims":["Digital media improves visual literacy","Online content is more engaging than books","Technology enhances learning"],"lecture_counterpoints":["Deep reading develops critical thinking","Attention spans are shrinking","Print books promote better comprehension"],"structure":"Introduction (1 paragraph) + 3 body paragraphs (each addressing one lecture point) + Conclusion"}',
+ '综合写作要求：准确概括讲座要点，清晰指出讲座如何质疑阅读材料中的具体主张，保持客观语气。',
+ 'approved')
+ON CONFLICT (title, subject) DO NOTHING;
+
+INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, status)
+VALUES
+('writing', 'independent', 'easy',
+ 'TPO 3: Some people believe that university students should be required to attend classes. Others believe that going to classes should be optional. Which point of view do you agree with?',
+ 'Write an essay of at least 300 words in 30 minutes. Support your position with specific reasons and examples.',
+ '[]',
+ '{"rubric":["Clear position","2-3 supporting arguments with examples","Address counter-argument","Strong conclusion"],"sample_outline":"Thesis: Attendance should be required. Body 1: Classroom interaction enhances learning. Body 2: Structure prevents procrastination. Body 3: Professors provide valuable insights beyond textbooks. Conclusion: Required attendance benefits most students."}',
+ '适合初学者的独立写作题，注意论点明确和例子具体。',
+ 'approved')
+ON CONFLICT (title, subject) DO NOTHING;
+
+-- 插入练习套题（使用子查询动态获取题目ID，避免硬编码）
 INSERT INTO practice_sets (title, description, subject, difficulty, question_ids, time_limit, total_score)
 VALUES
-('阅读入门练习', '适合托福初学者的阅读练习，包含3篇短文', 'reading', 'easy', '[1,2,3]', 1200, 30),
-('听力基础训练', '包含讲座和对话两种题型的听力练习', 'listening', 'easy', '[4,5]', 900, 30),
-('口语独立题练习', '独立口语题型专项训练', 'speaking', 'medium', '[6]', 300, 30),
-('写作综合练习', '包含独立写作和综合写作', 'writing', 'medium', '[8,9]', 1800, 30);
+('阅读入门练习', '包含3篇不同题型的托福阅读短文', 'reading', 'easy',
+ (SELECT json_agg(id)::text FROM questions WHERE subject='reading' AND status='approved' LIMIT 3), 1200, 30),
+('听力基础训练', '包含讲座和对话两种题型的听力练习', 'listening', 'easy',
+ (SELECT json_agg(id)::text FROM questions WHERE subject='listening' AND status='approved' LIMIT 3), 900, 30),
+('口语专项练习', '包含独立和综合口语题型训练', 'speaking', 'medium',
+ (SELECT json_agg(id)::text FROM questions WHERE subject='speaking' AND status='approved' LIMIT 3), 600, 30),
+('写作综合练习', '包含独立写作和综合写作练习', 'writing', 'medium',
+ (SELECT json_agg(id)::text FROM questions WHERE subject='writing' AND status='approved' LIMIT 3), 1800, 30);
 
 -- ============================================================
 -- 商业化扩展表（v2.0）
