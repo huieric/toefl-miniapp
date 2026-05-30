@@ -65,14 +65,31 @@ CREATE INDEX IF NOT EXISTS idx_questions_status ON questions(status);
 CREATE INDEX IF NOT EXISTS idx_questions_type ON questions(type);
 -- 兼容补全：确保旧表缺失列和约束被补齐
 -- 使用 DO 块捕获异常，兼容所有 PostgreSQL 版本
--- PL/pgSQL 块语法：DO $$ BEGIN ...; EXCEPTION WHEN ... THEN END; $$;
-DO $$ BEGIN ALTER TABLE questions ADD CONSTRAINT uq_questions_title_subject UNIQUE (title, subject); EXCEPTION WHEN duplicate_table THEN END; $$;
 DO $$ BEGIN ALTER TABLE questions ADD COLUMN answer TEXT; EXCEPTION WHEN duplicate_column THEN END; $$;
 DO $$ BEGIN ALTER TABLE questions ADD COLUMN analysis TEXT; EXCEPTION WHEN duplicate_column THEN END; $$;
 DO $$ BEGIN ALTER TABLE questions ADD COLUMN source VARCHAR(50) DEFAULT 'official'; EXCEPTION WHEN duplicate_column THEN END; $$;
 DO $$ BEGIN ALTER TABLE questions ADD COLUMN status VARCHAR(15) DEFAULT 'pending'; EXCEPTION WHEN duplicate_column THEN END; $$;
 DO $$ BEGIN ALTER TABLE questions ADD COLUMN passage_text TEXT; EXCEPTION WHEN duplicate_column THEN END; $$;
 DO $$ BEGIN ALTER TABLE questions ADD COLUMN audio_url TEXT; EXCEPTION WHEN duplicate_column THEN END; $$;
+
+-- 清理可能的重复数据（保留 ID 最小的），然后创建唯一约束
+DO $$
+DECLARE
+    dup_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO dup_count FROM (
+        SELECT title, subject, COUNT(*) FROM questions GROUP BY title, subject HAVING COUNT(*) > 1
+    ) AS dups;
+    IF dup_count > 0 THEN
+        DELETE FROM questions WHERE id IN (
+            SELECT id FROM (
+                SELECT id, ROW_NUMBER() OVER (PARTITION BY title, subject ORDER BY id) AS rn FROM questions
+            ) AS ranked WHERE rn > 1
+        );
+    END IF;
+    ALTER TABLE questions ADD CONSTRAINT uq_questions_title_subject UNIQUE (title, subject);
+EXCEPTION WHEN duplicate_table THEN NULL;
+END $$;
 
 -- 数据修复：为已有但缺失 answer 的题目自动推算正确答案
 UPDATE questions
