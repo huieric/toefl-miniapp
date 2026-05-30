@@ -2,14 +2,11 @@
  * PDF解析服务 - 提取托福阅读PDF中的题目
  */
 const fs = require('fs');
-const path = require('path');
 
 /**
  * 解析PDF文本，提取托福阅读题目
- * 使用简单的文本分割策略，按常见TPO格式解析
  */
 async function parseTOEFLReadingPDF(filePath, db) {
-  // 使用pdf-parse读取PDF文本
   const pdfParse = require('pdf-parse');
   const dataBuffer = fs.readFileSync(filePath);
   const pdfData = await pdfParse(dataBuffer);
@@ -17,19 +14,18 @@ async function parseTOEFLReadingPDF(filePath, db) {
 
   const questions = extractQuestions(fullText);
 
-  // 存入数据库
   const inserted = [];
   for (const q of questions) {
     try {
       const result = await db.query(
-        `INSERT INTO questions (subject, type, difficulty, title, content, options, answer, passage_text, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'approved')
+        `INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, source, status)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'real', 'approved')
          RETURNING id, title`,
-        ['reading', 'reading', q.difficulty || '中等', q.title, q.content, JSON.stringify(q.options), q.answer, q.passage || '']
+        ['reading', q.type, q.difficulty, q.title, q.content, JSON.stringify(q.options), q.answer, q.passage || '', q.analysis || '']
       );
       inserted.push({ id: result.rows[0].id, title: result.rows[0].title });
     } catch (err) {
-      console.error(`插入题目失败 [${q.title}]:`, err.message);
+      console.error(`[PDF-Parser] 插入题目失败 [${q.title}]:`, err.message);
     }
   }
 
@@ -40,73 +36,24 @@ async function parseTOEFLReadingPDF(filePath, db) {
  * 从文本中提取题目
  */
 function extractQuestions(text) {
-  const questions = [];
-
-  // 清理文本
   const cleaned = text
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
     .replace(/\f/g, '\n')
     .replace(/\u0000/g, '');
 
-  // 尝试按段落分割，寻找题目区域
-  // TPO格式通常以数字编号 + 题目文本 + 选项(A/B/C/D)的形式出现
+  const questions = [];
 
-  // 策略1: 查找 "Paragraph" 或 "paragraph" 标记来确认阅读文章
-  const paragraphs = cleaned.split(/\n(?=Paragraph\s+\d+|PASSAGE|Questions?\s+\d+)/i);
+  // Step 1: Separate passage text from question block
+  const { passageText, questionBlock } = splitPassageAndQuestions(cleaned);
 
-  let passageText = '';
-  let questionBlock = '';
-
-  for (const block of paragraphs) {
-    if (/^(Paragraph|PASSAGE)/im.test(block)) {
-      passageText = block;
-    }
-    if (/Questions?\s+\d+/i.test(block)) {
-      questionBlock = block;
-    }
+  // Step 2: Extract individual questions
+  if (questionBlock) {
+    const extracted = parseQuestionBlock(questionBlock, passageText);
+    questions.push(...extracted);
   }
 
-  // 如果找不到明确的分割，把整个文本作为questionBlock
-  if (!questionBlock) {
-    questionBlock = cleaned;
-  }
-
-  // 提取单个题目: 数字开头，后跟题目内容，然后是A/B/C/D选项
-  const questionPattern = /(\d+)\.\s*([\s\S]*?)(?=\n\s*\d+\.\s|\n[A-D][\.\)]\s|$)/g;
-  // 备选: 更宽松的模式
-  const lines = questionBlock.split('\n');
-  let currentQuestion = null;
-  let currentOptions = [];
-  let questionIndex = 0;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-
-    // 检测题目编号开头
-    const qMatch = line.match(/^(\d+)\.\s+(.+)/);
-    if (qMatch && !/^[A-D][\.\)]/.test(line)) {
-      // 保存上一题
-      if (currentQuestion && currentOptions.length >= 2) {
-        questions.push(buildQuestionObj(questionIndex, currentQuestion, currentOptions, passageText));
-        questionIndex++;
-      }
-      currentQuestion = qMatch[2];
-      currentOptions = [];
-    }
-    // 检测选项
-    else if (/^[A-D][\.\)]\s/.test(line)) {
-      currentOptions.push(line);
-    }
-  }
-
-  // 保存最后一题
-  if (currentQuestion && currentOptions.length >= 2) {
-    questions.push(buildQuestionObj(questionIndex, currentQuestion, currentOptions, passageText));
-  }
-
-  // 如果没有解析到题目，生成fallback题目
+  // Step 3: Fallback if no questions found
   if (questions.length === 0) {
     return generateFallbackQuestions(passageText || cleaned);
   }
@@ -114,32 +61,208 @@ function extractQuestions(text) {
   return questions;
 }
 
-function buildQuestionObj(index, questionText, optionLines, passage) {
+/**
+ * 分离文章正文和题目区域
+ */
+function splitPassageAndQuestions(text) {
+  let passageText = '';
+  let questionBlock = '';
+
+  // Pattern 1: "Questions X-Y" marks question section
+  const qSection = text.match(/\nQuestions?\s+\d+/i);
+  if (qSection) {
+    passageText = text.substring(0, qSection.index).trim();
+    questionBlock = text.substring(qSection.index).trim();
+    return { passageText, questionBlock };
+  }
+
+  // Pattern 2: "Directions:" followed by questions
+  const dirMatch = text.match(/\nDirections?:/i);
+  if (dirMatch) {
+    passageText = text.substring(0, dirMatch.index).trim();
+    questionBlock = text.substring(dirMatch.index).trim();
+    return { passageText, questionBlock };
+  }
+
+  // Pattern 3: Split at first numbered question (1.)
+  const firstNum = text.match(/\n\s*1\.\s+/);
+  if (firstNum) {
+    const beforeQ = text.substring(0, firstNum.index).trim();
+    // If before the first question there's substantial text (>200 chars), it's the passage
+    if (beforeQ.length > 200) {
+      passageText = beforeQ;
+      questionBlock = text.substring(firstNum.index).trim();
+      return { passageText, questionBlock };
+    }
+  }
+
+  // Fallback: whole text as question block
+  return { passageText: '', questionBlock: text };
+}
+
+/**
+ * 从题目区域解析单个题目
+ */
+function parseQuestionBlock(block, passageText) {
+  const questions = [];
+
+  // Split by question number: "1. ...", "2. ..."
+  const qPattern = /\n\s*(\d+)\.\s+/g;
+  const matches = [...block.matchAll(qPattern)];
+
+  for (let i = 0; i < matches.length; i++) {
+    const start = matches[i].index + matches[i][0].length;
+    const end = i + 1 < matches.length ? matches[i + 1].index : block.length;
+    const qText = block.substring(start, end).trim();
+
+    const question = parseSingleQuestion(qText, passageText, i);
+    if (question) {
+      questions.push(question);
+    }
+  }
+
+  return questions;
+}
+
+/**
+ * 解析单个题目的题干和选项
+ */
+function parseSingleQuestion(qText, passageText, index) {
+  const lines = qText.split('\n');
+  let stem = '';
+  const optionLines = [];
+  let inStem = true;
+  let paraRef = '';
+  let contentLines = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    // Check for paragraph reference like "Paragraph 1" or "Paragraph 1 is marked"
+    if (/^Paragraph\s+\d+/i.test(trimmed) && inStem) {
+      paraRef = trimmed;
+      continue;
+    }
+
+    // Option markers: A. B. C. D. or A) B) C) D)
+    if (/^[A-D][\.\)]\s/.test(trimmed)) {
+      inStem = false;
+      optionLines.push(trimmed);
+    } else if (inStem) {
+      contentLines.push(trimmed);
+    }
+  }
+
+  stem = contentLines.join(' ');
+
+  if (!stem || optionLines.length < 2) return null;
+
+  // Parse options into label format
   const options = optionLines.map((opt, i) => {
     const match = opt.match(/^([A-D])[\.\)]\s*(.*)/);
-    return { key: match ? match[1] : String.fromCharCode(65 + i), text: match ? match[2] : opt };
+    return {
+      label: match ? match[1] : String.fromCharCode(65 + i),
+      text: match ? match[2].trim() : opt
+    };
   });
 
-  // 猜测答案(默认选A，实际需要AI判断)
-  const answer = options.length > 0 ? options[0].key : 'A';
+  // Identify question type based on stem text
+  const type = identifyQuestionType(stem);
 
-  // 从passage提取第一句作为标题
-  const title = passage
-    ? passage.split('\n').filter(l => l.trim()).slice(0, 2).join(' - ').substring(0, 100)
-    : `题目 ${index + 1}`;
+  // Answer: can't reliably determine from PDF text, leave empty
+  const answer = '';
+
+  // Difficulty inference
+  const difficulty = inferDifficulty(stem, type);
+
+  // Title from first line of passage
+  const title = generateTitle(passageText, stem, index);
+
+  // Analysis stub
+  const analysis = `本题为${typeLabelMap[type] || type}，答案需根据文章内容确定。`;
+
+  // Prepend paragraph reference to stem if available
+  const fullContent = paraRef ? `${paraRef}\n${stem}` : stem;
 
   return {
-    title: title,
-    content: questionText,
-    options: options,
-    answer: answer,
-    difficulty: '中等',
-    passage: passage.substring(0, 5000),
+    title,
+    content: fullContent,
+    options,
+    answer,
+    type,
+    difficulty,
+    analysis,
+    passage: passageText ? passageText.substring(0, 8000) : ''
   };
 }
 
+/**
+ * 识别题型
+ */
+function identifyQuestionType(stem) {
+  const lower = stem.toLowerCase();
+
+  if (/\b(?:word|phrase)\b.*\b(?:closest in meaning|meaning|synonym|means)\b/i.test(lower) ||
+      /\b(?:the word|the phrase)\b.*\b(?:is closest|means|refers to)\b/i.test(lower)) {
+    return 'vocabulary';
+  }
+  if (/\binfer\b|\bimply\b|\bsuggest\b|\bcan be inferred\b|\bmost likely\b/i.test(lower)) {
+    return 'inference';
+  }
+  if (/\bsummarize\b|\bsummary\b|\bmain idea\b|\bbest expresses\b|\boverall\b/i.test(lower)) {
+    return 'summary';
+  }
+  if (/\bpurpose\b|\bwhy does the author\b|\bthe author mentions\b|\bthe author discusses\b|\bthe author uses\b|\bthe author includes\b/i.test(lower)) {
+    return 'purpose';
+  }
+  if (/\brefer\b|\breference\b|\brefers to\b|\bwhat does\b.*\brefer\b/i.test(lower)) {
+    return 'reference';
+  }
+  if (/\baccording to\b|\bstated\b|\bmentioned\b|\bindicate\b|\bparagraph\s+\d+/i.test(lower)) {
+    return 'detail';
+  }
+
+  return 'detail';
+}
+
+/**
+ * 推断难度
+ */
+function inferDifficulty(stem, type) {
+  if (type === 'summary' || type === 'inference') return 'hard';
+  if (type === 'vocabulary') return 'easy';
+  const lower = stem.toLowerCase();
+  if (/\bexcept\b|\bnot\b|\ball of the following\b/i.test(lower)) return 'hard';
+  return 'medium';
+}
+
+/**
+ * 生成题目标题
+ */
+function generateTitle(passageText, stem, index) {
+  if (passageText) {
+    const lines = passageText.split('\n').filter(l => l.trim().length > 20);
+    if (lines.length > 0) {
+      return lines[0].trim().substring(0, 100) + ` (Q${index + 1})`;
+    }
+  }
+  return `PDF题目 ${index + 1}`;
+}
+
+const typeLabelMap = {
+  detail: '细节题',
+  inference: '推断题',
+  vocabulary: '词汇题',
+  summary: '总结题',
+  purpose: '目的题',
+  reference: '指代题'
+};
+
+/**
+ * Fallback: 当完全解析不到题目时生成基础题目
+ */
 function generateFallbackQuestions(passageText) {
-  // 当解析不到结构化题目时，将段落拆分为多个"阅读理解"题
   const sentences = passageText
     .split(/[.!?]\s+/)
     .filter(s => s.trim().length > 30);
@@ -150,17 +273,19 @@ function generateFallbackQuestions(passageText) {
   for (let i = 0; i < count; i++) {
     const sentence = sentences[i].trim();
     questions.push({
-      title: `阅读题目 ${i + 1}`,
-      content: `根据文章内容，以下哪项描述最准确？"${sentence.substring(0, 80)}..."`,
+      title: `PDF阅读题目 ${i + 1}`,
+      content: '根据文章内容，以下哪项描述最准确？',
       options: [
-        { key: 'A', text: sentence.substring(0, 60) },
-        { key: 'B', text: '文章中未明确提及该观点' },
-        { key: 'C', text: '该观点与文章主旨相反' },
-        { key: 'D', text: '该观点需要更多证据支持' },
+        { label: 'A', text: sentence.substring(0, 80) },
+        { label: 'B', text: '文章中未明确提及该观点' },
+        { label: 'C', text: '该观点与文章主旨相反' },
+        { label: 'D', text: '该观点需要更多证据支持' },
       ],
-      answer: 'A',
-      difficulty: '中等',
-      passage: passageText.substring(0, 5000),
+      answer: '',
+      type: 'detail',
+      difficulty: 'easy',
+      analysis: '本题为自动生成的阅读理解题，答案需根据文章内容判断。',
+      passage: passageText.substring(0, 8000),
     });
   }
 

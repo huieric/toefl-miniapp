@@ -6,11 +6,30 @@
     </div>
 
     <div class="card" v-loading="loading">
+      <!-- Source tag -->
+      <div class="detail-meta" v-if="question">
+        <el-tag :type="question.source === 'real' ? 'success' : 'primary'" size="small" effect="plain">
+          {{ question.source === 'real' ? '真题' : '模拟题' }}
+        </el-tag>
+        <span class="meta-sep">|</span>
+        <span class="meta-text">{{ typeLabel(question.type) }}</span>
+        <span class="meta-sep">|</span>
+        <el-tag :type="diffTag(question.difficulty)" size="small">{{ diffLabel(question.difficulty) }}</el-tag>
+      </div>
+
       <!-- Passage -->
       <div class="passage" v-if="question?.passageText">
         <h4>阅读文章</h4>
         <div class="passage-content" v-html="formatPassage(question.passageText)"></div>
       </div>
+      <el-alert
+        v-else-if="question"
+        title="暂无文章内容"
+        type="info"
+        :closable="false"
+        show-icon
+        class="passage-empty"
+      />
 
       <!-- Question -->
       <div class="question-block" v-if="question">
@@ -70,17 +89,34 @@ const timeLimit = ref(1200)
 
 const letters = ['A', 'B', 'C', 'D', 'E', 'F']
 
+const diffMap = { easy: '简单', medium: '中等', hard: '困难' }
+const diffLabel = (d) => diffMap[d] || d || '中等'
+const diffTag = (d) => {
+  if (d === 'easy') return 'success'
+  if (d === 'hard') return 'danger'
+  return 'warning'
+}
+const typeMap = { detail: '细节题', inference: '推断题', vocabulary: '词汇题', summary: '总结题', purpose: '目的题', reference: '指代题' }
+const typeLabel = (t) => typeMap[t] || t || '--'
+
 const options = computed(() => {
   if (!question.value) return []
   const opts = question.value.options
+  if (!opts) return []
+  // Handle label-format: [{label:'A', text:'...'}, ...]
+  if (Array.isArray(opts) && opts.length > 0 && typeof opts[0] === 'object') {
+    return opts.map(o => o.text || o)
+  }
+  // Handle plain string array
   if (Array.isArray(opts)) return opts
+  // Handle object format: {A:'...', B:'...'}
   if (typeof opts === 'object') {
     return [opts.A, opts.B, opts.C, opts.D, opts.E, opts.F].filter(Boolean)
   }
   return []
 })
 
-const resultText = computed(() => isCorrect.value ? '回答正确！' : `回答错误，正确答案是 ${letters[question.value?.answer]}`)
+const resultText = computed(() => isCorrect.value ? '回答正确！' : `回答错误，正确答案是 ${question.value?.answer || '待定'}`)
 
 const formatPassage = (text) => {
   if (!text) return ''
@@ -90,17 +126,24 @@ const formatPassage = (text) => {
 const handleSubmit = async () => {
   if (submitted.value) return
   submitted.value = true
-  const answer = letters[selected.value]
-  const correctAnswer = typeof question.value.answer === 'number'
-    ? letters[question.value.answer]
-    : question.value.answer
-  isCorrect.value = answer === correctAnswer
+  const userAnswer = letters[selected.value]
+  const correctAnswer = question.value.answer
+
+  if (!correctAnswer) {
+    isCorrect.value = null
+    return
+  }
+
+  const correct = typeof correctAnswer === 'number'
+    ? letters[correctAnswer]
+    : correctAnswer
+  isCorrect.value = userAnswer === correct
 
   try {
     await practiceAPI.submit({
-      questionId: question.value._id || question.value.id,
+      questionId: question.value.id,
       subject: 'reading',
-      userAnswer: answer,
+      userAnswer,
       isCorrect: isCorrect.value,
     })
   } catch (e) { console.error(e) }
@@ -122,6 +165,17 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 10px 14px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+.meta-sep { color: #ccc; font-size: 13px; }
+.meta-text { color: var(--text-secondary); font-size: 13px; }
 .passage { margin-bottom: 24px; }
 .passage h4 { font-size: 15px; margin-bottom: 10px; }
 .passage-content {
@@ -133,6 +187,7 @@ onMounted(async () => {
   max-height: 400px;
   overflow-y: auto;
 }
+.passage-empty { margin-bottom: 24px; }
 .question-block { margin-bottom: 24px; }
 .question-text { font-size: 15px; font-weight: 500; margin-bottom: 16px; }
 .options-group { width: 100%; }
