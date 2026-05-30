@@ -38,12 +38,26 @@ async function initDatabase() {
     return;
   }
   const sql = fs.readFileSync(sqlPath, 'utf-8');
-  // 按语句分割（以分号结尾的行）
-  const statements = sql
-    .replace(/--.*$/gm, '')  // 移除注释
-    .split(';')
-    .map(s => s.trim())
-    .filter(s => s.length > 0);
+  // 按语句分割：识别 $$...$$ dollar-quoted 块，避免被 ; 截断
+  const statements = [];
+  let inDollar = false;
+  let buf = '';
+  const cleaned = sql.replace(/--.*$/gm, '');
+  for (const ch of cleaned) {
+    buf += ch;
+    if (!inDollar && buf.endsWith('$$')) {
+      inDollar = true;
+    } else if (inDollar && buf.endsWith('$$')) {
+      inDollar = false;
+    }
+    if (!inDollar && ch === ';') {
+      const stmt = buf.slice(0, -1).trim();
+      if (stmt.length > 0) statements.push(stmt);
+      buf = '';
+    }
+  }
+  const last = buf.trim();
+  if (last.length > 0) statements.push(last);
 
   const client = await pool.connect();
   try {
