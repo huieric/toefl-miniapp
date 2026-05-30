@@ -132,6 +132,48 @@ router.get('/current', auth, async (req, res) => {
   }
 });
 
+// GET /api/plan/daily - 获取今日任务（无日期参数，默认今天）
+router.get('/daily', auth, async (req, res) => {
+  try {
+    const date = new Date().toISOString().split('T')[0];
+
+    const tasks = (await db.query(
+      `SELECT id, plan_id, subject, task_type, title, description, target_count, completed_count, is_completed, completed_at, task_date
+      FROM daily_tasks
+      WHERE user_id = $1 AND task_date = $2
+      ORDER BY subject, task_type`,
+      [req.user.id, date]
+    )).rows;
+
+    const total = tasks.length;
+    const completed = tasks.filter(t => t.is_completed).length;
+
+    res.json({
+      code: 200,
+      data: {
+        date,
+        totalTasks: total,
+        completedTasks: completed,
+        progress: total > 0 ? Math.round((completed / total) * 100) : 0,
+        tasks: tasks.map(t => ({
+          id: t.id,
+          planId: t.plan_id,
+          subject: t.subject,
+          taskType: t.task_type,
+          title: t.title,
+          description: t.description,
+          duration: 30,
+          completed: t.is_completed,
+          completedAt: t.completed_at,
+        })),
+      },
+    });
+  } catch (err) {
+    console.error('[Plan] 获取每日任务失败:', err);
+    res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
+
 // GET /api/plan/daily/:date - 获取某天任务
 router.get('/daily/:date', auth, async (req, res) => {
   try {

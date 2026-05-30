@@ -4,6 +4,75 @@ const db = require('../config/db');
 
 const router = express.Router();
 
+// GET /api/user/dashboard - 仪表盘聚合数据
+router.get('/dashboard', auth, async (req, res) => {
+  try {
+    const stats = (await db.query(
+      `SELECT
+        total_study_minutes, total_questions, correct_questions,
+        reading_score, listening_score, speaking_score, writing_score,
+        total_exams, avg_exam_score, streak_days, last_study_date,
+        reading_progress, listening_progress, speaking_progress, writing_progress
+      FROM user_stats WHERE user_id = $1`,
+      [req.user.id]
+    )).rows[0];
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    // 今日学习分钟
+    let todayMinutes = 0;
+    try {
+      const todayRes = await db.query(
+        `SELECT COALESCE(SUM(time_spent), 0) as today_min
+        FROM practice_records WHERE user_id = $1 AND created_at::date = $2`,
+        [req.user.id, todayStr]
+      );
+      const examRes = await db.query(
+        `SELECT COALESCE(SUM(time_spent), 0) as today_min
+        FROM exam_records WHERE user_id = $1 AND created_at::date = $2`,
+        [req.user.id, todayStr]
+      );
+      todayMinutes = Math.round(((todayRes.rows[0]?.today_min || 0) + (examRes.rows[0]?.today_min || 0)) / 60);
+    } catch (e) { /* ignore */ }
+
+    // 进度百分比
+    const progress = {};
+    const subKeys = ['reading', 'listening', 'speaking', 'writing'];
+    if (stats) {
+      for (const key of subKeys) {
+        const p = stats[key + '_progress'];
+        if (p && typeof p === 'object' && p.total > 0) {
+          progress[key] = Math.round((p.correct / p.total) * 100);
+        } else {
+          progress[key] = 0;
+        }
+      }
+    } else {
+      for (const key of subKeys) progress[key] = 0;
+    }
+
+    res.json({
+      code: 200,
+      data: {
+        stats: {
+          todayMinutes: todayMinutes || (stats?.last_study_date === todayStr ? Math.round((stats?.total_study_minutes || 0) / 30) : 0),
+          totalQuestions: stats?.total_questions || 0,
+          accuracy: stats && stats.total_questions > 0
+            ? Math.round((stats.correct_questions / stats.total_questions) * 100)
+            : 0,
+          avgExamScore: stats?.avg_exam_score || 0,
+          streakDays: stats?.streak_days || 0,
+        },
+        progress,
+      },
+    });
+  } catch (err) {
+    console.error('[User] 获取仪表盘数据失败:', err);
+    res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
+
 // GET /api/user/profile - 获取个人信息
 router.get('/profile', auth, async (req, res) => {
   try {

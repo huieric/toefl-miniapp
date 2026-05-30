@@ -92,6 +92,24 @@ CREATE TABLE IF NOT EXISTS practice_sets (
 );
 CREATE INDEX IF NOT EXISTS idx_practice_sets_subject ON practice_sets(subject);
 
+-- 4b. 练习记录表
+CREATE TABLE IF NOT EXISTS practice_records (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    question_id INTEGER REFERENCES questions(id) ON DELETE SET NULL,
+    set_id INTEGER REFERENCES practice_sets(id) ON DELETE SET NULL,
+    subject VARCHAR(20) NOT NULL,
+    title TEXT,
+    user_answer TEXT,
+    is_correct BOOLEAN DEFAULT FALSE,
+    score DECIMAL(5,2) DEFAULT 0.0,
+    time_spent INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_practice_records_user ON practice_records(user_id);
+CREATE INDEX IF NOT EXISTS idx_practice_records_created ON practice_records(created_at);
+CREATE INDEX IF NOT EXISTS idx_practice_records_subject ON practice_records(subject);
+
 -- 5. 考试记录表
 CREATE TABLE IF NOT EXISTS exam_records (
     id SERIAL PRIMARY KEY,

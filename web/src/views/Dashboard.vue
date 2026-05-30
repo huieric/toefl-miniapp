@@ -214,7 +214,7 @@ onMounted(async () => {
 
     // dashboard
     if (dashRes.status === 'fulfilled' && dashRes.value.data) {
-      const d = dashRes.value.data
+      const d = dashRes.value.data.data || dashRes.value.data
       stats.todayMinutes = d.stats?.todayMinutes || d.stats?.totalMinutes || 0
       stats.totalQuestions = d.stats?.totalQuestions || 0
       stats.accuracy = d.stats?.accuracy || 0
@@ -232,14 +232,14 @@ onMounted(async () => {
 
     // practice history
     if (pracRes.status === 'fulfilled' && pracRes.value.data) {
-      const data = pracRes.value.data
-      recentRecords.value = (data.records || data.list || data || []).slice(0, 10)
+      const data = pracRes.value.data.data || pracRes.value.data
+      recentRecords.value = Array.isArray(data) ? data.slice(0, 10) : (data.records || data.list || []).slice(0, 10)
     }
 
     // daily plan
     if (planRes.status === 'fulfilled' && planRes.value.data) {
-      const data = planRes.value.data
-      dailyTasks.value = (data.tasks || data.dailyTasks || data || []).slice(0, 6)
+      const data = planRes.value.data.data || planRes.value.data
+      dailyTasks.value = Array.isArray(data) ? data.slice(0, 6) : (data.tasks || data.dailyTasks || []).slice(0, 6)
     } else {
       dailyTasks.value = [
         { title: '阅读练习 2 篇', duration: 30, completed: false },
@@ -250,8 +250,8 @@ onMounted(async () => {
 
     // recent wrong
     if (wrongRes.status === 'fulfilled' && wrongRes.value.data) {
-      const data = wrongRes.value.data
-      recentWrong.value = (data.list || data.wrong || data || []).slice(0, 5)
+      const data = wrongRes.value.data.data || wrongRes.value.data
+      recentWrong.value = Array.isArray(data) ? data.slice(0, 5) : (data.list || data.wrong || []).slice(0, 5)
     }
   } catch (e) {
     console.error('Dashboard load error', e)

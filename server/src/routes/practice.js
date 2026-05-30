@@ -126,4 +126,49 @@ router.get('/sets/:id', auth, async (req, res) => {
   }
 });
 
+// GET /api/practice/history - 练习历史
+router.get('/history', auth, async (req, res) => {
+  try {
+    const { limit = 10, subject } = req.query;
+
+    let where = ['pr.user_id = $1'];
+    let params = [req.user.id];
+    let paramIdx = 2;
+
+    if (subject) {
+      where.push(`pr.subject = $${paramIdx++}`);
+      params.push(subject);
+    }
+
+    const whereClause = where.join(' AND ');
+
+    const result = await db.query(
+      `SELECT pr.id, pr.question_id, pr.subject, pr.title, pr.score, pr.is_correct, pr.created_at
+      FROM practice_records pr
+      WHERE ${whereClause}
+      ORDER BY pr.created_at DESC
+      LIMIT $${paramIdx}`,
+      [...params, parseInt(limit)]
+    );
+
+    res.json({
+      code: 200,
+      data: {
+        records: result.rows.map(row => ({
+          id: row.id,
+          questionId: row.question_id,
+          subject: row.subject,
+          title: row.title,
+          score: row.score,
+          isCorrect: row.is_correct,
+          createdAt: row.created_at,
+        })),
+      },
+    });
+  } catch (err) {
+    console.error('[Practice] 获取练习历史失败:', err);
+    res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
+
 module.exports = router;
