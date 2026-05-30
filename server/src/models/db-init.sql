@@ -74,21 +74,12 @@ DO $$ BEGIN ALTER TABLE questions ADD COLUMN audio_url TEXT; EXCEPTION WHEN dupl
 
 -- 清理可能的重复数据（保留 ID 最小的），然后创建唯一约束
 DO $$
-DECLARE
-    dup_count INTEGER;
 BEGIN
-    SELECT COUNT(*) INTO dup_count FROM (
-        SELECT title, subject, COUNT(*) FROM questions GROUP BY title, subject HAVING COUNT(*) > 1
-    ) AS dups;
-    IF dup_count > 0 THEN
-        DELETE FROM questions WHERE id IN (
-            SELECT id FROM (
-                SELECT id, ROW_NUMBER() OVER (PARTITION BY title, subject ORDER BY id) AS rn FROM questions
-            ) AS ranked WHERE rn > 1
-        );
-    END IF;
-    ALTER TABLE questions ADD CONSTRAINT uq_questions_title_subject UNIQUE (title, subject);
-EXCEPTION WHEN duplicate_table THEN NULL;
+    DELETE FROM questions a USING questions b WHERE a.id > b.id AND a.title = b.title AND a.subject = b.subject;
+    BEGIN
+        ALTER TABLE questions ADD CONSTRAINT uq_questions_title_subject UNIQUE (title, subject);
+    EXCEPTION WHEN duplicate_table THEN NULL;
+    END;
 END $$;
 
 -- 数据修复：为已有但缺失 answer 的题目自动推算正确答案
