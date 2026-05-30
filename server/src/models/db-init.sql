@@ -63,19 +63,19 @@ CREATE INDEX IF NOT EXISTS idx_questions_subject ON questions(subject);
 CREATE INDEX IF NOT EXISTS idx_questions_difficulty ON questions(difficulty);
 CREATE INDEX IF NOT EXISTS idx_questions_status ON questions(status);
 CREATE INDEX IF NOT EXISTS idx_questions_type ON questions(type);
-ALTER TABLE questions ADD CONSTRAINT IF NOT EXISTS uq_questions_title_subject UNIQUE (title, subject);
+-- 兼容补全：确保旧表缺失列和约束被补齐
+-- 使用 DO 块捕获 duplicate_column/duplicate_object 异常，兼容所有 PostgreSQL 版本
+DO $$ BEGIN
+    ALTER TABLE questions ADD CONSTRAINT uq_questions_title_subject UNIQUE (title, subject);
+EXCEPTION WHEN duplicate_table THEN END;
+END $$;
 
--- ============================================================
--- 列兼容补全：确保旧表缺失列被补齐
--- CREATE TABLE IF NOT EXISTS 不会修改已存在的表，
--- 以下 ALTER TABLE 保证任何历史版本的表都拥有完整字段
--- ============================================================
-ALTER TABLE questions ADD COLUMN IF NOT EXISTS answer TEXT;
-ALTER TABLE questions ADD COLUMN IF NOT EXISTS analysis TEXT;
-ALTER TABLE questions ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'official';
-ALTER TABLE questions ADD COLUMN IF NOT EXISTS status VARCHAR(15) DEFAULT 'pending';
-ALTER TABLE questions ADD COLUMN IF NOT EXISTS passage_text TEXT;
-ALTER TABLE questions ADD COLUMN IF NOT EXISTS audio_url TEXT;
+DO $$ BEGIN ALTER TABLE questions ADD COLUMN answer TEXT; EXCEPTION WHEN duplicate_column THEN END; END $$;
+DO $$ BEGIN ALTER TABLE questions ADD COLUMN analysis TEXT; EXCEPTION WHEN duplicate_column THEN END; END $$;
+DO $$ BEGIN ALTER TABLE questions ADD COLUMN source VARCHAR(50) DEFAULT 'official'; EXCEPTION WHEN duplicate_column THEN END; END $$;
+DO $$ BEGIN ALTER TABLE questions ADD COLUMN status VARCHAR(15) DEFAULT 'pending'; EXCEPTION WHEN duplicate_column THEN END; END $$;
+DO $$ BEGIN ALTER TABLE questions ADD COLUMN passage_text TEXT; EXCEPTION WHEN duplicate_column THEN END; END $$;
+DO $$ BEGIN ALTER TABLE questions ADD COLUMN audio_url TEXT; EXCEPTION WHEN duplicate_column THEN END; END $$;
 
 -- 数据修复：为已有但缺失 answer 的题目自动推算正确答案
 UPDATE questions
