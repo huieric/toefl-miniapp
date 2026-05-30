@@ -63,24 +63,7 @@ CREATE INDEX IF NOT EXISTS idx_questions_subject ON questions(subject);
 CREATE INDEX IF NOT EXISTS idx_questions_difficulty ON questions(difficulty);
 CREATE INDEX IF NOT EXISTS idx_questions_status ON questions(status);
 CREATE INDEX IF NOT EXISTS idx_questions_type ON questions(type);
--- 兼容补全：确保旧表缺失列和约束被补齐
--- 使用 DO 块捕获异常，兼容所有 PostgreSQL 版本
-DO $$ BEGIN ALTER TABLE questions ADD COLUMN answer TEXT; EXCEPTION WHEN duplicate_column THEN END; $$;
-DO $$ BEGIN ALTER TABLE questions ADD COLUMN analysis TEXT; EXCEPTION WHEN duplicate_column THEN END; $$;
-DO $$ BEGIN ALTER TABLE questions ADD COLUMN source VARCHAR(50) DEFAULT 'official'; EXCEPTION WHEN duplicate_column THEN END; $$;
-DO $$ BEGIN ALTER TABLE questions ADD COLUMN status VARCHAR(15) DEFAULT 'pending'; EXCEPTION WHEN duplicate_column THEN END; $$;
-DO $$ BEGIN ALTER TABLE questions ADD COLUMN passage_text TEXT; EXCEPTION WHEN duplicate_column THEN END; $$;
-DO $$ BEGIN ALTER TABLE questions ADD COLUMN audio_url TEXT; EXCEPTION WHEN duplicate_column THEN END; $$;
-
--- 清理可能的重复数据（保留 ctid 最小的），然后创建唯一约束
-DO $$
-BEGIN
-    DELETE FROM questions WHERE ctid NOT IN (SELECT MIN(ctid) FROM questions GROUP BY title, subject);
-    BEGIN
-        ALTER TABLE questions ADD CONSTRAINT uq_questions_title_subject UNIQUE (title, subject);
-    EXCEPTION WHEN duplicate_table THEN NULL;
-    END;
-END $$;
+-- 列补全、去重、唯一约束创建：已迁移至 db.js initDatabase() 中通过 Node.js 完成，无需 PL/pgSQL DO 块
 
 -- 数据修复：为已有但缺失 answer 的题目自动推算正确答案
 UPDATE questions
@@ -546,16 +529,7 @@ VALUES
 -- 商业化扩展表（v2.0）
 -- ============================================================
 
--- 扩展 users 表
-ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20);
-ALTER TABLE users ADD COLUMN IF NOT EXISTS membership VARCHAR(20) DEFAULT 'free' CHECK (membership IN ('free', 'premium'));
-ALTER TABLE users ADD COLUMN IF NOT EXISTS level VARCHAR(20) DEFAULT 'beginner' CHECK (level IN ('beginner', 'intermediate', 'advanced'));
-
--- 扩展 user_stats 表
-ALTER TABLE user_stats ADD COLUMN IF NOT EXISTS reading_progress JSONB DEFAULT '{"correct":0,"total":0,"accuracy":0}';
-ALTER TABLE user_stats ADD COLUMN IF NOT EXISTS listening_progress JSONB DEFAULT '{"correct":0,"total":0,"accuracy":0}';
-ALTER TABLE user_stats ADD COLUMN IF NOT EXISTS speaking_progress JSONB DEFAULT '{"correct":0,"total":0,"accuracy":0}';
-ALTER TABLE user_stats ADD COLUMN IF NOT EXISTS writing_progress JSONB DEFAULT '{"correct":0,"total":0,"accuracy":0}';
+-- 扩展 users / user_stats 表列补全：已迁移至 db.js initDatabase()
 
 -- 订单表
 CREATE TABLE IF NOT EXISTS orders (
