@@ -72,10 +72,10 @@ DO $$ BEGIN ALTER TABLE questions ADD COLUMN status VARCHAR(15) DEFAULT 'pending
 DO $$ BEGIN ALTER TABLE questions ADD COLUMN passage_text TEXT; EXCEPTION WHEN duplicate_column THEN END; $$;
 DO $$ BEGIN ALTER TABLE questions ADD COLUMN audio_url TEXT; EXCEPTION WHEN duplicate_column THEN END; $$;
 
--- 清理可能的重复数据（保留 ID 最小的），然后创建唯一约束
+-- 清理可能的重复数据（保留 ctid 最小的），然后创建唯一约束
 DO $$
 BEGIN
-    DELETE FROM questions a USING questions b WHERE a.id > b.id AND a.title = b.title AND a.subject = b.subject;
+    DELETE FROM questions WHERE ctid NOT IN (SELECT MIN(ctid) FROM questions GROUP BY title, subject);
     BEGIN
         ALTER TABLE questions ADD CONSTRAINT uq_questions_title_subject UNIQUE (title, subject);
     EXCEPTION WHEN duplicate_table THEN NULL;
