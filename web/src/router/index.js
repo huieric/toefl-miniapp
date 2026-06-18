@@ -228,9 +228,13 @@ router.beforeEach((to, from, next) => {
       }
     } catch { /* ignore */ }
   }
-  // 管理后台路由拦截（简单校验，生产环境需后端鉴权）
+  // 管理后台路由拦截（校验管理员 token）
   if (to.path.startsWith('/admin')) {
-    // 预留：可在此处校验管理员 token
+    const adminToken = localStorage.getItem('adminToken')
+    if (!adminToken) {
+      next('/auth?redirect=admin')
+      return
+    }
   }
   next()
 })
