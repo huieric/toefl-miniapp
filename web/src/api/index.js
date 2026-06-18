@@ -102,4 +102,11 @@ export const userAPI = {
   progress: () => http.get('/user/progress'),
 }
 
+// AI Tutor
+export const aiTutorAPI = {
+  analysis: () => http.get('/ai-tutor/analysis'),
+  ask: (question, conversationHistory) => http.post('/ai-tutor/ask', { question, conversationHistory }),
+  dataPreview: () => http.get('/ai-tutor/data-preview'),
+}
+
 export default http

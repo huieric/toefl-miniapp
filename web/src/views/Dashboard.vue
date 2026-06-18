@@ -90,6 +90,18 @@
       </div>
     </div>
 
+    <!-- AI Tutor Entry -->
+    <div class="card ai-tutor-entry" @click="$router.push('/ai-tutor')">
+      <div class="tutor-icon">
+        <el-icon :size="32" color="#fff"><MagicStick /></el-icon>
+      </div>
+      <div class="tutor-info">
+        <div class="tutor-title">AI 导师分析</div>
+        <div class="tutor-desc">预测托福分数 · 识别薄弱环节 · 个性化备考建议</div>
+      </div>
+      <el-icon :size="20" color="#4A90D9"><ArrowRight /></el-icon>
+    </div>
+
     <!-- Quick Wrong Book Entry -->
     <div class="card">
       <div class="card-header">
@@ -161,7 +173,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Reading, Headset, Microphone, Edit, Trophy, UserFilled, CircleClose, CircleCheck, Clock } from '@element-plus/icons-vue'
+import { Reading, Headset, Microphone, Edit, Trophy, UserFilled, CircleClose, CircleCheck, Clock, MagicStick, ArrowRight } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { userAPI, practiceAPI, planAPI, wrongAPI } from '@/api'
 import { useUserStore } from '@/stores/user'
@@ -316,6 +328,22 @@ onMounted(async () => {
 }
 .subject-card:hover { background: #e8f0fe; transform: translateY(-2px); }
 .subject-name { font-size: 13px; margin-top: 8px; font-weight: 500; }
+
+/* AI Tutor Entry */
+.ai-tutor-entry {
+  display: flex; align-items: center; gap: 14px; cursor: pointer;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e8f0fe 100%);
+  transition: all 0.2s;
+}
+.ai-tutor-entry:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(74,144,217,0.2); }
+.tutor-icon {
+  width: 52px; height: 52px; border-radius: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.tutor-info { flex: 1; }
+.tutor-title { font-size: 15px; font-weight: 700; color: #333; }
+.tutor-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 
 /* Wrong Preview */
 .wrong-preview { display: flex; flex-direction: column; gap: 8px; }

@@ -122,6 +122,12 @@ const routes = [
     meta: { title: 'AI对话' },
   },
   {
+    path: '/ai-tutor',
+    name: 'AiTutor',
+    component: () => import('@/views/AiTutor.vue'),
+    meta: { title: 'AI导师' },
+  },
+  {
     path: '/plan',
     name: 'PlanIndex',
     component: () => import('@/views/PlanIndex.vue'),

@@ -45,6 +45,10 @@
           <el-icon><ChatDotRound /></el-icon>
           <span>AI陪练</span>
         </el-menu-item>
+        <el-menu-item index="/ai-tutor">
+          <el-icon><MagicStick /></el-icon>
+          <span>AI导师</span>
+        </el-menu-item>
         <el-menu-item index="/plan">
           <el-icon><Calendar /></el-icon>
           <span>学习计划</span>
@@ -96,6 +100,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { Notebook, HomeFilled, Reading, Headset, Microphone, Edit, Trophy, Collection, ChatDotRound, Calendar, User, MagicStick } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const windowWidth = ref(window.innerWidth)
@@ -110,6 +115,7 @@ const activeMenu = computed(() => {
   if (p.startsWith('/mock-exam')) return '/mock-exam'
   if (p.startsWith('/wrong-book')) return '/wrong-book'
   if (p.startsWith('/ai-talk')) return '/ai-talk'
+  if (p.startsWith('/ai-tutor')) return '/ai-tutor'
   if (p.startsWith('/plan')) return '/plan'
   if (p.startsWith('/profile')) return '/profile'
   return p

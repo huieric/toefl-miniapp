@@ -19,6 +19,7 @@ const feedbackRoutes = require('./routes/feedback');
 const adminRoutes = require('./routes/admin');
 const membershipRoutes = require('./routes/membership');
 const adsRoutes = require('./routes/ads');
+const aiTutorRoutes = require('./routes/ai-tutor');
 
 const app = express();
 
@@ -62,6 +63,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/membership', membershipRoutes);
 app.use('/api/ads', adsRoutes);
+app.use('/api/ai-tutor', aiTutorRoutes);
 
 // === 健康检查 ===
 app.get('/api/health', (req, res) => {

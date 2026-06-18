@@ -5,9 +5,11 @@
 const db = require('../config/db');
 
 const FREE_LIMITS = {
-  dailyQuestions: 20,      // 每日免费做题数
-  dailyAiTalkMinutes: 10,  // 每日免费AI陪练分钟数
-  dailyMockExams: 0,       // 每日免费模考次数(0 = 会员专享)
+  dailyQuestions: 20,          // 每日免费做题数
+  dailyAiTalkMinutes: 10,      // 每日免费AI陪练分钟数
+  dailyMockExams: 0,           // 每日免费模考次数(0 = 会员专享)
+  dailyAiTutorAnalysis: 1,     // 每日免费AI导师分析次数
+  dailyAiTutorAsk: 3,          // 每日免费AI导师问答次数
 };
 
 /**
@@ -125,6 +127,20 @@ async function checkFeatureAccess(userId, feature) {
       break;
     case 'mock_exam':
       return { allowed: false, reason: '全真模拟为会员专属功能' };
+    case 'aiTutorAnalysis': {
+      const used = await getFeatureUsageCount(userId, 'aiTutorAnalysis');
+      if (used >= FREE_LIMITS.dailyAiTutorAnalysis) {
+        return { allowed: false, reason: `今日AI分析次数已达上限(${FREE_LIMITS.dailyAiTutorAnalysis}次)`, remaining: 0, limit: FREE_LIMITS.dailyAiTutorAnalysis };
+      }
+      return { allowed: true, remaining: FREE_LIMITS.dailyAiTutorAnalysis - used, limit: FREE_LIMITS.dailyAiTutorAnalysis };
+    }
+    case 'aiTutorAsk': {
+      const used = await getFeatureUsageCount(userId, 'aiTutorAsk');
+      if (used >= FREE_LIMITS.dailyAiTutorAsk) {
+        return { allowed: false, reason: `今日AI问答次数已达上限(${FREE_LIMITS.dailyAiTutorAsk}次)`, remaining: 0, limit: FREE_LIMITS.dailyAiTutorAsk };
+      }
+      return { allowed: true, remaining: FREE_LIMITS.dailyAiTutorAsk - used, limit: FREE_LIMITS.dailyAiTutorAsk };
+    }
     default:
       break;
   }
@@ -287,6 +303,44 @@ async function checkExpiredSubscriptions() {
   return expired.rows.length;
 }
 
+/**
+ * 获取用户当日某功能使用次数（通用计数器）
+ */
+async function getFeatureUsageCount(userId, featureName) {
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    const result = await db.query(
+      `SELECT usage_count::int as count FROM feature_usage_log
+       WHERE user_id = $1 AND feature = $2 AND usage_date = $3`,
+      [userId, featureName, today]
+    );
+    return result.rows[0] ? result.rows[0].count : 0;
+  } catch (err) {
+    // 表可能不存在，返回0
+    console.warn('[Membership] feature_usage_log 查询失败:', err.message);
+    return 0;
+  }
+}
+
+/**
+ * 记录功能使用（通用计数器，幂等 upsert）
+ */
+async function trackFeatureUsage(userId, featureName) {
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    await db.query(
+      `INSERT INTO feature_usage_log (user_id, feature, usage_date, usage_count)
+       VALUES ($1, $2, $3, 1)
+       ON CONFLICT (user_id, feature, usage_date)
+       DO UPDATE SET usage_count = feature_usage_log.usage_count + 1`,
+      [userId, featureName, today]
+    );
+  } catch (err) {
+    // 表可能不存在，静默失败
+    console.warn('[Membership] feature_usage_log 记录失败:', err.message);
+  }
+}
+
 module.exports = {
   FREE_LIMITS,
   getUserMembership,
@@ -298,4 +352,6 @@ module.exports = {
   activateMembership,
   cancelSubscription,
   checkExpiredSubscriptions,
+  getFeatureUsageCount,
+  trackFeatureUsage,
 };

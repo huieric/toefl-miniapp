@@ -616,6 +616,18 @@ CREATE INDEX IF NOT EXISTS idx_admin_logs_admin ON admin_logs(admin_id);
 CREATE INDEX IF NOT EXISTS idx_admin_logs_action ON admin_logs(action);
 CREATE INDEX IF NOT EXISTS idx_admin_logs_time ON admin_logs(created_at);
 
+-- 功能使用日志表（AI导师等功能的每日使用计数）
+CREATE TABLE IF NOT EXISTS feature_usage_log (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    feature VARCHAR(50) NOT NULL,
+    usage_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    usage_count INTEGER DEFAULT 0,
+    UNIQUE(user_id, feature, usage_date)
+);
+CREATE INDEX IF NOT EXISTS idx_feature_usage_user ON feature_usage_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_feature_usage_feature ON feature_usage_log(feature);
+
 -- ============================================================
 -- 初始化商业化示例数据
 -- ============================================================
