@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const http = axios.create({
   baseURL: 'https://toefl-api-m1ue.onrender.com/api',
-  timeout: 15000,
+  timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -22,9 +22,38 @@ http.interceptors.response.use(
       localStorage.removeItem('userInfo')
       window.location.href = '/toefl-miniapp/web/auth'
     }
+    // 分类错误信息，方便组件层给出更好的提示
+    if (err.code === 'ECONNABORTED') {
+      err._category = 'timeout'
+      err._userMessage = '请求超时，请检查网络后重试'
+    } else if (!err.response) {
+      err._category = 'network'
+      err._userMessage = '网络连接失败，请检查网络后重试'
+    } else if (err.response.status >= 500) {
+      err._category = 'server'
+      err._userMessage = '服务器繁忙，请稍后重试'
+    }
     return Promise.reject(err)
   },
 )
+
+/**
+ * 带自动重试的请求封装（用于应对 Render 冷启动）
+ * @param {Function} requestFn - 返回 Promise 的请求函数
+ * @param {Object} options - { retries: 2, retryDelay: 2000 }
+ */
+export async function withRetry(requestFn, { retries = 2, retryDelay = 2000 } = {}) {
+  try {
+    return await requestFn()
+  } catch (err) {
+    // 仅对超时和网络错误进行重试（5xx 和 4xx 不重试）
+    if (retries > 0 && (err._category === 'timeout' || err._category === 'network')) {
+      await new Promise(r => setTimeout(r, retryDelay))
+      return withRetry(requestFn, { retries: retries - 1, retryDelay })
+    }
+    throw err
+  }
+}
 
 // Auth
 export const authAPI = {

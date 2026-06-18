@@ -81,10 +81,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { questionAPI } from '@/api'
+import { questionAPI, withRetry } from '@/api'
 
 const router = useRouter()
 const list = ref([])
@@ -98,6 +98,24 @@ const uploadProgress = ref(0)
 const genVisible = ref(false)
 const genCount = ref(5)
 const genDifficulty = ref('medium')
+
+// 安全超时：防止 loading 状态永远卡住
+let _safetyTimer = null
+const SAFETY_TIMEOUT = 35000 // 比 axios timeout (30s) 多 5s 兜底
+
+function clearSafety() {
+  if (_safetyTimer) { clearTimeout(_safetyTimer); _safetyTimer = null }
+}
+function setSafetyTimeout() {
+  clearSafety()
+  _safetyTimer = setTimeout(() => {
+    if (loading.value) {
+      console.warn('[ReadingList] Safety timeout triggered — forcing loading off')
+      loading.value = false
+      ElMessage.warning('请求耗时较长，请刷新页面重试')
+    }
+  }, SAFETY_TIMEOUT)
+}
 
 const emptyDesc = computed(() => sourceTab.value === 'real' ? '暂无阅读真题' : '暂无模拟题')
 
@@ -162,21 +180,25 @@ const doGenerate = async () => {
 
 const fetchList = async () => {
   loading.value = true
+  setSafetyTimeout()
   try {
     const params = { subject: 'reading', source: sourceTab.value }
-    const res = await questionAPI.list(params)
+    const res = await withRetry(() => questionAPI.list(params), { retries: 2, retryDelay: 2000 })
     const data = res.data?.data?.list || res.data?.list || res.data || []
     list.value = Array.isArray(data) ? data : []
   } catch (e) {
     console.error('获取阅读题目失败:', e)
     list.value = []
-    ElMessage.error('获取题目失败，请检查网络连接')
+    const msg = e._userMessage || e.response?.data?.message || e.message || '获取题目失败'
+    ElMessage.error(msg)
   } finally {
+    clearSafety()
     loading.value = false
   }
 }
 
 onMounted(fetchList)
+onUnmounted(clearSafety)
 </script>
 
 <style scoped>

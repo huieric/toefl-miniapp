@@ -54,7 +54,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ArrowLeft } from '@element-plus/icons-vue'
-import { practiceAPI } from '@/api'
+import { ElMessage } from 'element-plus'
+import { practiceAPI, withRetry } from '@/api'
 
 const subjectMap = { reading: '阅读', listening: '听力', speaking: '口语', writing: '写作' }
 
@@ -76,11 +77,14 @@ const fmt = (d) => d ? new Date(d).toLocaleString('zh-CN') : '--'
 
 const loadHistory = async () => {
   try {
-    const res = await practiceAPI.history({ page: currentPage.value, limit: pageSize })
+    const res = await withRetry(() => practiceAPI.history({ page: currentPage.value, limit: pageSize }), { retries: 2, retryDelay: 2000 })
     const data = res.data
     allList.value = data?.list || data?.records || data || []
     total.value = data?.total || allList.value.length
-  } catch (e) { console.error(e) }
+  } catch (e) {
+    console.error('加载练习历史失败:', e)
+    ElMessage.error(e._userMessage || '加载历史记录失败')
+  }
 }
 
 onMounted(loadHistory)

@@ -65,10 +65,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { questionAPI } from '@/api'
+import { questionAPI, withRetry } from '@/api'
 
 const router = useRouter()
 const list = ref([])
@@ -78,6 +78,16 @@ const sourceTab = ref('real')
 const genVisible = ref(false)
 const genCount = ref(5)
 const genDifficulty = ref('medium')
+
+let _safetyTimer = null
+const SAFETY_TIMEOUT = 35000
+function clearSafety() { if (_safetyTimer) { clearTimeout(_safetyTimer); _safetyTimer = null } }
+function setSafetyTimeout() {
+  clearSafety()
+  _safetyTimer = setTimeout(() => {
+    if (loading.value) { loading.value = false; ElMessage.warning('请求耗时较长，请刷新页面重试') }
+  }, SAFETY_TIMEOUT)
+}
 
 const emptyDesc = computed(() => sourceTab.value === 'real' ? '暂无口语真题' : '暂无模拟题')
 
@@ -113,20 +123,24 @@ const doGenerate = async () => {
 
 const fetchList = async () => {
   loading.value = true
+  setSafetyTimeout()
   try {
     const params = { subject: 'speaking', source: sourceTab.value }
-    const res = await questionAPI.list(params)
+    const res = await withRetry(() => questionAPI.list(params), { retries: 2, retryDelay: 2000 })
     const data = res.data?.data?.list || res.data?.list || res.data || []
     list.value = Array.isArray(data) ? data : []
   } catch (e) {
     console.error('获取口语题目失败:', e)
     list.value = []
+    ElMessage.error(e._userMessage || e.response?.data?.message || '获取题目失败')
   } finally {
+    clearSafety()
     loading.value = false
   }
 }
 
 onMounted(fetchList)
+onUnmounted(clearSafety)
 </script>
 
 <style scoped>
