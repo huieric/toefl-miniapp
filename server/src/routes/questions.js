@@ -55,8 +55,8 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
 
     console.log(`[Questions] 开始解析PDF: ${req.file.originalname} (uploadId=${uploadId}, size=${req.file.size})`);
 
-    // 异步解析PDF，source 设为 'real'
-    parseTOEFLReadingPDF(req.file.path, db)
+    // 异步解析PDF，source 设为 'real'，passage_id = uploadId
+    parseTOEFLReadingPDF(req.file.path, db, uploadId)
       .then(async (inserted) => {
         console.log(`[Questions] PDF解析完成 uploadId=${uploadId}，共插入 ${inserted.length} 道题目`);
         setUploadStatus(uploadId, {
@@ -131,10 +131,72 @@ router.get('/upload/:id/status', auth, async (req, res) => {
   }
 });
 
-// GET /api/questions - 题目列表
+// GET /api/questions - 题目列表（支持按篇章聚合）
 router.get('/', auth, async (req, res) => {
   try {
-    const { subject, difficulty, type, source, page = 1, limit = 20 } = req.query;
+    const { subject, difficulty, type, source, page = 1, limit = 20, groupBy } = req.query;
+
+    // === 篇章聚合模式 ===
+    if (groupBy === 'passage') {
+      let where = ['status = $1', 'passage_id IS NOT NULL'];
+      let params = ['approved'];
+      let paramIdx = 2;
+
+      if (subject) {
+        where.push(`subject = $${paramIdx++}`);
+        params.push(subject);
+      }
+      if (source) {
+        where.push(`source = $${paramIdx++}`);
+        params.push(source);
+      }
+
+      const whereClause = where.join(' AND ');
+
+      const result = await db.query(
+        `SELECT
+          passage_id AS "passageId",
+          MAX(title) AS title,
+          COUNT(*) AS "questionCount",
+          ARRAY_AGG(DISTINCT type) AS types,
+          MAX(difficulty) AS difficulty,
+          MAX(source) AS source,
+          MAX(created_at) AS "createdAt"
+        FROM questions
+        WHERE ${whereClause}
+        GROUP BY passage_id
+        ORDER BY MAX(created_at) DESC`,
+        params
+      );
+
+      // 同时查出未归入 passage 的散题（兼容旧数据），但不返回
+      // 这些会在前端兜底显示
+      let orphans = [];
+      try {
+        const orphanResult = await db.query(
+          `SELECT id, title, type, difficulty, source, created_at
+           FROM questions WHERE status = 'approved' AND passage_id IS NULL
+           AND subject = $1 AND source = $2
+           ORDER BY created_at DESC`,
+          [subject || 'reading', source || 'real']
+        );
+        orphans = orphanResult.rows;
+      } catch (_) { /* 忽略散题查询失败 */ }
+
+      res.json({
+        code: 200,
+        data: {
+          list: result.rows,
+          orphans,
+          total: result.rows.length,
+          page: 1,
+          limit: 100,
+        },
+      });
+      return;
+    }
+
+    // === 普通平铺模式 ===
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
     let where = ['status = $1'];
@@ -214,15 +276,17 @@ router.post('/generate', auth, async (req, res) => {
       generatedQuestions = generateWithTemplate(subject, genCount, difficulty);
     }
 
-    // Insert into database
+    // Insert into database with passage_id for grouping
+    const passageId = `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 8)}`;
     const inserted = [];
-    for (const q of generatedQuestions) {
+    for (let idx = 0; idx < generatedQuestions.length; idx++) {
+      const q = generatedQuestions[idx];
       try {
         const result = await db.query(
-          `INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, source, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'simulated', 'approved')
+          `INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, source, status, passage_id, question_order)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'simulated', 'approved', $10, $11)
            RETURNING id, title`,
-          [subject, q.type, q.difficulty, q.title, q.content, JSON.stringify(q.options), q.answer, q.analysis || '', q.passage_text || '']
+          [subject, q.type, q.difficulty, q.title, q.content, JSON.stringify(q.options), q.answer, q.analysis || '', q.passage_text || '', passageId, idx + 1]
         );
         inserted.push({ id: result.rows[0].id, title: result.rows[0].title });
       } catch (err) {
@@ -480,6 +544,49 @@ function generateWithTemplate(subject, count, difficulty) {
 
   return result;
 }
+
+// GET /api/questions/passage/:passageId - 篇章详情（含全部题目）
+router.get('/passage/:passageId', auth, async (req, res) => {
+  try {
+    const { passageId } = req.params;
+
+    const result = await db.query(
+      `SELECT id, subject, type, difficulty, title, content, options, answer, analysis, passage_text, source, audio_url, question_order
+       FROM questions
+       WHERE passage_id = $1 AND status = 'approved'
+       ORDER BY question_order ASC, id ASC`,
+      [passageId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ code: 404, message: '该篇章不存在或无题目' });
+    }
+
+    const first = result.rows[0];
+    res.json({
+      code: 200,
+      data: {
+        passageId,
+        title: first.title,
+        passageText: first.passage_text || '',
+        source: first.source,
+        difficulty: first.difficulty,
+        questions: result.rows.map(r => ({
+          id: r.id,
+          order: r.question_order,
+          type: r.type,
+          content: r.content,
+          options: r.options,
+          answer: r.answer,
+          analysis: r.analysis,
+        })),
+      },
+    });
+  } catch (err) {
+    console.error('[Questions] 获取篇章详情失败:', err);
+    res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
 
 // GET /api/questions/:id - 题目详情（仅当id为数字时）
 router.get('/:id', auth, async (req, res) => {

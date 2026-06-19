@@ -20,16 +20,30 @@ const routes = [
     meta: { title: '阅读练习' },
   },
   {
+    path: '/reading/passage/:passageId',
+    name: 'ReadingPassage',
+    component: () => import('@/views/ReadingPassage.vue'),
+    meta: { title: '篇章练习' },
+  },
+  {
+    path: '/reading/passage/:passageId/result',
+    name: 'ReadingPassageResult',
+    component: () => import('@/views/ReadingPassageResult.vue'),
+    meta: { title: '篇章结果' },
+  },
+  // 兼容旧路由：/reading/数字ID → 重定向到 /reading（旧单题模式已废弃）
+  {
     path: '/reading/:id',
-    name: 'ReadingDetail',
-    component: () => import('@/views/ReadingDetail.vue'),
-    meta: { title: '阅读做题' },
+    redirect: to => {
+      if (/^\d+$/.test(to.params.id)) {
+        return '/reading'
+      }
+      return '/reading'
+    },
   },
   {
     path: '/reading/:id/result',
-    name: 'ReadingResult',
-    component: () => import('@/views/ReadingResult.vue'),
-    meta: { title: '阅读结果' },
+    redirect: '/reading',
   },
   {
     path: '/listening',

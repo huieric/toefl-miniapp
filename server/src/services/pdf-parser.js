@@ -6,8 +6,8 @@ const fs = require('fs');
 /**
  * 解析PDF文本，提取托福阅读题目
  */
-async function parseTOEFLReadingPDF(filePath, db) {
-  console.log(`[PDF-Parser] 开始解析: ${filePath}`);
+async function parseTOEFLReadingPDF(filePath, db, passageId) {
+  console.log(`[PDF-Parser] 开始解析: ${filePath}, passageId=${passageId}`);
 
   let pdfParse;
   try {
@@ -41,13 +41,14 @@ async function parseTOEFLReadingPDF(filePath, db) {
   }
 
   const inserted = [];
-  for (const q of questions) {
+  for (let idx = 0; idx < questions.length; idx++) {
+    const q = questions[idx];
     try {
       const result = await db.query(
-        `INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, source, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'real', 'approved')
+        `INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, source, status, passage_id, question_order)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'real', 'approved', $10, $11)
          RETURNING id, title`,
-        ['reading', q.type, q.difficulty, q.title, q.content, JSON.stringify(q.options), q.answer, q.analysis || '', q.passage || '']
+        ['reading', q.type, q.difficulty, q.title, q.content, JSON.stringify(q.options), q.answer, q.analysis || '', q.passage || '', passageId || null, idx + 1]
       );
       inserted.push({ id: result.rows[0].id, title: result.rows[0].title });
     } catch (err) {

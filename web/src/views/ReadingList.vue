@@ -19,8 +19,8 @@
       </div>
     </div>
 
-    <div class="card" v-loading="uploading || loading" :element-loading-text="loadingText">
-      <el-empty v-if="!loading && !list.length" :description="emptyDesc">
+    <div v-loading="loading" :element-loading-text="loadingText">
+      <el-empty v-if="!loading && !passages.length" :description="emptyDesc">
         <template v-if="sourceTab === 'real'">
           <el-button type="primary" @click="triggerUpload">上传PDF题目</el-button>
         </template>
@@ -28,28 +28,70 @@
           <el-button type="primary" @click="showGenDialog">生成模拟题</el-button>
         </template>
       </el-empty>
-      <el-table v-else :data="list" stripe @row-click="goDetail" style="cursor:pointer">
-        <el-table-column type="index" label="#" width="50" />
-        <el-table-column prop="title" label="题目" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="type" label="题型" width="100">
-          <template #default="{ row }">{{ typeLabel(row.type) }}</template>
-        </el-table-column>
-        <el-table-column label="来源" width="90">
-          <template #default="{ row }">
-            <el-tag :type="row.source === 'real' ? 'success' : 'primary'" size="small" effect="plain">
-              {{ row.source === 'real' ? '真题' : '模拟题' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="difficulty" label="难度" width="80">
-          <template #default="{ row }">
-            <el-tag :type="diffTag(row.difficulty)" size="small">{{ diffLabel(row.difficulty) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="created_at" label="添加时间" width="160">
-          <template #default="{ row }">{{ fmt(row.created_at) }}</template>
-        </el-table-column>
-      </el-table>
+
+      <!-- 篇章卡片列表 -->
+      <div v-else class="passage-grid">
+        <el-card
+          v-for="p in passages"
+          :key="p.passageId"
+          class="passage-card"
+          shadow="hover"
+          @click="goPassage(p.passageId)"
+        >
+          <div class="card-body">
+            <h3 class="card-title">{{ cleanTitle(p.title) }}</h3>
+            <div class="card-tags">
+              <el-tag :type="p.source === 'real' ? 'success' : 'primary'" size="small" effect="plain">
+                {{ p.source === 'real' ? '真题' : '模拟题' }}
+              </el-tag>
+              <el-tag :type="diffTag(p.difficulty)" size="small" effect="plain">
+                {{ diffLabel(p.difficulty) }}
+              </el-tag>
+            </div>
+            <div class="card-meta">
+              <span class="meta-qcount">共 {{ p.questionCount }} 题</span>
+              <span class="meta-types">
+                <el-tag
+                  v-for="t in typeIcons(p.types)"
+                  :key="t.key"
+                  size="small"
+                  class="type-tag"
+                >{{ t.label }}</el-tag>
+              </span>
+            </div>
+            <div class="card-footer">
+              <span class="card-date">{{ fmt(p.createdAt) }}</span>
+              <el-icon class="card-arrow"><ArrowRight /></el-icon>
+            </div>
+          </div>
+        </el-card>
+
+        <!-- 旧数据兼容：未归入篇章的散题 -->
+        <template v-if="orphans.length">
+          <div class="orphans-divider">
+            <el-divider>独立题目（旧数据）</el-divider>
+          </div>
+          <el-card
+            v-for="o in orphans"
+            :key="'orphan-' + o.id"
+            class="passage-card orphan-card"
+            shadow="hover"
+          >
+            <div class="card-body">
+              <h3 class="card-title">{{ o.title }}</h3>
+              <div class="card-tags">
+                <el-tag type="info" size="small" effect="plain">单题</el-tag>
+                <el-tag :type="diffTag(o.difficulty)" size="small" effect="plain">
+                  {{ diffLabel(o.difficulty) }}
+                </el-tag>
+              </div>
+              <div class="card-footer">
+                <span class="card-date">{{ fmt(o.created_at) }}</span>
+              </div>
+            </div>
+          </el-card>
+        </template>
+      </div>
     </div>
 
     <!-- 上传进度 -->
@@ -84,10 +126,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { ArrowRight } from '@element-plus/icons-vue'
 import { questionAPI, healthAPI, withRetry } from '@/api'
 
 const router = useRouter()
-const list = ref([])
+const passages = ref([])
+const orphans = ref([])
 const loading = ref(false)
 const uploading = ref(false)
 const generating = ref(false)
@@ -99,14 +143,13 @@ const genVisible = ref(false)
 const genCount = ref(5)
 const genDifficulty = ref('medium')
 
-// 两阶段加载状态
-const loadPhase = ref('') // '' | 'waking' | 'loading'
+const loadPhase = ref('')
 
 const emptyDesc = computed(() => sourceTab.value === 'real' ? '暂无阅读真题' : '暂无模拟题')
 
 const loadingText = computed(() => {
   if (loadPhase.value === 'waking') return '正在连接服务器...'
-  if (loadPhase.value === 'loading') return '正在加载题目...'
+  if (loadPhase.value === 'loading') return '正在加载篇章...'
   return '加载中...'
 })
 
@@ -117,10 +160,20 @@ const diffTag = (d) => {
   if (d === 'hard') return 'danger'
   return 'warning'
 }
+
 const typeMap = { detail: '细节题', inference: '推断题', vocabulary: '词汇题', summary: '总结题', purpose: '目的题', reference: '指代题' }
-const typeLabel = (t) => typeMap[t] || t || '--'
 const fmt = (d) => d ? new Date(d).toLocaleDateString('zh-CN') : '--'
-const goDetail = (row) => router.push(`/reading/${row.id}`)
+
+// 去标题中的 "(Q1)" 等编号后缀
+const cleanTitle = (t) => (t || '未命名篇章').replace(/\s*\(Q\d+\)\s*$/g, '')
+
+// 提取最多3种题型作为标签
+const typeIcons = (types) => {
+  if (!Array.isArray(types) || !types.length) return []
+  return types.slice(0, 3).map(t => ({ key: t, label: typeMap[t] || t }))
+}
+
+const goPassage = (passageId) => router.push(`/reading/passage/${passageId}`)
 
 const onSourceChange = () => fetchList()
 
@@ -148,14 +201,12 @@ const handleFileChange = async (e) => {
     progressVisible.value = false
 
     if (uploadId) {
-      // 轮询真实状态（最多10次，每3s一次）
       let resolved = false
       for (let i = 0; i < 10; i++) {
         await new Promise(r => setTimeout(r, 3000))
         try {
           const s = await questionAPI.uploadStatus(uploadId)
           const st = s.data?.data
-          console.log(`[ReadingList] 轮询状态 #${i + 1}:`, st?.status, 'count:', st?.parsedCount)
           if (st?.status === 'completed') {
             resolved = true
             if (st.parsedCount > 0) {
@@ -171,17 +222,13 @@ const handleFileChange = async (e) => {
             ElMessage.error(`解析失败: ${st.error || '未知错误'}`)
             break
           }
-          // status === 'processing' → 继续轮询
-        } catch (_) {
-          // 轮询中的单次网络错误不阻断
-        }
+        } catch (_) {}
       }
       if (!resolved) {
         await fetchList()
         ElMessage.warning('解析超时，请稍后刷新页面查看')
       }
     } else {
-      // 没有 uploadId，降级到旧行为
       await new Promise(r => setTimeout(r, 5000))
       await fetchList()
     }
@@ -214,39 +261,36 @@ const doGenerate = async () => {
 const fetchList = async () => {
   loading.value = true
   loadPhase.value = ''
-  list.value = []
+  passages.value = []
+  orphans.value = []
 
-  // 阶段1：快速健康检查唤醒服务器（8s超时）
   loadPhase.value = 'waking'
   try {
     await healthAPI.check()
-    console.log('[ReadingList] 服务器已就绪')
   } catch (_) {
-    // 服务器冷启动中，进入自动重试
-    console.log('[ReadingList] 服务器未就绪，进入唤醒重试')
     for (let i = 0; i < 6; i++) {
       await new Promise(r => setTimeout(r, 5000))
       try {
         await healthAPI.check()
-        console.log(`[ReadingList] 唤醒成功 (第${i + 1}次重试)`)
         break
-      } catch (_) {
-        console.log(`[ReadingList] 唤醒重试 ${i + 1}/6`)
-      }
+      } catch (_) {}
     }
   }
 
-  // 阶段2：加载数据
   loadPhase.value = 'loading'
   try {
-    const params = { subject: 'reading', source: sourceTab.value }
-    const res = await withRetry(() => questionAPI.list(params), { retries: 1, retryDelay: 2000 })
-    const data = res.data?.data?.list || res.data?.list || res.data || []
-    list.value = Array.isArray(data) ? data : []
+    const res = await withRetry(
+      () => questionAPI.listGrouped({ subject: 'reading', source: sourceTab.value }),
+      { retries: 1, retryDelay: 2000 }
+    )
+    const data = res.data?.data
+    passages.value = data?.list || []
+    orphans.value = data?.orphans || []
   } catch (e) {
-    console.error('获取阅读题目失败:', e)
-    list.value = []
-    ElMessage.error('加载题目失败，请刷新页面重试')
+    console.error('获取阅读篇章失败:', e)
+    passages.value = []
+    orphans.value = []
+    ElMessage.error('加载失败，请刷新页面重试')
   } finally {
     loadPhase.value = ''
     loading.value = false
@@ -268,5 +312,82 @@ onMounted(fetchList)
 .tab-actions {
   display: flex;
   gap: 8px;
+}
+
+.passage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.passage-card {
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--el-border-color-light);
+}
+.passage-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+.orphan-card {
+  opacity: 0.7;
+}
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.card-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #303133);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.meta-qcount {
+  font-size: 13px;
+  color: var(--text-secondary, #909399);
+}
+.meta-types {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.type-tag {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+.card-date {
+  font-size: 12px;
+  color: var(--text-placeholder, #c0c4cc);
+}
+.card-arrow {
+  color: var(--text-placeholder, #c0c4cc);
+  font-size: 14px;
+}
+.orphans-divider {
+  grid-column: 1 / -1;
 }
 </style>

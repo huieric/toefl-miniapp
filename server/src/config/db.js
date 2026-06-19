@@ -69,6 +69,8 @@ const COLUMN_DEFS = [
   { table: 'questions', name: 'source',       type: 'VARCHAR(50)',  def: "'official'" },
   { table: 'questions', name: 'status',       type: 'VARCHAR(15)',  def: "'pending'" },
   { table: 'questions', name: 'passage_text', type: 'TEXT' },
+  { table: 'questions', name: 'passage_id',     type: 'VARCHAR(50)' },
+  { table: 'questions', name: 'question_order', type: 'INTEGER',      def: '0' },
   { table: 'questions', name: 'audio_url',    type: 'TEXT' },
   { table: 'users',      name: 'phone',       type: 'VARCHAR(20)' },
   { table: 'users',      name: 'membership',  type: 'VARCHAR(20)', def: "'free'" },
