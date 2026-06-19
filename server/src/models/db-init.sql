@@ -63,7 +63,7 @@ CREATE INDEX IF NOT EXISTS idx_questions_subject ON questions(subject);
 CREATE INDEX IF NOT EXISTS idx_questions_difficulty ON questions(difficulty);
 CREATE INDEX IF NOT EXISTS idx_questions_status ON questions(status);
 CREATE INDEX IF NOT EXISTS idx_questions_type ON questions(type);
-CREATE INDEX IF NOT EXISTS idx_questions_passage ON questions(passage_id);
+-- idx_questions_passage 在 db.js ensureMissingColumns 之后创建（列可能尚未存在）
 -- 列补全、去重、唯一约束创建：已迁移至 db.js initDatabase() 中通过 Node.js 完成，无需 PL/pgSQL DO 块
 
 -- 数据修复：为已有但缺失 answer 的题目自动推算正确答案

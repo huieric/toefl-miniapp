@@ -100,6 +100,17 @@ async function ensureMissingColumns(client) {
       console.log(`[DB] 添加列 ${col.table}.${col.name}`);
     }
   }
+
+  // 补充索引（列依赖的索引必须在列补全之后创建）
+  try {
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_questions_passage ON questions(passage_id)`);
+  } catch (err) {
+    if (err.code === '42704') {
+      console.log('[DB] passage_id 列不存在，跳过 idx_questions_passage 索引');
+    } else {
+      throw err;
+    }
+  }
 }
 
 async function dedupAndAddConstraint(client) {
