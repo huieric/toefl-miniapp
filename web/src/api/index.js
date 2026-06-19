@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const http = axios.create({
   baseURL: 'https://toefl-api-m1ue.onrender.com/api',
-  timeout: 30000,
+  timeout: 20000,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -63,6 +63,11 @@ export const authAPI = {
   updateProfile: (data) => http.put('/auth/profile', data),
 }
 
+// Health
+export const healthAPI = {
+  check: () => axios.get('https://toefl-api-m1ue.onrender.com/api/health', { timeout: 8000 }),
+}
+
 // Questions
 export const questionAPI = {
   list: (params) => http.get('/questions', { params }),
@@ -78,6 +83,7 @@ export const questionAPI = {
         }
       },
     }),
+  uploadStatus: (uploadId) => http.get(`/questions/upload/${uploadId}/status`),
 }
 
 // Practice

@@ -3,6 +3,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const path = require('path');
+const fs = require('fs');
 const config = require('./config');
 const { initDatabase } = require('./config/db');
 
@@ -20,6 +22,13 @@ const adminRoutes = require('./routes/admin');
 const membershipRoutes = require('./routes/membership');
 const adsRoutes = require('./routes/ads');
 const aiTutorRoutes = require('./routes/ai-tutor');
+
+// 确保 uploads 目录存在（multer 写文件的前提）
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log(`[TOEFL-Server] 创建目录: ${uploadsDir}`);
+}
 
 const app = express();
 

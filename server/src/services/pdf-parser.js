@@ -7,12 +7,38 @@ const fs = require('fs');
  * 解析PDF文本，提取托福阅读题目
  */
 async function parseTOEFLReadingPDF(filePath, db) {
-  const pdfParse = require('pdf-parse');
+  console.log(`[PDF-Parser] 开始解析: ${filePath}`);
+
+  let pdfParse;
+  try {
+    pdfParse = require('pdf-parse');
+  } catch (e) {
+    console.error('[PDF-Parser] pdf-parse 模块加载失败:', e.message);
+    throw new Error('PDF解析模块未安装，请联系管理员');
+  }
+
   const dataBuffer = fs.readFileSync(filePath);
-  const pdfData = await pdfParse(dataBuffer);
+  console.log(`[PDF-Parser] 文件大小: ${dataBuffer.length} bytes`);
+
+  let pdfData;
+  try {
+    pdfData = await pdfParse(dataBuffer);
+  } catch (e) {
+    console.error('[PDF-Parser] pdf-parse 执行失败:', e.message);
+    throw new Error('PDF文件解析失败，文件可能损坏或格式不支持');
+  }
+
   const fullText = pdfData.text;
+  console.log(`[PDF-Parser] 提取文本长度: ${fullText.length} 字符`);
+  console.log(`[PDF-Parser] 文本前200字符: ${fullText.substring(0, 200).replace(/\n/g, '\\n')}`);
 
   const questions = extractQuestions(fullText);
+
+  console.log(`[PDF-Parser] 提取到 ${questions.length} 道题目`);
+
+  if (questions.length === 0) {
+    console.warn('[PDF-Parser] 未能提取到任何题目，PDF文本片段:', fullText.substring(0, 500));
+  }
 
   const inserted = [];
   for (const q of questions) {
@@ -21,7 +47,7 @@ async function parseTOEFLReadingPDF(filePath, db) {
         `INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, source, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'real', 'approved')
          RETURNING id, title`,
-        ['reading', q.type, q.difficulty, q.title, q.content, JSON.stringify(q.options), q.answer, q.passage || '', q.analysis || '']
+        ['reading', q.type, q.difficulty, q.title, q.content, JSON.stringify(q.options), q.answer, q.analysis || '', q.passage || '']
       );
       inserted.push({ id: result.rows[0].id, title: result.rows[0].title });
     } catch (err) {
@@ -29,6 +55,7 @@ async function parseTOEFLReadingPDF(filePath, db) {
     }
   }
 
+  console.log(`[PDF-Parser] 实际入库: ${inserted.length} 道题目`);
   return inserted;
 }
 

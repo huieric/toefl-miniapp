@@ -1,12 +1,22 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const { auth } = require('../middleware/auth');
 const db = require('../config/db');
 const config = require('../config');
 const { parseTOEFLReadingPDF } = require('../services/pdf-parser');
 
 const router = express.Router();
+
+// === 内存状态追踪：PDF 解析状态 ===
+const uploadStatusMap = new Map(); // uploadId -> { status, fileName, parsedCount, error, updatedAt }
+
+function setUploadStatus(uploadId, status) {
+  uploadStatusMap.set(uploadId, { ...status, updatedAt: new Date().toISOString() });
+  // 5分钟后清理旧状态
+  setTimeout(() => uploadStatusMap.delete(uploadId), 5 * 60 * 1000);
+}
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -35,13 +45,38 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
 
     const uploadId = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 
+    // 标记状态为 processing
+    setUploadStatus(uploadId, {
+      status: 'processing',
+      fileName: req.file.originalname,
+      parsedCount: 0,
+      error: null,
+    });
+
+    console.log(`[Questions] 开始解析PDF: ${req.file.originalname} (uploadId=${uploadId}, size=${req.file.size})`);
+
     // 异步解析PDF，source 设为 'real'
     parseTOEFLReadingPDF(req.file.path, db)
       .then(async (inserted) => {
-        console.log(`[Questions] PDF解析完成，共插入 ${inserted.length} 道题目 (source=real)`);
+        console.log(`[Questions] PDF解析完成 uploadId=${uploadId}，共插入 ${inserted.length} 道题目`);
+        setUploadStatus(uploadId, {
+          status: 'completed',
+          fileName: req.file.originalname,
+          parsedCount: inserted.length,
+          error: null,
+        });
+        // 解析完成后清理上传文件
+        try { fs.unlinkSync(req.file.path); } catch (_) {}
       })
       .catch((err) => {
-        console.error('[Questions] PDF解析失败:', err);
+        console.error(`[Questions] PDF解析失败 uploadId=${uploadId}:`, err.message, err.stack);
+        setUploadStatus(uploadId, {
+          status: 'failed',
+          fileName: req.file.originalname,
+          parsedCount: 0,
+          error: err.message,
+        });
+        try { fs.unlinkSync(req.file.path); } catch (_) {}
       });
 
     res.json({
@@ -49,7 +84,6 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
       data: {
         uploadId,
         fileName: req.file.originalname,
-        filePath: req.file.path,
         status: 'processing',
         message: 'PDF上传成功，正在后台解析题目（标记为真题）...',
       },
@@ -64,13 +98,31 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
 router.get('/upload/:id/status', auth, async (req, res) => {
   try {
     const { id } = req.params;
+    const statusData = uploadStatusMap.get(id);
+
+    if (!statusData) {
+      // 状态不存在（可能已过期或已清理），假设已完成
+      res.json({
+        code: 200,
+        data: { uploadId: id, status: 'unknown', parsedCount: 0, message: '状态已过期，请刷新题目列表' },
+      });
+      return;
+    }
+
     res.json({
       code: 200,
       data: {
         uploadId: id,
-        status: 'completed',
-        parsedCount: 5,
-        message: '解析完成，5道题目已入库',
+        status: statusData.status,        // 'processing' | 'completed' | 'failed'
+        parsedCount: statusData.parsedCount,
+        fileName: statusData.fileName,
+        error: statusData.error,
+        message: statusData.status === 'completed'
+          ? `解析完成！共 ${statusData.parsedCount} 道题目已入库`
+          : statusData.status === 'failed'
+            ? `解析失败: ${statusData.error}`
+            : '正在解析中...',
+        updatedAt: statusData.updatedAt,
       },
     });
   } catch (err) {

@@ -19,7 +19,7 @@
       </div>
     </div>
 
-    <div class="card" v-loading="uploading || loading">
+    <div class="card" v-loading="uploading || loading" :element-loading-text="loadingText">
       <el-empty v-if="!loading && !list.length" :description="emptyDesc">
         <template v-if="sourceTab === 'real'">
           <el-button type="primary" @click="triggerUpload">上传PDF题目</el-button>
@@ -81,10 +81,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { questionAPI, withRetry } from '@/api'
+import { questionAPI, healthAPI, withRetry } from '@/api'
 
 const router = useRouter()
 const list = ref([])
@@ -99,25 +99,16 @@ const genVisible = ref(false)
 const genCount = ref(5)
 const genDifficulty = ref('medium')
 
-// 安全超时：防止 loading 状态永远卡住
-let _safetyTimer = null
-const SAFETY_TIMEOUT = 35000 // 比 axios timeout (30s) 多 5s 兜底
-
-function clearSafety() {
-  if (_safetyTimer) { clearTimeout(_safetyTimer); _safetyTimer = null }
-}
-function setSafetyTimeout() {
-  clearSafety()
-  _safetyTimer = setTimeout(() => {
-    if (loading.value) {
-      console.warn('[ReadingList] Safety timeout triggered — forcing loading off')
-      loading.value = false
-      ElMessage.warning('请求耗时较长，请刷新页面重试')
-    }
-  }, SAFETY_TIMEOUT)
-}
+// 两阶段加载状态
+const loadPhase = ref('') // '' | 'waking' | 'loading'
 
 const emptyDesc = computed(() => sourceTab.value === 'real' ? '暂无阅读真题' : '暂无模拟题')
+
+const loadingText = computed(() => {
+  if (loadPhase.value === 'waking') return '正在连接服务器...'
+  if (loadPhase.value === 'loading') return '正在加载题目...'
+  return '加载中...'
+})
 
 const diffMap = { easy: '简单', medium: '中等', hard: '困难' }
 const diffLabel = (d) => diffMap[d] || d || '中等'
@@ -135,6 +126,7 @@ const onSourceChange = () => fetchList()
 
 const triggerUpload = () => fileInputRef.value?.click()
 
+// ====== PDF 上传 ======
 const handleFileChange = async (e) => {
   const file = e.target.files?.[0]
   if (!file) return
@@ -148,11 +140,51 @@ const handleFileChange = async (e) => {
   uploading.value = true
   progressVisible.value = true
   uploadProgress.value = 0
+
   try {
-    await questionAPI.upload(formData, (pct) => { uploadProgress.value = pct })
-    ElMessage.success('上传成功，正在后台解析题目')
-    await new Promise(r => setTimeout(r, 2000))
-    await fetchList()
+    const res = await questionAPI.upload(formData, (pct) => { uploadProgress.value = pct })
+    const uploadId = res.data?.data?.uploadId
+    ElMessage.success('上传成功，正在后台解析题目...')
+    progressVisible.value = false
+
+    if (uploadId) {
+      // 轮询真实状态（最多10次，每3s一次）
+      let resolved = false
+      for (let i = 0; i < 10; i++) {
+        await new Promise(r => setTimeout(r, 3000))
+        try {
+          const s = await questionAPI.uploadStatus(uploadId)
+          const st = s.data?.data
+          console.log(`[ReadingList] 轮询状态 #${i + 1}:`, st?.status, 'count:', st?.parsedCount)
+          if (st?.status === 'completed') {
+            resolved = true
+            if (st.parsedCount > 0) {
+              await fetchList()
+              ElMessage.success(`解析完成！共入库 ${st.parsedCount} 道真题`)
+            } else {
+              ElMessage.warning('PDF解析完成但未提取到题目，请检查PDF格式')
+            }
+            break
+          }
+          if (st?.status === 'failed') {
+            resolved = true
+            ElMessage.error(`解析失败: ${st.error || '未知错误'}`)
+            break
+          }
+          // status === 'processing' → 继续轮询
+        } catch (_) {
+          // 轮询中的单次网络错误不阻断
+        }
+      }
+      if (!resolved) {
+        await fetchList()
+        ElMessage.warning('解析超时，请稍后刷新页面查看')
+      }
+    } else {
+      // 没有 uploadId，降级到旧行为
+      await new Promise(r => setTimeout(r, 5000))
+      await fetchList()
+    }
   } catch (err) {
     ElMessage.error(err.response?.data?.message || err.message || '上传失败')
   } finally {
@@ -178,27 +210,50 @@ const doGenerate = async () => {
   }
 }
 
+// ====== 两阶段加载 ======
 const fetchList = async () => {
   loading.value = true
-  setSafetyTimeout()
+  loadPhase.value = ''
+  list.value = []
+
+  // 阶段1：快速健康检查唤醒服务器（8s超时）
+  loadPhase.value = 'waking'
+  try {
+    await healthAPI.check()
+    console.log('[ReadingList] 服务器已就绪')
+  } catch (_) {
+    // 服务器冷启动中，进入自动重试
+    console.log('[ReadingList] 服务器未就绪，进入唤醒重试')
+    for (let i = 0; i < 6; i++) {
+      await new Promise(r => setTimeout(r, 5000))
+      try {
+        await healthAPI.check()
+        console.log(`[ReadingList] 唤醒成功 (第${i + 1}次重试)`)
+        break
+      } catch (_) {
+        console.log(`[ReadingList] 唤醒重试 ${i + 1}/6`)
+      }
+    }
+  }
+
+  // 阶段2：加载数据
+  loadPhase.value = 'loading'
   try {
     const params = { subject: 'reading', source: sourceTab.value }
-    const res = await withRetry(() => questionAPI.list(params), { retries: 2, retryDelay: 2000 })
+    const res = await withRetry(() => questionAPI.list(params), { retries: 1, retryDelay: 2000 })
     const data = res.data?.data?.list || res.data?.list || res.data || []
     list.value = Array.isArray(data) ? data : []
   } catch (e) {
     console.error('获取阅读题目失败:', e)
     list.value = []
-    const msg = e._userMessage || e.response?.data?.message || e.message || '获取题目失败'
-    ElMessage.error(msg)
+    ElMessage.error('加载题目失败，请刷新页面重试')
   } finally {
-    clearSafety()
+    loadPhase.value = ''
     loading.value = false
   }
 }
 
 onMounted(fetchList)
-onUnmounted(clearSafety)
 </script>
 
 <style scoped>
