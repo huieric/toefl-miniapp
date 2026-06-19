@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const http = axios.create({
   baseURL: 'https://toefl-api-m1ue.onrender.com/api',
-  timeout: 20000,
+  timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 })
 
