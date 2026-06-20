@@ -629,4 +629,16 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
+// POST /api/questions/seed-defaults - 导入默认题库（无需PDF）
+router.post('/seed-defaults', auth, async (req, res) => {
+  try {
+    const { seedDefaults } = require('../data/seed-defaults');
+    const count = await seedDefaults();
+    res.json({ code: 200, data: { inserted: count, message: `默认题库导入完成，共 ${count} 题` } });
+  } catch (err) {
+    console.error('[Seed] 导入默认题库失败:', err);
+    res.status(500).json({ code: 500, message: '导入失败: ' + err.message });
+  }
+});
+
 module.exports = router;
