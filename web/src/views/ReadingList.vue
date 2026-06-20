@@ -281,7 +281,7 @@ const fetchList = async () => {
   try {
     const res = await withRetry(
       () => questionAPI.listGrouped({ subject: 'reading', source: sourceTab.value }),
-      { retries: 2, retryDelay: 3000 }
+      { retries: 2, retryDelay: 5000 }
     )
     const data = res.data?.data
     passages.value = data?.list || []

@@ -2,7 +2,7 @@ import axios from 'axios'
 
 const http = axios.create({
   baseURL: 'https://toefl-api-m1ue.onrender.com/api',
-  timeout: 30000,
+  timeout: 45000,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -65,7 +65,7 @@ export const authAPI = {
 
 // Health
 export const healthAPI = {
-  check: () => axios.get('https://toefl-api-m1ue.onrender.com/api/health', { timeout: 8000 }),
+  check: () => axios.get('https://toefl-api-m1ue.onrender.com/api/health', { timeout: 12000 }),
 }
 
 // Questions
