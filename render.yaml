@@ -29,3 +29,7 @@ services:
         sync: false
       - key: OPENAI_BASE_URL
         value: https://api.openai.com/v1
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: AI_PROVIDER
+        value: deepseek
