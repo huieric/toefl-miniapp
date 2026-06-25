@@ -141,14 +141,51 @@ const passageVisible = ref(false)
 
 const questions = computed(() => resultData.value?.questions || [])
 
-// 智能分段：按 2+ 换行拆段，段内单换行合并为空格
+// 智能分段（三重策略）：空行分段 / 缩进分段 / 句末标点+大写启发式
 const passageParagraphs = computed(() => {
   const raw = resultData.value?.passageText || ''
+  if (!raw.trim()) return []
+
   const text = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-  return text
-    .split(/\n{2,}/)
-    .map(b => b.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim())
-    .filter(b => b.length > 0)
+  const lines = text.split('\n')
+
+  const paragraphs = []
+  let current = []
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+
+    if (trimmed === '') {
+      if (current.length > 0) {
+        paragraphs.push(current.join(' '))
+        current = []
+      }
+      continue
+    }
+
+    if (/^\s/.test(line) && current.length > 0) {
+      paragraphs.push(current.join(' '))
+      current = []
+    }
+
+    if (current.length > 0) {
+      const lastLine = current[current.length - 1]
+      const endsWithSentence = /[.!?]["')\]]?$/.test(lastLine)
+      const startsWithCapital = /^[A-Z\u201c\u300c(]/.test(trimmed)
+      const currentParaLen = current.join(' ').length
+      if (endsWithSentence && startsWithCapital && currentParaLen > 100) {
+        paragraphs.push(current.join(' '))
+        current = []
+      }
+    }
+
+    current.push(trimmed)
+  }
+  if (current.length > 0) {
+    paragraphs.push(current.join(' '))
+  }
+
+  return paragraphs.filter(p => p.length > 0)
 })
 
 const totalCount = computed(() => questions.value.length)

@@ -165,19 +165,57 @@ const answers = ref([])
 
 const currentQuestion = computed(() => questions.value[currentIndex.value] || {})
 
-// 将原始 passageText 智能分段：
-// - 按 2+ 连续换行分割段落
-// - 段落内部的单个换行合并为空格（消除 PDF 行内断行）
-// - 过滤掉纯空白的段
+// 将原始 passageText 智能分段（三重策略）：
+// 策略1: 空行（\n\n+）分段 — 适用于格式良好的文本/默认题库
+// 策略2: 行首缩进（PDF 提取后保留的前导空格）— 适用于缩进式排版
+// 策略3: 上一行以句末标点结尾 + 当前行以大写字母开头 + 已累积段落>100字 — 兜底启发式
 const passageParagraphs = computed(() => {
   const raw = passageText.value || ''
-  // 统一换行符
+  if (!raw.trim()) return []
+
   const text = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-  // 按 2+ 换行分段
-  const blocks = text.split(/\n{2,}/)
-  return blocks
-    .map(b => b.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim())
-    .filter(b => b.length > 0)
+  const lines = text.split('\n')
+
+  const paragraphs = []
+  let current = []
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+
+    // 策略1: 空行 = 段落分隔
+    if (trimmed === '') {
+      if (current.length > 0) {
+        paragraphs.push(current.join(' '))
+        current = []
+      }
+      continue
+    }
+
+    // 策略2: 行首有空白 = 新段落（PDF 缩进遗留）
+    if (/^\s/.test(line) && current.length > 0) {
+      paragraphs.push(current.join(' '))
+      current = []
+    }
+
+    // 策略3: 上一行以句末标点结尾 + 当前行大写开头 + 累积段落够长
+    if (current.length > 0) {
+      const lastLine = current[current.length - 1]
+      const endsWithSentence = /[.!?]["')\]]?$/.test(lastLine)
+      const startsWithCapital = /^[A-Z\u201c\u300c(]/.test(trimmed)
+      const currentParaLen = current.join(' ').length
+      if (endsWithSentence && startsWithCapital && currentParaLen > 100) {
+        paragraphs.push(current.join(' '))
+        current = []
+      }
+    }
+
+    current.push(trimmed)
+  }
+  if (current.length > 0) {
+    paragraphs.push(current.join(' '))
+  }
+
+  return paragraphs.filter(p => p.length > 0)
 })
 
 const parsedOptions = computed(() => {
