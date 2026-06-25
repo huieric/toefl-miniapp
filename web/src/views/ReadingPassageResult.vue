@@ -101,15 +101,12 @@
           </div>
 
           <!-- 答案解析 -->
-          <div v-if="r.analysis" class="review-analysis" :class="{ 'analysis-wrong': !r.isCorrect, 'analysis-correct': r.isCorrect }">
+          <div class="review-analysis" :class="{ 'analysis-wrong': !r.isCorrect, 'analysis-correct': r.isCorrect }">
             <div class="analysis-title">
               <el-icon><EditPen /></el-icon>
               <span>答案解析</span>
             </div>
-            <p class="analysis-text">{{ r.analysis }}</p>
-          </div>
-          <div v-else class="review-analysis no-analysis">
-            <p class="analysis-text">暂无解析</p>
+            <p class="analysis-text">{{ getAnalysis(r) }}</p>
           </div>
         </div>
       </div>
@@ -165,6 +162,29 @@ const parseOptions = (optsRaw) => {
     try { return JSON.parse(optsRaw) } catch (_) { return [] }
   }
   return []
+}
+
+// 自动生成答案解析（当后端未提供 analysis 时）
+const getAnalysis = (r) => {
+  // 有现成解析就直接用
+  if (r.analysis && r.analysis.trim()) return r.analysis.trim()
+
+  const opts = parseOptions(r.options)
+  const correctOpt = opts.find(o => o.label === r.answer)
+  const correctText = correctOpt ? correctOpt.text : r.answer
+  const typeLabelStr = typeLabel(r.type)
+
+  // 根据题目类型生成基础解析
+  const templates = {
+    detail: `本题考查文章中的细节信息。正确答案为 ${r.answer}（${correctText}）。根据文章相关段落的内容，可以找到与该选项直接对应的信息。`,
+    inference: `本题考查推断能力。正确答案为 ${r.answer}（${correctText}）。虽然文章未直接陈述，但根据文中提供的信息可以合理推断出该结论。`,
+    vocabulary: `本题考查词汇理解。正确答案为 ${r.answer}（${correctText}）。该词汇在上下文中的含义与所选选项最为接近。`,
+    summary: `本题考查对文章主旨或段落总结的理解。正确答案为 ${r.answer}（${correctText}）。该选项最准确地概括了文章的核心内容。`,
+    purpose: `本题考查作者意图或目的。正确答案为 ${r.answer}（${correctText}）。根据文章的行文逻辑和语境，作者在此处的目的是该选项所述。`,
+    reference: `本题考查指代关系。正确答案为 ${r.answer}（${correctText}）。根据上下文的语法和语义关系，该指代词所指代的内容为所选选项。`,
+  }
+
+  return templates[r.type] || `正确答案为 ${r.answer}（${correctText}）。${typeLabelStr}需要结合文章上下文进行理解。`
 }
 
 const goBack = () => router.push(`/reading/passage/${passageId.value}`)
@@ -275,10 +295,12 @@ onMounted(() => {
   overflow-y: auto;
 }
 .passage-review-content {
-  font-size: 14px;
-  line-height: 1.9;
-  color: var(--text-regular);
+  font-family: Georgia, 'Times New Roman', 'Noto Serif SC', serif;
+  font-size: 16px;
+  line-height: 2.0;
+  color: #2c2c2c;
   white-space: pre-wrap;
+  text-align: justify;
 }
 .collapse-icon {
   transition: transform 0.2s;
@@ -326,9 +348,9 @@ onMounted(() => {
 }
 .review-content {
   margin: 0 0 12px;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-regular);
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 /* 选项展示 */
@@ -364,8 +386,8 @@ onMounted(() => {
 .review-option.is-wrong-select .opt-label { color: var(--el-color-danger); }
 .opt-text {
   flex: 1;
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.6;
 }
 .opt-icon {
   font-size: 16px;
@@ -436,9 +458,9 @@ onMounted(() => {
 }
 .analysis-text {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-regular);
-  line-height: 1.7;
+  line-height: 1.8;
 }
 
 /* 底部操作 */

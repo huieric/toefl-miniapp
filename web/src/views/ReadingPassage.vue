@@ -316,7 +316,7 @@ onMounted(loadPassageData)
 
 /* 文章面板 */
 .passage-text-panel {
-  background: var(--el-bg-color);
+  background: #fefefe;
   border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
   overflow: hidden;
@@ -325,6 +325,7 @@ onMounted(loadPassageData)
   max-height: calc(100vh - 100px);
   display: flex;
   flex-direction: column;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 .passage-text-panel.collapsed .panel-body {
   display: none;
@@ -344,7 +345,7 @@ onMounted(loadPassageData)
 }
 .panel-label {
   font-weight: 600;
-  font-size: 14px;
+  font-size: 15px;
 }
 .collapse-icon {
   transition: transform 0.2s;
@@ -353,15 +354,19 @@ onMounted(loadPassageData)
   transform: rotate(180deg);
 }
 .panel-body {
-  padding: 16px;
+  padding: 32px 36px;
   overflow-y: auto;
   flex: 1;
+  background: #fefefe;
 }
 .passage-content {
-  font-size: 14px;
-  line-height: 1.9;
-  color: var(--text-regular);
+  font-family: Georgia, 'Times New Roman', 'Noto Serif SC', serif;
+  font-size: 18px;
+  line-height: 2.0;
+  letter-spacing: 0.01em;
+  color: #2c2c2c;
   white-space: pre-wrap;
+  text-align: justify;
 }
 
 /* 进度点 */
@@ -421,9 +426,9 @@ onMounted(loadPassageData)
   color: var(--text-secondary);
 }
 .q-content {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 500;
-  line-height: 1.6;
+  line-height: 1.7;
   margin-bottom: 20px;
   color: var(--text-primary);
   white-space: pre-wrap;
@@ -464,8 +469,8 @@ onMounted(loadPassageData)
 }
 .option-text {
   flex: 1;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.6;
 }
 .option-icon {
   font-size: 18px;
