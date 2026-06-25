@@ -39,11 +39,22 @@
         </div>
       </div>
 
-      <!-- 逐题回顾 -->
+      <!-- 文章回顾（可折叠） -->
+      <div v-if="resultData.passageText" class="passage-review">
+        <div class="passage-review-header" @click="passageVisible = !passageVisible">
+          <span class="panel-label">📄 文章回顾</span>
+          <el-icon class="collapse-icon" :class="{ rotated: !passageVisible }"><ArrowDown /></el-icon>
+        </div>
+        <div v-show="passageVisible" class="passage-review-body">
+          <div class="passage-review-content">{{ resultData.passageText }}</div>
+        </div>
+      </div>
+
+      <!-- 逐题回顾与解析 -->
       <div class="review-section">
-        <h3 class="review-title">逐题回顾</h3>
+        <h3 class="review-title">逐题回顾与解析</h3>
         <div
-          v-for="(r, i) in results"
+          v-for="(r, i) in resultData.questions"
           :key="r.id"
           class="review-item"
           :class="{ correct: r.isCorrect, wrong: !r.isCorrect }"
@@ -56,10 +67,49 @@
             <el-tag size="small" effect="plain">{{ typeLabel(r.type) }}</el-tag>
           </div>
           <p class="review-content">{{ r.content }}</p>
-          <div v-if="!r.isCorrect" class="review-detail">
-            <p class="detail-line">你的答案：<strong>{{ r.selected }}</strong></p>
-            <p class="detail-line">正确答案：<strong class="correct-answer">{{ r.answer }}</strong></p>
-            <p v-if="r.analysis" class="detail-analysis">解析：{{ r.analysis }}</p>
+
+          <!-- 选项展示 -->
+          <div v-if="parseOptions(r.options).length" class="review-options">
+            <div
+              v-for="opt in parseOptions(r.options)"
+              :key="opt.label"
+              class="review-option"
+              :class="{
+                'is-correct': opt.label === r.answer,
+                'is-wrong-select': opt.label === r.selected && opt.label !== r.answer,
+              }"
+            >
+              <span class="opt-label">{{ opt.label }}</span>
+              <span class="opt-text">{{ opt.text }}</span>
+              <el-icon v-if="opt.label === r.answer" class="opt-icon correct"><CircleCheckFilled /></el-icon>
+              <el-icon v-if="opt.label === r.selected && opt.label !== r.answer" class="opt-icon wrong"><CircleCloseFilled /></el-icon>
+              <span v-if="opt.label === r.selected && opt.label === r.answer" class="opt-tag your-tag">你的选择</span>
+              <span v-else-if="opt.label === r.selected" class="opt-tag your-tag wrong-tag">你的选择</span>
+            </div>
+          </div>
+
+          <!-- 答案详情 -->
+          <div class="review-detail">
+            <div class="detail-row">
+              <span class="detail-label">你的答案：</span>
+              <span :class="r.isCorrect ? 'text-correct' : 'text-wrong'">{{ r.selected || '未作答' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">正确答案：</span>
+              <span class="text-correct">{{ r.answer }}</span>
+            </div>
+          </div>
+
+          <!-- 答案解析 -->
+          <div v-if="r.analysis" class="review-analysis" :class="{ 'analysis-wrong': !r.isCorrect, 'analysis-correct': r.isCorrect }">
+            <div class="analysis-title">
+              <el-icon><EditPen /></el-icon>
+              <span>答案解析</span>
+            </div>
+            <p class="analysis-text">{{ r.analysis }}</p>
+          </div>
+          <div v-else class="review-analysis no-analysis">
+            <p class="analysis-text">暂无解析</p>
           </div>
         </div>
       </div>
@@ -81,16 +131,19 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Refresh } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowDown, Refresh, CircleCheckFilled, CircleCloseFilled, EditPen } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 
 const passageId = computed(() => route.params.passageId)
-const results = ref([])
+const resultData = ref(null)
+const passageVisible = ref(false)
 
-const totalCount = computed(() => results.value.length)
-const correctCount = computed(() => results.value.filter(r => r.isCorrect).length)
+const questions = computed(() => resultData.value?.questions || [])
+
+const totalCount = computed(() => questions.value.length)
+const correctCount = computed(() => questions.value.filter(r => r.isCorrect).length)
 const wrongCount = computed(() => totalCount.value - correctCount.value)
 const accuracyPercent = computed(() => {
   if (totalCount.value === 0) return 0
@@ -102,22 +155,34 @@ const scoreColor = computed(() => {
   return '#f56c6c'
 })
 
-const resultData = computed(() => results.value.length > 0)
-
 const typeMap = { detail: '细节题', inference: '推断题', vocabulary: '词汇题', summary: '总结题', purpose: '目的题', reference: '指代题' }
 const typeLabel = (t) => typeMap[t] || t || '--'
+
+const parseOptions = (optsRaw) => {
+  if (!optsRaw) return []
+  if (Array.isArray(optsRaw)) return optsRaw
+  if (typeof optsRaw === 'string') {
+    try { return JSON.parse(optsRaw) } catch (_) { return [] }
+  }
+  return []
+}
 
 const goBack = () => router.push(`/reading/passage/${passageId.value}`)
 const goList = () => router.push('/reading')
 const redoPassage = () => router.push(`/reading/passage/${passageId.value}`)
 
 onMounted(() => {
-  // 从 localStorage 读取答题结果
   try {
     const key = `passage_result_${passageId.value}`
     const raw = localStorage.getItem(key)
     if (raw) {
-      results.value = JSON.parse(raw)
+      const parsed = JSON.parse(raw)
+      // 兼容新旧格式：新格式 { title, passageText, questions }，旧格式直接是数组
+      if (Array.isArray(parsed)) {
+        resultData.value = { title: '', passageText: '', questions: parsed }
+      } else {
+        resultData.value = parsed
+      }
       // 读取后清理
       localStorage.removeItem(key)
     }
@@ -140,9 +205,10 @@ onMounted(() => {
 }
 
 .result-body {
-  max-width: 800px;
+  max-width: 900px;
 }
 
+/* 成绩卡片 */
 .score-card {
   display: flex;
   align-items: center;
@@ -151,7 +217,7 @@ onMounted(() => {
   background: var(--el-bg-color);
   border: 1px solid var(--el-border-color-light);
   border-radius: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 .score-ring {
   flex-shrink: 0;
@@ -183,6 +249,45 @@ onMounted(() => {
 .stat-item.wrong .stat-num { color: var(--el-color-danger); }
 .stat-item.total .stat-num { color: var(--el-color-primary); }
 
+/* 文章回顾 */
+.passage-review {
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.passage-review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: var(--el-fill-color-light);
+  user-select: none;
+}
+.passage-review-header:hover {
+  background: var(--el-fill-color);
+}
+.passage-review-body {
+  padding: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.passage-review-content {
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--text-regular);
+  white-space: pre-wrap;
+}
+.collapse-icon {
+  transition: transform 0.2s;
+}
+.collapse-icon.rotated {
+  transform: rotate(180deg);
+}
+
+/* 逐题回顾 */
 .review-section {
   margin-bottom: 24px;
 }
@@ -195,7 +300,7 @@ onMounted(() => {
   padding: 16px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   border-left: 4px solid var(--el-border-color);
 }
 .review-item.correct {
@@ -220,31 +325,123 @@ onMounted(() => {
   font-size: 14px;
 }
 .review-content {
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   font-size: 14px;
   color: var(--text-regular);
-  line-height: 1.5;
-}
-.review-detail {
-  margin-top: 8px;
-  padding: 10px 14px;
-  background: white;
-  border-radius: 6px;
-}
-.detail-line {
-  margin: 0 0 4px;
-  font-size: 13px;
-}
-.correct-answer {
-  color: var(--el-color-success);
-}
-.detail-analysis {
-  margin: 4px 0 0;
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
+/* 选项展示 */
+.review-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.review-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--el-border-color-lighter);
+  border-radius: 6px;
+  background: var(--el-bg-color);
+}
+.review-option.is-correct {
+  border-color: var(--el-color-success);
+  background: var(--el-color-success-light-9);
+}
+.review-option.is-wrong-select {
+  border-color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+}
+.opt-label {
+  font-weight: 700;
+  font-size: 14px;
+  min-width: 20px;
+}
+.review-option.is-correct .opt-label { color: var(--el-color-success); }
+.review-option.is-wrong-select .opt-label { color: var(--el-color-danger); }
+.opt-text {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.opt-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.opt-icon.correct { color: var(--el-color-success); }
+.opt-icon.wrong { color: var(--el-color-danger); }
+.opt-tag {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.your-tag {
+  background: var(--el-color-primary-light-8);
+  color: var(--el-color-primary);
+}
+.your-tag.wrong-tag {
+  background: var(--el-color-danger-light-8);
+  color: var(--el-color-danger);
+}
+
+/* 答案详情 */
+.review-detail {
+  display: flex;
+  gap: 24px;
+  padding: 10px 14px;
+  background: var(--el-bg-color);
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+.detail-row {
+  font-size: 13px;
+}
+.detail-label {
+  color: var(--text-secondary);
+}
+.text-correct { color: var(--el-color-success); font-weight: 600; }
+.text-wrong { color: var(--el-color-danger); font-weight: 600; }
+
+/* 答案解析 */
+.review-analysis {
+  padding: 12px 14px;
+  border-radius: 8px;
+  border-left: 3px solid var(--el-color-info);
+  background: var(--el-fill-color-light);
+}
+.review-analysis.analysis-wrong {
+  border-left-color: var(--el-color-danger);
+  background: var(--el-color-danger-light-9);
+}
+.review-analysis.analysis-correct {
+  border-left-color: var(--el-color-success);
+  background: var(--el-color-success-light-9);
+}
+.review-analysis.no-analysis {
+  border-left-color: var(--el-border-color);
+  background: var(--el-fill-color-lighter);
+}
+.analysis-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+.analysis-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-regular);
+  line-height: 1.7;
+}
+
+/* 底部操作 */
 .result-actions {
   display: flex;
   gap: 12px;

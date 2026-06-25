@@ -9,7 +9,7 @@
         <h2 class="header-title">{{ cleanTitle(passageTitle) }}</h2>
       </div>
       <div class="header-right">
-        <span class="progress-text">Q {{ currentIndex + 1 }} / {{ questions.length }}</span>
+        <span class="answered-count">{{ answeredCount }}/{{ questions.length }} 已答</span>
       </div>
     </div>
 
@@ -40,8 +40,6 @@
                 :class="{
                   current: i === currentIndex,
                   answered: answers[i] !== undefined,
-                  correct: answers[i] !== undefined && showResult && answers[i].isCorrect,
-                  wrong: answers[i] !== undefined && showResult && !answers[i].isCorrect,
                 }"
                 @click="goToQuestion(i)"
               >{{ i + 1 }}</span>
@@ -52,6 +50,7 @@
           <div class="question-card" :key="'q-' + currentIndex">
             <div class="q-type-badge">
               <el-tag size="small" effect="plain">{{ typeLabel(currentQuestion.type) }}</el-tag>
+              <span class="q-index">第 {{ currentIndex + 1 }} 题 / 共 {{ questions.length }} 题</span>
             </div>
             <div class="q-content">{{ currentQuestion.content }}</div>
 
@@ -61,32 +60,14 @@
                 v-for="opt in parsedOptions"
                 :key="opt.label"
                 class="option-item"
-                :class="{
-                  selected: selectedAnswer === opt.label,
-                  'is-correct': showResult && opt.label === correctAnswer,
-                  'is-wrong': showResult && selectedAnswer === opt.label && selectedAnswer !== correctAnswer,
-                  disabled: showResult,
-                }"
-                @click="!showResult && selectAnswer(opt.label)"
+                :class="{ selected: selectedAnswer === opt.label }"
+                @click="selectAnswer(opt.label)"
               >
                 <span class="option-label">{{ opt.label }}</span>
                 <span class="option-text">{{ opt.text }}</span>
-                <el-icon v-if="showResult && opt.label === correctAnswer" class="option-icon correct-icon"><CircleCheckFilled /></el-icon>
-                <el-icon v-if="showResult && selectedAnswer === opt.label && selectedAnswer !== correctAnswer" class="option-icon wrong-icon"><CircleCloseFilled /></el-icon>
+                <el-icon v-if="selectedAnswer === opt.label" class="option-icon selected-icon"><Select /></el-icon>
               </div>
             </div>
-
-            <!-- 答题结果反馈 -->
-            <transition name="fade">
-              <div v-if="showResult" class="result-feedback" :class="{ correct: isCurrentCorrect, wrong: !isCurrentCorrect }">
-                <p class="feedback-verdict">
-                  {{ isCurrentCorrect ? '✅ 回答正确！' : '❌ 回答错误' }}
-                </p>
-                <p v-if="currentQuestion.analysis" class="feedback-analysis">
-                  解析：{{ currentQuestion.analysis }}
-                </p>
-              </div>
-            </transition>
           </div>
 
           <!-- 底部操作栏 -->
@@ -97,26 +78,37 @@
             >上一题</el-button>
 
             <el-button
-              v-if="!showResult"
-              type="primary"
-              :disabled="!selectedAnswer"
-              @click="submitAnswer"
-            >提交答案</el-button>
-
-            <el-button
-              v-if="showResult && currentIndex < questions.length - 1"
+              v-if="currentIndex < questions.length - 1"
               type="primary"
               @click="nextQuestion"
             >下一题 →</el-button>
 
+            <!-- 最后一题但还有未答的题 -->
             <el-button
-              v-if="showResult && currentIndex === questions.length - 1"
+              v-if="currentIndex === questions.length - 1 && !allAnswered"
               type="success"
+              disabled
+            >
+              <el-icon><InfoFilled /></el-icon>
+              还有 {{ questions.length - answeredCount }} 题未答
+            </el-button>
+
+            <!-- 全部答完，可以提交 -->
+            <el-button
+              v-if="allAnswered"
+              type="success"
+              size="large"
               @click="goResult"
             >
-              查看结果
+              提交全部答案，查看结果
               <el-icon><Check /></el-icon>
             </el-button>
+          </div>
+
+          <!-- 提示 -->
+          <div v-if="!allAnswered" class="hint-text">
+            <el-icon><InfoFilled /></el-icon>
+            选完所有题目后即可提交，答案将在提交后统一公布
           </div>
         </main>
       </div>
@@ -130,7 +122,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, ArrowDown, ArrowRight, CircleCheckFilled, CircleCloseFilled, Check } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowDown, ArrowRight, Select, Check, InfoFilled } from '@element-plus/icons-vue'
 import { questionAPI, practiceAPI } from '@/api'
 
 const route = useRoute()
@@ -146,8 +138,7 @@ const passageCollapsed = ref(false)
 
 const currentIndex = ref(0)
 const selectedAnswer = ref(null)
-const showResult = ref(false)
-const answers = ref([])  // [{ isCorrect: bool }] per question
+const answers = ref([])  // [{ selected, isCorrect }] per question
 
 const currentQuestion = computed(() => questions.value[currentIndex.value] || {})
 
@@ -161,42 +152,21 @@ const parsedOptions = computed(() => {
 })
 
 const correctAnswer = computed(() => currentQuestion.value.answer || '')
-const isCurrentCorrect = computed(() => {
-  const a = answers.value[currentIndex.value]
-  return a ? a.isCorrect : false
-})
+
+const answeredCount = computed(() => answers.value.filter(a => a !== undefined).length)
+const allAnswered = computed(() => answeredCount.value === questions.value.length && questions.value.length > 0)
 
 const typeMap = { detail: '细节题', inference: '推断题', vocabulary: '词汇题', summary: '总结题', purpose: '目的题', reference: '指代题' }
 const typeLabel = (t) => typeMap[t] || t || '--'
 const cleanTitle = (t) => (t || '未命名篇章').replace(/\s*\(Q\d+\)\s*$/g, '')
 
 const selectAnswer = (label) => {
-  if (showResult.value) return
   selectedAnswer.value = label
-}
-
-const submitAnswer = async () => {
-  if (!selectedAnswer.value) return
-  const q = currentQuestion.value
-  const isCorrect = selectedAnswer.value === correctAnswer.value
-
-  // 记录答案
+  // 立即保存答案（不显示对错，整篇做完再统一公布）
+  const isCorrect = label === correctAnswer.value
   answers.value[currentIndex.value] = {
-    selected: selectedAnswer.value,
+    selected: label,
     isCorrect,
-  }
-  showResult.value = true
-
-  // 异步提交到后端
-  try {
-    await practiceAPI.submit({
-      questionId: q.id,
-      subject: 'reading',
-      userAnswer: selectedAnswer.value,
-      isCorrect,
-    })
-  } catch (e) {
-    console.error('提交答题记录失败:', e)
   }
 }
 
@@ -222,25 +192,49 @@ const goToQuestion = (index) => {
 const loadQuestionState = () => {
   const saved = answers.value[currentIndex.value]
   selectedAnswer.value = saved ? saved.selected : null
-  showResult.value = saved !== undefined
 }
 
-const goResult = () => {
-  // 将答题结果存入 localStorage，供结果页读取
+const goResult = async () => {
+  // 构建完整结果数据（含选项和文章，供结果页展示）
   const summary = questions.value.map((q, i) => {
     const a = answers.value[i]
     return {
       id: q.id,
       type: q.type,
       content: q.content,
+      options: typeof q.options === 'string' ? q.options : JSON.stringify(q.options || []),
       answer: q.answer,
       analysis: q.analysis,
       selected: a ? a.selected : null,
       isCorrect: a ? a.isCorrect : false,
     }
   })
+
+  // 批量提交答题记录到后端
   try {
-    localStorage.setItem(`passage_result_${passageId.value}`, JSON.stringify(summary))
+    for (let i = 0; i < questions.value.length; i++) {
+      const a = answers.value[i]
+      if (a) {
+        practiceAPI.submit({
+          questionId: questions.value[i].id,
+          subject: 'reading',
+          userAnswer: a.selected,
+          isCorrect: a.isCorrect,
+        }).catch(() => {})
+      }
+    }
+  } catch (e) {
+    console.error('提交答题记录失败:', e)
+  }
+
+  // 存入 localStorage 供结果页读取
+  try {
+    const resultData = {
+      title: passageTitle.value,
+      passageText: passageText.value,
+      questions: summary,
+    }
+    localStorage.setItem(`passage_result_${passageId.value}`, JSON.stringify(resultData))
   } catch (_) {}
   router.push(`/reading/passage/${passageId.value}/result`)
 }
@@ -295,21 +289,28 @@ onMounted(loadPassageData)
   font-size: 18px;
   font-weight: 600;
 }
-.progress-text {
+.answered-count {
   font-size: 15px;
   font-weight: 600;
   color: var(--el-color-primary);
+  background: var(--el-color-primary-light-9);
+  padding: 4px 12px;
+  border-radius: 20px;
 }
 
 .passage-layout {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
   align-items: start;
 }
 @media (max-width: 900px) {
   .passage-layout {
     grid-template-columns: 1fr;
+  }
+  .passage-text-panel {
+    position: static !important;
+    max-height: 400px !important;
   }
 }
 
@@ -319,6 +320,11 @@ onMounted(loadPassageData)
   border: 1px solid var(--el-border-color-light);
   border-radius: 8px;
   overflow: hidden;
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
 }
 .passage-text-panel.collapsed .panel-body {
   display: none;
@@ -331,6 +337,7 @@ onMounted(loadPassageData)
   cursor: pointer;
   background: var(--el-fill-color-light);
   user-select: none;
+  flex-shrink: 0;
 }
 .panel-header:hover {
   background: var(--el-fill-color);
@@ -346,15 +353,15 @@ onMounted(loadPassageData)
   transform: rotate(180deg);
 }
 .panel-body {
-  padding: 14px;
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
 }
 .passage-content {
   font-size: 14px;
-  line-height: 1.8;
+  line-height: 1.9;
   color: var(--text-regular);
   white-space: pre-wrap;
-  max-height: calc(100vh - 250px);
-  overflow-y: auto;
 }
 
 /* 进度点 */
@@ -390,17 +397,9 @@ onMounted(loadPassageData)
   background: var(--el-color-primary-light-9);
 }
 .dot.answered {
-  background: var(--el-fill-color);
-}
-.dot.correct {
   background: var(--el-color-success-light-9);
   color: var(--el-color-success);
-  border-color: var(--el-color-success);
-}
-.dot.wrong {
-  background: var(--el-color-danger-light-9);
-  color: var(--el-color-danger);
-  border-color: var(--el-color-danger);
+  border-color: var(--el-color-success-light-5);
 }
 
 /* 题目卡片 */
@@ -413,6 +412,13 @@ onMounted(loadPassageData)
 }
 .q-type-badge {
   margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.q-index {
+  font-size: 13px;
+  color: var(--text-secondary);
 }
 .q-content {
   font-size: 16px;
@@ -439,7 +445,7 @@ onMounted(loadPassageData)
   cursor: pointer;
   transition: all 0.2s;
 }
-.option-item:hover:not(.disabled) {
+.option-item:hover {
   border-color: var(--el-color-primary-light-5);
   background: var(--el-color-primary-light-9);
 }
@@ -447,28 +453,14 @@ onMounted(loadPassageData)
   border-color: var(--el-color-primary);
   background: var(--el-color-primary-light-9);
 }
-.option-item.is-correct {
-  border-color: var(--el-color-success);
-  background: var(--el-color-success-light-9);
-}
-.option-item.is-wrong {
-  border-color: var(--el-color-danger);
-  background: var(--el-color-danger-light-9);
-}
-.option-item.disabled {
-  cursor: default;
-}
 .option-label {
   font-weight: 700;
   font-size: 15px;
   min-width: 24px;
   color: var(--el-color-primary);
 }
-.option-item.is-correct .option-label {
-  color: var(--el-color-success);
-}
-.option-item.is-wrong .option-label {
-  color: var(--el-color-danger);
+.option-item.selected .option-label {
+  color: var(--el-color-primary);
 }
 .option-text {
   flex: 1;
@@ -479,42 +471,7 @@ onMounted(loadPassageData)
   font-size: 18px;
   flex-shrink: 0;
 }
-.correct-icon { color: var(--el-color-success); }
-.wrong-icon { color: var(--el-color-danger); }
-
-/* 反馈 */
-.result-feedback {
-  margin-top: 16px;
-  padding: 12px 16px;
-  border-radius: 8px;
-}
-.result-feedback.correct {
-  background: var(--el-color-success-light-9);
-  border: 1px solid var(--el-color-success-light-5);
-}
-.result-feedback.wrong {
-  background: var(--el-color-danger-light-9);
-  border: 1px solid var(--el-color-danger-light-5);
-}
-.feedback-verdict {
-  margin: 0 0 8px;
-  font-weight: 600;
-  font-size: 15px;
-}
-.feedback-analysis {
-  margin: 0;
-  font-size: 13px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
+.selected-icon { color: var(--el-color-primary); }
 
 /* 操作栏 */
 .action-bar {
@@ -523,5 +480,17 @@ onMounted(loadPassageData)
   gap: 12px;
   margin-top: 20px;
   padding: 12px 0;
+  flex-wrap: wrap;
+}
+
+/* 提示 */
+.hint-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 8px;
 }
 </style>
