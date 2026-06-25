@@ -159,7 +159,7 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
             'reading',
             q.type || 'detail',
             q.difficulty || 'medium',
-            `${p.title || 'PDF Reading'} - Q${qi + 1}`,
+            `${(p.title || 'PDF Reading').replace(/[\t\r\n]+/g, ' ').replace(/\s+/g, ' ').trim()} - Q${qi + 1}`,
             q.content || q.question,
             JSON.stringify((q.options || []).map((o, i) => ({
               label: o.label || String.fromCharCode(65 + i),
@@ -196,43 +196,57 @@ function preProcessText(rawText) {
   const passageMatches = [...text.matchAll(passagePattern)];
 
   // 识别答案key: "4 - Answers" 后面跟着答案
+  // TPO格式中答案编号可能与文章编号不一致，所以同时收集所有答案用于顺序映射
   const answerPattern = /(\d+)\s*[-\-]\s*Answers?\s*\n?([\s\S]*?)(?=\d+\s*[-\-]\s*(?:XPO|TPO|XTP)|$)/gi;
   const answerMatches = [...text.matchAll(answerPattern)];
 
   // 构建答案map: passageNum -> ["A","C","B",...]
   const answerMap = {};
+  // 同时收集所有答案字母，用于顺序回退映射
+  const allAnswerLetters = [];
+
   for (const m of answerMatches) {
     const passageNum = parseInt(m[1]);
     const answerBlock = m[2].trim();
     // 提取字母答案: ACBCDBBDABBCAB D F
-    const letters = answerBlock.match(/[A-D]/g);
+    const cleaned = answerBlock.replace(/[\d\n\s]+/g, ' ').trim();
+    const letters = cleaned.match(/[A-D]/g);
     if (letters) {
-      // 去除答案编号行 "1234567891011121314"
-      const cleaned = answerBlock.replace(/[\d\n\s]+/g, ' ').trim();
-      const answerLetters = cleaned.match(/[A-D]/g);
-      if (answerLetters) {
-        answerMap[passageNum] = answerLetters;
-      }
+      answerMap[passageNum] = letters;
+      allAnswerLetters.push(...letters);
     }
   }
 
-  console.log(`[PDF-Parser v5] 预处理: ${passageMatches.length} 篇文章, ${Object.keys(answerMap).length} 个答案key`);
+  console.log(`[PDF-Parser v5] 预处理: ${passageMatches.length} 篇文章, ${Object.keys(answerMap).length} 个答案key, 共${allAnswerLetters.length}个答案字母`);
 
   if (passageMatches.length > 0) {
     // 按 passage 边界分割
     const segments = [];
+    let globalAnswerIdx = 0; // 顺序答案索引
     for (let i = 0; i < passageMatches.length; i++) {
       const start = passageMatches[i].index;
       const end = i + 1 < passageMatches.length ? passageMatches[i + 1].index : text.length;
       const segText = text.substring(start, end).trim();
       if (segText.length > 50) {
         const passageNum = parseInt(passageMatches[i][1]);
-        const passageTitle = passageMatches[i][3].trim();
+        // 清理标题：替换制表符、多余空格
+        const rawTitle = passageMatches[i][3].trim();
+        const passageTitle = rawTitle.replace(/[\t\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+        
+        // 优先用编号匹配的答案，否则顺序回退
+        let segAnswers = answerMap[passageNum] || null;
+        if (!segAnswers && allAnswerLetters.length > globalAnswerIdx) {
+          segAnswers = allAnswerLetters.slice(globalAnswerIdx, globalAnswerIdx + 14); // 一篇最多14题
+          globalAnswerIdx += (segAnswers?.length || 0);
+        } else if (segAnswers) {
+          globalAnswerIdx += segAnswers.length;
+        }
+        
         segments.push({
           text: segText,
           passageNum,
           title: passageTitle,
-          answers: answerMap[passageNum] || null
+          answers: segAnswers
         });
       }
     }
@@ -312,6 +326,10 @@ RULES:
       for (let qi = 0; qi < passage.questions.length; qi++) {
         if (answers[qi]) {
           passage.questions[qi].answer = answers[qi];
+          // 有真实答案时清除 fallback 标记
+          if (passage.questions[qi].analysis === '规则解析，答案需人工确认。') {
+            passage.questions[qi].analysis = '';
+          }
         }
       }
     }
@@ -320,9 +338,19 @@ RULES:
   // 如果有标题，覆盖AI返回的标题
   if (title) {
     for (const passage of parsed) {
+      const cleanTitle = title.replace(/[\t\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
       if (!passage.title || passage.title.length < 3) {
-        passage.title = title;
+        passage.title = cleanTitle;
+      } else {
+        passage.title = passage.title.replace(/[\t\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
       }
+    }
+  }
+
+  // 清理 passageText：移除开头的 TPO/XPO 头部行 (如 "7 - XPO 3 - Title")
+  for (const passage of parsed) {
+    if (passage.passage_text) {
+      passage.passage_text = passage.passage_text.replace(/^\d+\s*[-\-]\s*(?:XPO|TPO|XTP)\s*\d+\s*[-\-]\s*.+\n/, '').trim();
     }
   }
 
@@ -380,6 +408,10 @@ function ruleBasedParseSegment(segment) {
     for (let qi = 0; qi < questions.length; qi++) {
       if (answers[qi]) {
         questions[qi].answer = answers[qi];
+        // 有真实答案时清除 fallback 标记
+        if (questions[qi].analysis === '规则解析，答案需人工确认。') {
+          questions[qi].analysis = '';
+        }
       }
     }
   }
@@ -393,10 +425,16 @@ function ruleBasedParseSegment(segment) {
     return [];
   }
 
-  const segTitle = title || cleaned.split('\n')[0]?.trim()?.substring(0, 100) || 'PDF Reading';
+  const segTitle = (title || cleaned.split('\n')[0]?.trim()?.substring(0, 100) || 'PDF Reading')
+    .replace(/[\t\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+  // 清理 passageText 开头的 TPO 头部
+  let cleanPassageText = passageText || cleaned.substring(0, 3000);
+  cleanPassageText = cleanPassageText.replace(/^\d+\s*[-\-]\s*(?:XPO|TPO|XTP)\s*\d+\s*[-\-]\s*.+\n/, '').trim();
+
   return [{
     title: segTitle,
-    passage_text: passageText || cleaned.substring(0, 3000),
+    passage_text: cleanPassageText,
     questions
   }];
 }
@@ -427,8 +465,9 @@ function parseQuestions(block) {
 
   // 匹配题号: "1\n", "1.", "1)", "1、"
   // TPO格式: 题号在独立行，后面跟题目文本
+  // 注意：用 lookahead (?=[A-Z]) 避免消费题干的首字母！
   const patterns = [
-    /(?:^|\n)\s*(\d+)\s*\n\s*([A-Z])/g,     // "1\nThe word..."
+    /(?:^|\n)\s*(\d+)\s*\n\s*(?=[A-Z])/g,    // "1\nThe word..." (lookahead 不消费首字母)
     /(?:^|\n)\s*(\d+)[\.\)\、）]\s+/g,        // "1. " or "1) "
   ];
 
