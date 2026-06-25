@@ -68,48 +68,75 @@ function resolveBackend(aiConfig) {
 // ============================================================
 // 主入口
 // ============================================================
-async function parseTOEFLReadingPDF(filePath, db, passageId) {
-  console.log(`[PDF-Parser v3] 开始解析: ${filePath}`);
+async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
+  console.log(`[PDF-Parser v4] 开始解析: ${filePath}`);
 
-  // Step 1: PDF文本提取
+  // Step 1: PDF文本提取 (大文件分页处理)
   let pdfParse;
   try { pdfParse = require('pdf-parse'); } catch (e) {
     throw new Error('PDF解析模块未安装：npm install pdf-parse');
   }
 
   const dataBuffer = fs.readFileSync(filePath);
-  console.log(`[PDF-Parser v3] 文件: ${(dataBuffer.length / 1024 / 1024).toFixed(1)} MB`);
+  const fileSizeMB = dataBuffer.length / 1024 / 1024;
+  console.log(`[PDF-Parser v4] 文件: ${fileSizeMB.toFixed(1)} MB`);
+
+  // 大文件分页策略: 根据文件大小自动限制解析页数，防止 OOM
+  const userMaxPages = parseInt(options.maxPages) || 0;
+  let maxPages;
+  if (userMaxPages > 0) {
+    maxPages = userMaxPages;
+  } else if (fileSizeMB > 20) {
+    maxPages = 25;  // >20MB: 前25页 (约2-3篇TPO)
+    console.log(`[PDF-Parser v4] ⚠️ 大文件(${fileSizeMB.toFixed(1)}MB)，限制前${maxPages}页防止内存溢出`);
+  } else if (fileSizeMB > 10) {
+    maxPages = 50;  // 10-20MB: 前50页
+  } else {
+    maxPages = 0;   // 小文件: 全量解析
+  }
 
   let pdfData;
   try {
-    pdfData = await pdfParse(dataBuffer, { max: 0 });
+    pdfData = await pdfParse(dataBuffer, { max: maxPages });
   } catch (e) {
-    throw new Error('PDF解析失败: ' + e.message);
+    // 如果全量解析失败，尝试只解析前10页
+    if (maxPages === 0) {
+      console.log(`[PDF-Parser v4] 全量解析失败，降级到前10页: ${e.message}`);
+      pdfData = await pdfParse(dataBuffer, { max: 10 });
+    } else {
+      throw new Error('PDF解析失败: ' + e.message);
+    }
   }
 
   const rawText = (pdfData.text || '').replace(/\u0000/g, '');
-  console.log(`[PDF-Parser v3] 文本: ${rawText.length} 字符, ${pdfData.numpages} 页`);
+  console.log(`[PDF-Parser v4] 文本: ${rawText.length} 字符, ${pdfData.numpages} 页${maxPages > 0 ? ` (限制前${maxPages}页)` : ''}`);
 
-  // Step 2: AI 解析
+  // Step 2: AI 解析 (限制文本长度防止 API 超时)
   const aiConfig = getAIConfig();
   const backend = resolveBackend(aiConfig);
   let passages;
 
+  // 安全上限: 最多处理 60000 字符 (约 15 个 chunk)
+  const MAX_TEXT_LENGTH = 60000;
+  const parseText = rawText.length > MAX_TEXT_LENGTH
+    ? (console.log(`[PDF-Parser v4] ⚠️ 文本超长(${rawText.length}字符)，截取前${MAX_TEXT_LENGTH}字符`), rawText.substring(0, MAX_TEXT_LENGTH))
+    : rawText;
+
   if (backend) {
-    console.log(`[PDF-Parser v3] AI后端: ${backend.description} (${backend.model})`);
+    console.log(`[PDF-Parser v4] AI后端: ${backend.description} (${backend.model})`);
     try {
-      passages = await aiParse(rawText, aiConfig.apiKey, backend);
+      passages = await aiParse(parseText, aiConfig.apiKey, backend);
     } catch (err) {
-      console.error(`[PDF-Parser v3] AI解析失败:`, err.message);
-      console.log('[PDF-Parser v3] 降级到规则引擎...');
-      passages = ruleBasedParse(rawText);
+      console.error(`[PDF-Parser v4] AI解析失败:`, err.message);
+      console.log('[PDF-Parser v4] 降级到规则引擎...');
+      passages = ruleBasedParse(parseText);
     }
   } else {
-    console.log('[PDF-Parser v3] 未配置 AI Key，使用规则引擎');
-    passages = ruleBasedParse(rawText);
+    console.log('[PDF-Parser v4] 未配置 AI Key，使用规则引擎');
+    passages = ruleBasedParse(parseText);
   }
 
-  console.log(`[PDF-Parser v3] 解析出 ${passages.length} 篇文章`);
+  console.log(`[PDF-Parser v4] 解析出 ${passages.length} 篇文章`);
 
   // Step 3: 入库
   let inserted = 0;
@@ -142,13 +169,13 @@ async function parseTOEFLReadingPDF(filePath, db, passageId) {
         );
         inserted++;
       } catch (err) {
-        console.error(`[PDF-Parser v3] 入库失败:`, err.message);
+        console.error(`[PDF-Parser v4] 入库失败:`, err.message);
       }
     }
   }
 
-  console.log(`[PDF-Parser v3] 完成: ${inserted} 题入库 (${passages.length} 篇文章)`);
-  return { insertedCount: inserted, passageCount: passages.length };
+  console.log(`[PDF-Parser v4] 完成: ${inserted} 题入库 (${passages.length} 篇文章)`);
+  return { insertedCount: inserted, passageCount: passages.length, totalPages: pdfData.numpages, truncated: rawText.length > MAX_TEXT_LENGTH };
 }
 
 // ============================================================

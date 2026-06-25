@@ -14,8 +14,8 @@ const uploadStatusMap = new Map(); // uploadId -> { status, fileName, parsedCoun
 
 function setUploadStatus(uploadId, status) {
   uploadStatusMap.set(uploadId, { ...status, updatedAt: new Date().toISOString() });
-  // 5分钟后清理旧状态
-  setTimeout(() => uploadStatusMap.delete(uploadId), 5 * 60 * 1000);
+  // 15分钟后清理旧状态（AI解析可能较慢）
+  setTimeout(() => uploadStatusMap.delete(uploadId), 15 * 60 * 1000);
 }
 
 const upload = multer({
@@ -55,15 +55,20 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
 
     console.log(`[Questions] 开始解析PDF: ${req.file.originalname} (uploadId=${uploadId}, size=${req.file.size})`);
 
+    // 支持 maxPages 查询参数限制解析页数（大文件分批处理）
+    const maxPages = parseInt(req.query.maxPages) || 0;
+
     // 异步解析PDF，source 设为 'real'，passage_id = uploadId
-    parseTOEFLReadingPDF(req.file.path, db, uploadId)
-      .then(async (inserted) => {
-        console.log(`[Questions] PDF解析完成 uploadId=${uploadId}，共插入 ${inserted.length} 道题目`);
+    parseTOEFLReadingPDF(req.file.path, db, uploadId, { maxPages })
+      .then(async (result) => {
+        const count = result.insertedCount || 0;
+        console.log(`[Questions] PDF解析完成 uploadId=${uploadId}，共插入 ${count} 道题目 (${result.passageCount}篇, ${result.totalPages}页)`);
         setUploadStatus(uploadId, {
           status: 'completed',
           fileName: req.file.originalname,
-          parsedCount: inserted.length,
+          parsedCount: count,
           error: null,
+          meta: { passageCount: result.passageCount, totalPages: result.totalPages, truncated: result.truncated },
         });
         // 解析完成后清理上传文件
         try { fs.unlinkSync(req.file.path); } catch (_) {}
