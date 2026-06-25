@@ -34,7 +34,9 @@
           <div v-show="!passageCollapsed" class="reading-panel-body">
             <article class="reading-article">
               <h1 class="article-title">{{ cleanTitle(passageTitle) }}</h1>
-              <div class="article-text">{{ passageText }}</div>
+              <div class="article-text">
+                <p v-for="(para, pi) in passageParagraphs" :key="pi" class="article-para">{{ para }}</p>
+              </div>
             </article>
           </div>
         </aside>
@@ -162,6 +164,21 @@ const selectedAnswer = ref(null)
 const answers = ref([])
 
 const currentQuestion = computed(() => questions.value[currentIndex.value] || {})
+
+// 将原始 passageText 智能分段：
+// - 按 2+ 连续换行分割段落
+// - 段落内部的单个换行合并为空格（消除 PDF 行内断行）
+// - 过滤掉纯空白的段
+const passageParagraphs = computed(() => {
+  const raw = passageText.value || ''
+  // 统一换行符
+  const text = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  // 按 2+ 换行分段
+  const blocks = text.split(/\n{2,}/)
+  return blocks
+    .map(b => b.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim())
+    .filter(b => b.length > 0)
+})
 
 const parsedOptions = computed(() => {
   const opts = currentQuestion.value.options
@@ -463,9 +480,16 @@ onMounted(loadPassageData)
   line-height: 2.1;
   letter-spacing: 0.015em;
   color: #2a2a2a;
-  white-space: pre-wrap;
   text-align: justify;
   text-justify: inter-character;
+}
+.article-para {
+  margin: 0 0 1.4em 0;
+  text-indent: 2em;
+  text-align: justify;
+}
+.article-para:last-child {
+  margin-bottom: 0;
 }
 
 /* ===== 右侧：题目面板 ===== */

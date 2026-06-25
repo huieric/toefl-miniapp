@@ -46,7 +46,9 @@
           <el-icon class="collapse-icon" :class="{ rotated: !passageVisible }"><ArrowDown /></el-icon>
         </div>
         <div v-show="passageVisible" class="passage-review-body">
-          <div class="passage-review-content">{{ resultData.passageText }}</div>
+          <div class="passage-review-content">
+            <p v-for="(para, pi) in passageParagraphs" :key="pi" class="review-para">{{ para }}</p>
+          </div>
         </div>
       </div>
 
@@ -138,6 +140,16 @@ const resultData = ref(null)
 const passageVisible = ref(false)
 
 const questions = computed(() => resultData.value?.questions || [])
+
+// 智能分段：按 2+ 换行拆段，段内单换行合并为空格
+const passageParagraphs = computed(() => {
+  const raw = resultData.value?.passageText || ''
+  const text = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  return text
+    .split(/\n{2,}/)
+    .map(b => b.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim())
+    .filter(b => b.length > 0)
+})
 
 const totalCount = computed(() => questions.value.length)
 const correctCount = computed(() => questions.value.filter(r => r.isCorrect).length)
@@ -299,8 +311,14 @@ onMounted(() => {
   font-size: 16px;
   line-height: 2.0;
   color: #2c2c2c;
-  white-space: pre-wrap;
   text-align: justify;
+}
+.passage-review-content .review-para {
+  margin: 0 0 1.2em 0;
+  text-indent: 2em;
+}
+.passage-review-content .review-para:last-child {
+  margin-bottom: 0;
 }
 .collapse-icon {
   transition: transform 0.2s;
