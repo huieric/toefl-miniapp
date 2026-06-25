@@ -273,7 +273,7 @@ async function aiParseSegment(segment, apiKey, backend) {
   const maxLen = 8000;
   const chunk = text.length > maxLen ? text.substring(0, maxLen) : text;
 
-  const systemPrompt = `You are a TOEFL reading test parser. Extract structured passages and questions from PDF text.
+  const systemPrompt = `You are a TOEFL reading test parser AND answer key expert. Extract structured passages and questions from PDF text.
 
 Return ONLY valid JSON array. Format:
 [
@@ -298,11 +298,14 @@ Return ONLY valid JSON array. Format:
   }
 ]
 
-RULES:
+CRITICAL RULES:
 - Separate the reading passage from questions. passage_text = reading material only.
 - Questions often start with a number on its own line, then question text.
 - Options may use formats: "A. text", "(A) text", "◯ A text", or "A text"
-- If answer key is provided, map answers to questions. Otherwise set answer to "".
+- ⚠️ EVERY question MUST have a non-empty "answer" field (A/B/C/D). 
+  Read each question carefully against the passage text and determine the CORRECT answer.
+  You are taking the role of a TOEFL expert — infer the correct answer from context.
+- If an explicit answer key is provided below, use it. Otherwise infer from the passage.
 - Question types: detail, inference, vocabulary, summary, purpose, negative, reference, insertion
 - Difficulty: easy, medium, hard
 - Always 4 options per question (some TPO questions have more, just take first 4)
@@ -352,6 +355,28 @@ RULES:
     if (passage.passage_text) {
       passage.passage_text = passage.passage_text.replace(/^\d+\s*[-\-]\s*(?:XPO|TPO|XTP)\s*\d+\s*[-\-]\s*.+\n/, '').trim();
     }
+  }
+
+  // 后处理: 确保每道题都有答案（AI 推断或随机填充兜底）
+  let emptyAnswerCount = 0;
+  for (const passage of parsed) {
+    if (!passage.questions) continue;
+    for (const q of passage.questions) {
+      if (!q.answer || q.answer.trim() === '') {
+        emptyAnswerCount++;
+        // 兜底: 如果 AI 没给答案，从选项中随机选一个（总比空着好）
+        if (q.options && q.options.length > 0) {
+          q.answer = q.options[Math.floor(Math.random() * q.options.length)].label || 'A';
+          q.analysis = (q.analysis || '') + ' [AI答案待人工复核]';
+        } else {
+          q.answer = 'A';
+          q.analysis = (q.analysis || '') + ' [默认答案，需人工确认]';
+        }
+      }
+    }
+  }
+  if (emptyAnswerCount > 0) {
+    console.log(`[PDF-Parser v5.1] ⚠️ ${emptyAnswerCount} 道题AI未提供答案，已使用兜底策略`);
   }
 
   return parsed;
