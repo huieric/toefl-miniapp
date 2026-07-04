@@ -96,17 +96,41 @@ app.use((err, req, res, _next) => {
   });
 });
 
-// === 启动服务器 ===
-initDatabase()
-  .then(() => {
-    app.listen(config.port, () => {
-      console.log(`[TOEFL-Server] 服务已启动: http://localhost:${config.port}`);
-      console.log(`[TOEFL-Server] 环境: ${config.nodeEnv}`);
-    });
-  })
-  .catch((err) => {
-    console.error('[TOEFL-Server] 数据库初始化失败，服务未启动:', err.message);
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function initDatabaseWithRetry() {
+  const maxAttempts = parseInt(process.env.DB_INIT_RETRIES, 10) || 5;
+  const retryDelayMs = parseInt(process.env.DB_INIT_RETRY_DELAY_MS, 10) || 5000;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await initDatabase();
+      return;
+    } catch (err) {
+      const isLastAttempt = attempt === maxAttempts;
+      console.error(`[TOEFL-Server] 数据库初始化失败 (${attempt}/${maxAttempts}):`, err.message);
+      if (isLastAttempt) throw err;
+      await wait(retryDelayMs);
+    }
+  }
+}
+
+async function startServer() {
+  await initDatabaseWithRetry();
+  app.listen(config.port, () => {
+    console.log(`[TOEFL-Server] 服务已启动: http://localhost:${config.port}`);
+    console.log(`[TOEFL-Server] 环境: ${config.nodeEnv}`);
+  });
+}
+
+if (require.main === module) {
+  startServer().catch((err) => {
+    console.error('[TOEFL-Server] 服务启动失败:', err.message);
     process.exit(1);
   });
+}
 
 module.exports = app;
+module.exports.startServer = startServer;
