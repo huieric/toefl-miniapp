@@ -31,6 +31,11 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 const app = express();
+const startupState = {
+  database: 'pending',
+  databaseError: null,
+  startedAt: new Date().toISOString(),
+};
 
 // === 安全中间件 ===
 app.use(helmet());
@@ -76,7 +81,11 @@ app.use('/api/ai-tutor', aiTutorRoutes);
 
 // === 健康检查 ===
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    startup: startupState,
+  });
 });
 
 // === 404 ===
@@ -118,11 +127,22 @@ async function initDatabaseWithRetry() {
 }
 
 async function startServer() {
-  await initDatabaseWithRetry();
   app.listen(config.port, () => {
     console.log(`[TOEFL-Server] 服务已启动: http://localhost:${config.port}`);
     console.log(`[TOEFL-Server] 环境: ${config.nodeEnv}`);
   });
+
+  initDatabaseWithRetry()
+    .then(() => {
+      startupState.database = 'ready';
+      startupState.databaseError = null;
+      console.log('[TOEFL-Server] 数据库初始化完成');
+    })
+    .catch((err) => {
+      startupState.database = 'failed';
+      startupState.databaseError = err.message;
+      console.error('[TOEFL-Server] 数据库初始化最终失败，服务保持运行:', err.message);
+    });
 }
 
 if (require.main === module) {
