@@ -67,6 +67,9 @@
               <span class="meta-index">Question {{ currentIndex + 1 }} of {{ questions.length }}</span>
             </div>
             <div class="question-text">{{ currentQuestion.content }}</div>
+            <div v-if="isMultiAnswerQuestion" class="multi-answer-hint">
+              请选择 {{ correctAnswerLabels.length || 3 }} 个选项
+            </div>
 
             <!-- 选项 -->
             <div class="options-list">
@@ -74,7 +77,7 @@
                 v-for="opt in parsedOptions"
                 :key="opt.label"
                 class="option-row"
-                :class="{ selected: selectedAnswer === opt.label }"
+                :class="{ selected: isOptionSelected(opt.label) }"
                 @click="selectAnswer(opt.label)"
               >
                 <div class="option-marker">
@@ -83,7 +86,7 @@
                 <div class="option-body">
                   <span class="option-content">{{ opt.text }}</span>
                 </div>
-                <el-icon v-if="selectedAnswer === opt.label" class="option-check"><Select /></el-icon>
+                <el-icon v-if="isOptionSelected(opt.label)" class="option-check"><Select /></el-icon>
               </div>
             </div>
           </div>
@@ -160,7 +163,7 @@ const loading = ref(true)
 const passageCollapsed = ref(false)
 
 const currentIndex = ref(0)
-const selectedAnswer = ref(null)
+const selectedAnswer = ref([])
 const answers = ref([])
 
 const currentQuestion = computed(() => questions.value[currentIndex.value] || {})
@@ -227,7 +230,16 @@ const parsedOptions = computed(() => {
   return []
 })
 
-const correctAnswer = computed(() => currentQuestion.value.answer || '')
+const splitAnswer = (answer) => {
+  if (Array.isArray(answer)) return answer.map(String).map(s => s.trim()).filter(Boolean)
+  return String(answer || '').match(/[A-F]/g) || []
+}
+
+const normalizeAnswer = (answer) => splitAnswer(answer).sort().join(',')
+
+const correctAnswer = computed(() => normalizeAnswer(currentQuestion.value.answer))
+const correctAnswerLabels = computed(() => splitAnswer(currentQuestion.value.answer))
+const isMultiAnswerQuestion = computed(() => correctAnswerLabels.value.length > 1 || currentQuestion.value.type === 'summary')
 
 const answeredCount = computed(() => answers.value.filter(a => a !== undefined).length)
 const allAnswered = computed(() => answeredCount.value === questions.value.length && questions.value.length > 0)
@@ -237,13 +249,26 @@ const typeLabel = (t) => typeMap[t] || t || '--'
 const cleanTitle = (t) => (t || '未命名篇章').replace(/\s*\(Q\d+\)\s*$/g, '')
 
 const selectAnswer = (label) => {
-  selectedAnswer.value = label
-  const isCorrect = label === correctAnswer.value
+  let next
+  if (isMultiAnswerQuestion.value) {
+    const current = new Set(selectedAnswer.value)
+    if (current.has(label)) current.delete(label)
+    else current.add(label)
+    next = [...current].sort()
+  } else {
+    next = [label]
+  }
+
+  selectedAnswer.value = next
+  const selectedNormalized = normalizeAnswer(next)
+  const isCorrect = selectedNormalized === correctAnswer.value
   answers.value[currentIndex.value] = {
-    selected: label,
+    selected: selectedNormalized,
     isCorrect,
   }
 }
+
+const isOptionSelected = (label) => selectedAnswer.value.includes(label)
 
 const nextQuestion = () => {
   if (currentIndex.value < questions.value.length - 1) {
@@ -266,7 +291,7 @@ const goToQuestion = (index) => {
 
 const loadQuestionState = () => {
   const saved = answers.value[currentIndex.value]
-  selectedAnswer.value = saved ? saved.selected : null
+  selectedAnswer.value = saved ? splitAnswer(saved.selected) : []
 }
 
 const goResult = async () => {
@@ -632,6 +657,17 @@ onMounted(loadPassageData)
   margin-bottom: 24px;
   color: #1a1a1a;
   white-space: pre-wrap;
+}
+.multi-answer-hint {
+  display: inline-flex;
+  align-items: center;
+  margin: -8px 0 18px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  background: var(--el-color-warning-light-9);
+  color: var(--el-color-warning-dark-2);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 /* 选项 */

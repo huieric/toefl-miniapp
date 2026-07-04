@@ -77,16 +77,16 @@
               :key="opt.label"
               class="review-option"
               :class="{
-                'is-correct': opt.label === r.answer,
-                'is-wrong-select': opt.label === r.selected && opt.label !== r.answer,
+                'is-correct': isCorrectOption(opt.label, r.answer),
+                'is-wrong-select': isSelectedOption(opt.label, r.selected) && !isCorrectOption(opt.label, r.answer),
               }"
             >
               <span class="opt-label">{{ opt.label }}</span>
               <span class="opt-text">{{ opt.text }}</span>
-              <el-icon v-if="opt.label === r.answer" class="opt-icon correct"><CircleCheckFilled /></el-icon>
-              <el-icon v-if="opt.label === r.selected && opt.label !== r.answer" class="opt-icon wrong"><CircleCloseFilled /></el-icon>
-              <span v-if="opt.label === r.selected && opt.label === r.answer" class="opt-tag your-tag">你的选择</span>
-              <span v-else-if="opt.label === r.selected" class="opt-tag your-tag wrong-tag">你的选择</span>
+              <el-icon v-if="isCorrectOption(opt.label, r.answer)" class="opt-icon correct"><CircleCheckFilled /></el-icon>
+              <el-icon v-if="isSelectedOption(opt.label, r.selected) && !isCorrectOption(opt.label, r.answer)" class="opt-icon wrong"><CircleCloseFilled /></el-icon>
+              <span v-if="isSelectedOption(opt.label, r.selected) && isCorrectOption(opt.label, r.answer)" class="opt-tag your-tag">你的选择</span>
+              <span v-else-if="isSelectedOption(opt.label, r.selected)" class="opt-tag your-tag wrong-tag">你的选择</span>
             </div>
           </div>
 
@@ -212,6 +212,14 @@ const parseOptions = (optsRaw) => {
   }
   return []
 }
+
+const splitAnswer = (answer) => {
+  if (Array.isArray(answer)) return answer.map(String).map(s => s.trim()).filter(Boolean)
+  return String(answer || '').match(/[A-F]/g) || []
+}
+
+const isCorrectOption = (label, answer) => splitAnswer(answer).includes(label)
+const isSelectedOption = (label, selected) => splitAnswer(selected).includes(label)
 
 // 自动生成答案解析（当后端未提供 analysis 时）
 const getAnalysis = (r) => {

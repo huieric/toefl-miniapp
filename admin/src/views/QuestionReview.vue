@@ -4,12 +4,16 @@
       <template #header>
         <div class="card-header">
           <span>待审核题目</span>
-          <el-radio-group v-model="filterStatus" size="small" @change="fetchQuestions" class="filter-group">
-            <el-radio-button value="all">全部</el-radio-button>
-            <el-radio-button value="pending">待审核</el-radio-button>
-            <el-radio-button value="approved">已通过</el-radio-button>
-            <el-radio-button value="rejected">已驳回</el-radio-button>
-          </el-radio-group>
+          <div class="header-actions">
+            <el-radio-group v-model="filterStatus" size="small" @change="fetchQuestions" class="filter-group">
+              <el-radio-button value="all">全部</el-radio-button>
+              <el-radio-button value="pending">待审核</el-radio-button>
+              <el-radio-button value="approved">已通过</el-radio-button>
+              <el-radio-button value="rejected">已驳回</el-radio-button>
+            </el-radio-group>
+            <el-button type="primary" size="small" :loading="uploading" @click="triggerUpload">上传 PDF</el-button>
+            <input ref="fileInputRef" type="file" accept=".pdf" style="display:none" @change="handleFileChange" />
+          </div>
         </div>
       </template>
 
@@ -54,13 +58,15 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { getQuestions, approveQuestion, rejectQuestion } from '../api';
+import { getQuestions, approveQuestion, rejectQuestion, uploadQuestionsPdf, getUploadStatus } from '../api';
 
 const loading = ref(false);
 const questionList = ref([]);
 const filterStatus = ref('pending');
 const page = ref(1);
 const total = ref(0);
+const fileInputRef = ref(null);
+const uploading = ref(false);
 
 const statusLabel = (s) => ({ pending: '待审核', approved: '已通过', rejected: '已驳回' }[s] || s);
 const statusTag = (s) => ({ pending: 'warning', approved: 'success', rejected: 'danger' }[s] || 'info');
@@ -69,11 +75,65 @@ const subjectTag = (s) => ({ '阅读': '', '听力': 'success', '口语': 'warni
 const fetchQuestions = async () => {
   loading.value = true;
   try {
-    const res = await getQuestions({ status: filterStatus.value, page: page.value, limit: 15 });
+    const params = { page: page.value, limit: 15 };
+    if (filterStatus.value !== 'all') params.status = filterStatus.value;
+    const res = await getQuestions(params);
     const data = res.data?.data || res.data || {};
     questionList.value = data.list || [];
     total.value = data.total || 0;
   } catch (_) {} finally { loading.value = false; }
+};
+
+const triggerUpload = () => fileInputRef.value?.click();
+
+const handleFileChange = async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+    ElMessage.warning('请选择 PDF 文件');
+    event.target.value = '';
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+  uploading.value = true;
+
+  try {
+    const res = await uploadQuestionsPdf(formData);
+    const uploadId = res.data?.uploadId || res.data?.data?.uploadId || res.uploadId;
+    ElMessage.success('上传成功，正在后台解析...');
+
+    if (uploadId) {
+      let resolved = false;
+      for (let i = 0; i < 20; i += 1) {
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        const statusRes = await getUploadStatus(uploadId);
+        const st = statusRes.data?.data || statusRes.data || statusRes;
+        if (st?.status === 'completed') {
+          resolved = true;
+          await fetchQuestions();
+          if (st.meta?.truncated) {
+            ElMessage.warning(`解析完成：入库 ${st.parsedCount} 题。本次解析了前 ${st.meta.parsedPages || '-'} 页。`);
+          } else {
+            ElMessage.success(`解析完成！入库 ${st.parsedCount} 题`);
+          }
+          break;
+        }
+        if (st?.status === 'failed') {
+          resolved = true;
+          ElMessage.error(`解析失败: ${st.error || '未知错误'}`);
+          break;
+        }
+      }
+      if (!resolved) ElMessage.warning('解析仍在进行，请稍后刷新列表');
+    }
+  } catch (err) {
+    ElMessage.error(err.message || '上传失败');
+  } finally {
+    uploading.value = false;
+    event.target.value = '';
+  }
 };
 
 const approve = (id) => {
@@ -93,6 +153,7 @@ onMounted(() => fetchQuestions());
 
 <style scoped>
 .card-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .review-table { min-width: 480px; }
 @media (max-width: 768px) {
   .card-header { flex-direction: column; align-items: flex-start; }

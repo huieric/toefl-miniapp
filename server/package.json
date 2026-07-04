@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "db:init": "psql \"$DATABASE_URL\" -f src/models/db-init.sql"
+    "db:init": "psql \"$DATABASE_URL\" -f src/models/db-init.sql",
+    "test:pdf": "node scripts/test-pdf-parser.js"
   },
   "dependencies": {
     "express": "^4.18.2",

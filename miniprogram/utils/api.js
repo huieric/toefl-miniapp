@@ -65,6 +65,7 @@ const recordAdImpression = (placement, adId) =>
 const getAdBanner = (placement) => api.get(`/ads/banner/${placement}`);
 
 module.exports = {
+  BASE_URL,
   get: (url, params) => request('GET', url, params),
   post: (url, data) => request('POST', url, data),
   put: (url, data) => request('PUT', url, data),

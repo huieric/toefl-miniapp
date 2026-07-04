@@ -211,7 +211,11 @@ const handleFileChange = async (e) => {
             resolved = true
             if (st.parsedCount > 0) {
               await fetchList()
-              ElMessage.success(`解析完成！共入库 ${st.parsedCount} 道真题`)
+              if (st.meta?.truncated) {
+                ElMessage.warning(`解析完成：已导入 ${st.parsedCount} 道题。文件较大，本次解析了前 ${st.meta.parsedPages || '-'} 页。`)
+              } else {
+                ElMessage.success(`解析完成！共入库 ${st.parsedCount} 道真题`)
+              }
             } else {
               ElMessage.warning('PDF解析完成但未提取到题目，请检查PDF格式')
             }

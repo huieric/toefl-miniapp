@@ -28,7 +28,8 @@ const upload = multer({
   }),
   limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (file.mimetype === 'application/pdf') {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    if (file.mimetype === 'application/pdf' || ext === '.pdf') {
       cb(null, true);
     } else {
       cb(new Error('仅支持PDF文件'));
@@ -57,9 +58,10 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
 
     // 支持 maxPages 查询参数限制解析页数（大文件分批处理）
     const maxPages = parseInt(req.query.maxPages) || 0;
+    const maxPassages = parseInt(req.query.maxPassages) || 0;
 
     // 异步解析PDF，source 设为 'real'，passage_id = uploadId
-    parseTOEFLReadingPDF(req.file.path, db, uploadId, { maxPages })
+    parseTOEFLReadingPDF(req.file.path, db, uploadId, { maxPages, maxPassages })
       .then(async (result) => {
         const count = result.insertedCount || 0;
         console.log(`[Questions] PDF解析完成 uploadId=${uploadId}，共插入 ${count} 道题目 (${result.passageCount}篇, ${result.totalPages}页)`);
@@ -68,7 +70,15 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
           fileName: req.file.originalname,
           parsedCount: count,
           error: null,
-          meta: { passageCount: result.passageCount, totalPages: result.totalPages, truncated: result.truncated },
+          meta: {
+            passageCount: result.passageCount,
+            discoveredPassageCount: result.discoveredPassageCount,
+            totalPages: result.totalPages,
+            parsedPages: result.parsedPages,
+            truncated: result.truncated,
+            pageLimited: result.pageLimited,
+            segmentLimited: result.segmentLimited,
+          },
         });
         // 解析完成后清理上传文件
         try { fs.unlinkSync(req.file.path); } catch (_) {}
@@ -122,8 +132,11 @@ router.get('/upload/:id/status', auth, async (req, res) => {
         parsedCount: statusData.parsedCount,
         fileName: statusData.fileName,
         error: statusData.error,
+        meta: statusData.meta || null,
         message: statusData.status === 'completed'
-          ? `解析完成！共 ${statusData.parsedCount} 道题目已入库`
+          ? statusData.meta?.truncated
+            ? `解析完成！已解析前 ${statusData.meta.parsedPages || '-'} 页，共 ${statusData.parsedCount} 道题目入库`
+            : `解析完成！共 ${statusData.parsedCount} 道题目已入库`
           : statusData.status === 'failed'
             ? `解析失败: ${statusData.error}`
             : '正在解析中...',
@@ -161,7 +174,7 @@ router.get('/', auth, async (req, res) => {
       const result = await db.query(
         `SELECT
           passage_id AS "passageId",
-          MAX(title) AS title,
+          REGEXP_REPLACE(MAX(title), '\\s+-\\s+Q\\d+$', '') AS title,
           COUNT(*) AS "questionCount",
           ARRAY_AGG(DISTINCT type) AS types,
           MAX(difficulty) AS difficulty,
@@ -572,7 +585,7 @@ router.get('/passage/:passageId', auth, async (req, res) => {
       code: 200,
       data: {
         passageId,
-        title: first.title,
+        title: (first.title || '').replace(/\s+-\s+Q\d+$/i, ''),
         passageText: first.passage_text || '',
         source: first.source,
         difficulty: first.difficulty,

@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const http = axios.create({
-  baseURL: 'https://toefl-api-m1ue.onrender.com/api/admin',
-  timeout: 15000,
+  baseURL: 'https://toefl-api-m1ue.onrender.com/api',
+  timeout: 45000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -27,19 +27,27 @@ http.interceptors.response.use(
 );
 
 // Dashboard
-export const getOverview = () => http.get('/dashboard/overview');
-export const getUsersAnalysis = () => http.get('/dashboard/users');
-export const getUsageData = () => http.get('/dashboard/usage');
-export const getRetentionData = () => http.get('/dashboard/retention');
-export const getSubjectStats = () => http.get('/dashboard/subjects');
+export const getOverview = () => http.get('/admin/dashboard/overview');
+export const getUsersAnalysis = () => http.get('/admin/dashboard/users');
+export const getUsageData = () => http.get('/admin/dashboard/usage');
+export const getRetentionData = () => http.get('/admin/dashboard/retention');
+export const getSubjectStats = () => http.get('/admin/dashboard/subjects');
 
 // Feedback
-export const getFeedbackList = (params) => http.get('/feedback', { params });
-export const replyFeedback = (id, data) => http.put(`/feedback/${id}/reply`, data);
+export const getFeedbackList = (params) => http.get('/admin/feedback', { params });
+export const replyFeedback = (id, data) => http.put(`/admin/feedback/${id}/reply`, data);
 
 // Questions
-export const getQuestions = (params) => http.get('/questions', { params });
-export const approveQuestion = (id) => http.put(`/questions/${id}/approve`);
-export const rejectQuestion = (id) => http.put(`/questions/${id}/reject`);
+export const getQuestions = (params) => http.get('/admin/questions', { params });
+export const approveQuestion = (id) => http.put(`/admin/questions/${id}/approve`);
+export const rejectQuestion = (id) => http.put(`/admin/questions/${id}/reject`);
+export const uploadQuestionsPdf = (formData, onProgress) =>
+  http.post('/questions/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: (e) => {
+      if (onProgress && e.total) onProgress(Math.round((e.loaded * 100) / e.total));
+    },
+  });
+export const getUploadStatus = (uploadId) => http.get(`/questions/upload/${uploadId}/status`);
 
 export default http;

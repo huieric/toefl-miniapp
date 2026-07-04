@@ -87,7 +87,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { questionAPI } from '@/api'
+import { adminAPI, questionAPI } from '@/api'
 
 const statusFilter = ref('pending_review')
 const search = ref('')
@@ -102,9 +102,9 @@ const uploadProgress = ref(0)
 
 const subjectLabel = (s) => ({ reading: '阅读', listening: '听力', speaking: '口语', writing: '写作' }[s] || s)
 const subjectTagType = (s) => ({ reading: '', listening: 'success', speaking: 'warning', writing: 'danger' }[s] || 'info')
-const sourceLabel = (s) => ({ user_upload: '用户上传', system_crawled: '系统爬取', official: '官方' }[s] || s)
-const statusLabel = (s) => ({ pending_review: '待审核', approved: '已通过', rejected: '已驳回' }[s] || s)
-const statusTagType = (s) => ({ pending_review: 'warning', approved: 'success', rejected: 'danger' }[s] || 'info')
+const sourceLabel = (s) => ({ real: '真题', simulated: '模拟题', user_upload: '用户上传', system_crawled: '系统爬取', official: '官方' }[s] || s)
+const statusLabel = (s) => ({ pending: '待审核', pending_review: '待审核', approved: '已通过', rejected: '已驳回' }[s] || s)
+const statusTagType = (s) => ({ pending: 'warning', pending_review: 'warning', approved: 'success', rejected: 'danger' }[s] || 'info')
 
 const filteredList = computed(() => {
   let data = list.value
@@ -123,16 +123,26 @@ const handleApprove = async (row) => {
   try {
     await ElMessageBox.confirm(`确认通过题目「${row.title || 'ID:' + row.id}」？`, '审核通过', { type: 'success' })
   } catch { return }
-  row.status = 'approved'
-  ElMessage.success('已通过审核')
+  try {
+    await adminAPI.approveQuestion(row.id)
+    ElMessage.success('已通过审核')
+    await fetchQuestions()
+  } catch (err) {
+    ElMessage.error(err.response?.data?.message || err.message || '审核失败')
+  }
 }
 
 const handleReject = async (row) => {
   try {
     await ElMessageBox.confirm(`确认驳回题目「${row.title || 'ID:' + row.id}」？`, '审核驳回', { type: 'warning' })
   } catch { return }
-  row.status = 'rejected'
-  ElMessage.warning('已驳回')
+  try {
+    await adminAPI.rejectQuestion(row.id)
+    ElMessage.warning('已驳回')
+    await fetchQuestions()
+  } catch (err) {
+    ElMessage.error(err.response?.data?.message || err.message || '驳回失败')
+  }
 }
 
 const triggerUpload = () => {
@@ -155,8 +165,37 @@ const handleFileChange = async (e) => {
   uploadProgress.value = 0
 
   try {
-    await questionAPI.upload(formData, (pct) => { uploadProgress.value = pct })
-    ElMessage.success('上传成功，题目已导入')
+    const res = await questionAPI.upload(formData, (pct) => { uploadProgress.value = pct })
+    const uploadId = res.data?.data?.uploadId
+    ElMessage.success('上传成功，正在后台解析...')
+    progressVisible.value = false
+
+    if (uploadId) {
+      let resolved = false
+      for (let i = 0; i < 20; i++) {
+        await new Promise(r => setTimeout(r, 3000))
+        const statusRes = await questionAPI.uploadStatus(uploadId)
+        const st = statusRes.data?.data
+        if (st?.status === 'completed') {
+          resolved = true
+          await fetchQuestions()
+          if (st.meta?.truncated) {
+            ElMessage.warning(`解析完成：入库 ${st.parsedCount} 题。本次解析了前 ${st.meta.parsedPages || '-'} 页。`)
+          } else {
+            ElMessage.success(`解析完成！入库 ${st.parsedCount} 题`)
+          }
+          break
+        }
+        if (st?.status === 'failed') {
+          resolved = true
+          ElMessage.error(`解析失败: ${st.error || '未知错误'}`)
+          break
+        }
+      }
+      if (!resolved) {
+        ElMessage.warning('解析仍在进行，请稍后刷新列表')
+      }
+    }
   } catch (err) {
     ElMessage.error(err.response?.data?.message || err.message || '上传失败')
   } finally {
@@ -166,25 +205,25 @@ const handleFileChange = async (e) => {
   }
 }
 
-// 模拟题目数据
-onMounted(() => {
+const fetchQuestions = async () => {
   loading.value = true
-  setTimeout(() => {
-    const subjects = ['reading', 'listening', 'speaking', 'writing']
-    const statuses = ['pending_review', 'approved', 'rejected']
-    const sources = ['user_upload', 'system_crawled', 'official']
-    list.value = Array.from({ length: 35 }, (_, i) => ({
-      id: i + 1,
-      subject: subjects[i % 4],
-      title: ['托福阅读 TPO', '听力对话练习', '口语独立题', '综合写作任务'][i % 4] + ' ' + (i + 1),
-      questionText: 'Which of the following best describes the main idea of the passage?',
-      source: sources[i % 3],
-      status: i < 8 ? 'pending_review' : statuses[i % 3],
-      createdAt: `2026-05-${String(1 + (i % 28)).padStart(2, '0')} 14:30:00`,
+  try {
+    const status = statusFilter.value === 'pending_review' ? 'pending' : statusFilter.value
+    const res = await adminAPI.questions({ status: status || undefined, page: 1, limit: 200 })
+    const rows = res.data?.data?.list || []
+    list.value = rows.map(row => ({
+      ...row,
+      questionText: row.content,
+      createdAt: row.created_at || row.createdAt,
     }))
+  } catch (err) {
+    ElMessage.error(err.response?.data?.message || err.message || '加载题目失败')
+  } finally {
     loading.value = false
-  }, 300)
-})
+  }
+}
+
+onMounted(fetchQuestions)
 </script>
 
 <style scoped>

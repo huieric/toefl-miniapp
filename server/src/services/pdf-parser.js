@@ -114,7 +114,8 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
   const backend = resolveBackend(aiConfig);
   let passages = [];
 
-  const MAX_SEGMENTS = 8; // 最多处理8个段，防止超时
+  const requestedMaxPassages = parseInt(options.maxPassages) || 0;
+  const MAX_SEGMENTS = requestedMaxPassages > 0 ? requestedMaxPassages : 8; // 最多处理8个段，防止超时
   const segmentsToProcess = segments.slice(0, MAX_SEGMENTS);
   if (segments.length > MAX_SEGMENTS) {
     console.log(`[PDF-Parser v5] 文本段过多(${segments.length})，只处理前${MAX_SEGMENTS}个`);
@@ -165,7 +166,7 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
               label: o.label || String.fromCharCode(65 + i),
               text: o.text || o
             }))),
-            q.answer || '',
+            normalizeAnswer(q.answer),
             q.analysis || q.explanation || '',
             p.passage_text || p.passage || '',
             subPassageId,
@@ -179,8 +180,20 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
     }
   }
 
+  const pageLimited = maxPages > 0 && pdfData.numpages > maxPages;
+  const segmentLimited = segments.length > MAX_SEGMENTS;
+
   console.log(`[PDF-Parser v5] 完成: ${inserted} 题入库 (${passages.length} 篇文章)`);
-  return { insertedCount: inserted, passageCount: passages.length, totalPages: pdfData.numpages, truncated: segments.length > MAX_SEGMENTS };
+  return {
+    insertedCount: inserted,
+    passageCount: passages.length,
+    discoveredPassageCount: segments.length,
+    totalPages: pdfData.numpages,
+    parsedPages: maxPages > 0 ? Math.min(maxPages, pdfData.numpages) : pdfData.numpages,
+    truncated: pageLimited || segmentLimited,
+    pageLimited,
+    segmentLimited
+  };
 }
 
 // ============================================================
@@ -189,44 +202,48 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
 
 function preProcessText(rawText) {
   // 清理
-  const text = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\f/g, '\n').replace(/\u0000/g, '');
+  const text = rawText
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/\f/g, '\n')
+    .replace(/\u0000/g, '')
+    .replace(/\t/g, ' ');
 
   // 识别文章边界: "1 - XPO 1 - Title" 或 "1 - TPO 1 - Title" 或 "Passage 1"
-  const passagePattern = /(\d+)\s*[-\-]\s*(?:XPO|TPO|XTP)\s*(\d+)\s*[-\-]\s*(.+)/g;
+  const passagePattern = /(?:^|\n)\s*(\d+)\s*[-–—]\s*(?:XPO|TPO|XTP)\s*(\d+)\s*[-–—]\s*([^\n]+)/gi;
   const passageMatches = [...text.matchAll(passagePattern)];
 
   // 识别答案key: "4 - Answers" 后面跟着答案
   // TPO格式中答案编号可能与文章编号不一致，所以同时收集所有答案用于顺序映射
-  const answerPattern = /(\d+)\s*[-\-]\s*Answers?\s*\n?([\s\S]*?)(?=\d+\s*[-\-]\s*(?:XPO|TPO|XTP)|$)/gi;
+  const answerPattern = /(?:^|\n)\s*(\d+)\s*[-–—]\s*Answers?\s*\n?([\s\S]*?)(?=(?:^|\n)\s*\d+\s*[-–—]\s*(?:XPO|TPO|XTP)\b|\s*$)/gi;
   const answerMatches = [...text.matchAll(answerPattern)];
 
-  // 构建答案map: passageNum -> ["A","C","B",...]
+  // 构建答案map: passageNum -> ["A","C",...,"B,C,E"]
   const answerMap = {};
-  // 同时收集所有答案字母，用于顺序回退映射
-  const allAnswerLetters = [];
+  const answerBlocksInOrder = [];
+  let allAnswerCount = 0;
 
   for (const m of answerMatches) {
     const passageNum = parseInt(m[1]);
-    const answerBlock = m[2].trim();
-    // 提取字母答案: ACBCDBBDABBCAB D F
-    const cleaned = answerBlock.replace(/[\d\n\s]+/g, ' ').trim();
-    const letters = cleaned.match(/[A-D]/g);
-    if (letters) {
-      answerMap[passageNum] = letters;
-      allAnswerLetters.push(...letters);
+    const answers = parseAnswerKeyBlock(m[2]);
+    if (answers.length > 0) {
+      answerMap[passageNum] = answers;
+      answerBlocksInOrder.push({ passageNum, answers });
+      allAnswerCount += answers.reduce((sum, answer) => sum + splitAnswerLabels(answer).length, 0);
     }
   }
 
-  console.log(`[PDF-Parser v5] 预处理: ${passageMatches.length} 篇文章, ${Object.keys(answerMap).length} 个答案key, 共${allAnswerLetters.length}个答案字母`);
+  console.log(`[PDF-Parser v5] 预处理: ${passageMatches.length} 篇文章, ${Object.keys(answerMap).length} 个答案key, 共${allAnswerCount}个答案字母`);
 
   if (passageMatches.length > 0) {
     // 按 passage 边界分割
     const segments = [];
-    let globalAnswerIdx = 0; // 顺序答案索引
+    let answerBlockIdx = 0;
     for (let i = 0; i < passageMatches.length; i++) {
       const start = passageMatches[i].index;
       const end = i + 1 < passageMatches.length ? passageMatches[i + 1].index : text.length;
-      const segText = text.substring(start, end).trim();
+      const fullSegText = text.substring(start, end).trim();
+      const segText = stripAnswerBlocks(fullSegText);
       if (segText.length > 50) {
         const passageNum = parseInt(passageMatches[i][1]);
         // 清理标题：替换制表符、多余空格
@@ -235,11 +252,11 @@ function preProcessText(rawText) {
         
         // 优先用编号匹配的答案，否则顺序回退
         let segAnswers = answerMap[passageNum] || null;
-        if (!segAnswers && allAnswerLetters.length > globalAnswerIdx) {
-          segAnswers = allAnswerLetters.slice(globalAnswerIdx, globalAnswerIdx + 14); // 一篇最多14题
-          globalAnswerIdx += (segAnswers?.length || 0);
+        if (!segAnswers && answerBlocksInOrder[answerBlockIdx]) {
+          segAnswers = answerBlocksInOrder[answerBlockIdx].answers;
+          answerBlockIdx++;
         } else if (segAnswers) {
-          globalAnswerIdx += segAnswers.length;
+          answerBlockIdx = Math.max(answerBlockIdx, answerBlocksInOrder.findIndex(a => a.passageNum === passageNum) + 1);
         }
         
         segments.push({
@@ -419,9 +436,10 @@ function extractJSON(text) {
 
 function ruleBasedParseSegment(segment) {
   const { text, title, answers } = segment;
-  const cleaned = text
+  const cleaned = stripAnswerBlocks(text)
     .replace(/\r\n/g, '\n').replace(/\r/g, '\n')
     .replace(/\f/g, '\n')
+    .replace(/\t/g, ' ')
     .replace(/[^\S\n]+/g, ' ')
     .replace(/\n{4,}/g, '\n\n\n');
 
@@ -487,6 +505,7 @@ function splitPassageAndQuestions(text) {
 
 function parseQuestions(block) {
   const qs = [];
+  const cleanBlock = stripAnswerBlocks(block);
 
   // 匹配题号: "1\n", "1.", "1)", "1、"
   // TPO格式: 题号在独立行，后面跟题目文本
@@ -498,15 +517,14 @@ function parseQuestions(block) {
 
   let matches = [];
   for (const pattern of patterns) {
-    const found = [...block.matchAll(pattern)];
+    const found = [...cleanBlock.matchAll(pattern)];
     if (found.length > matches.length) matches = found;
   }
 
   for (let i = 0; i < matches.length; i++) {
-    const matchStart = matches[i].index;
     const start = matches[i].index + matches[i][0].length;
-    const end = i + 1 < matches.length ? matches[i + 1].index : block.length;
-    const section = block.substring(start, end);
+    const end = i + 1 < matches.length ? matches[i + 1].index : cleanBlock.length;
+    const section = cleanBlock.substring(start, end);
 
     // 解析题干和选项
     const lines = section.split('\n');
@@ -518,16 +536,20 @@ function parseQuestions(block) {
       const t = line.trim();
       if (!t) continue;
 
-      // 匹配选项: "A. text", "(A) text", "◯ A text", "A text"
-      // TPO格式: "◯ A preference" 或 "A preference"
-      const optMatch = t.match(/^(?:◯\s*)?(?:\(|\[)?([A-D])(?:\)|\])?[\.\s、）]\s*(.+)/);
+      // 匹配选项: "A. text", "(A) text", "◯ A text", "▢ A. text"
+      const optMatch =
+        t.match(/^(?:[◯○●〇▢□■☐]\s*)?(?:\(|\[)?([A-F])(?:\)|\])?[\.\、）]\s*(.+)/) ||
+        t.match(/^[◯○●〇▢□■☐]\s*([A-F])\s+(.+)/) ||
+        (opts.length > 0 ? t.match(/^([A-F])\s+(.+)/) : null);
       if (optMatch) {
         inStem = false;
         opts.push({ label: optMatch[1], text: optMatch[2].trim() });
-      } else if (/^[A-D][\.\)\、）]\s/.test(t)) {
+      } else if (/^[A-F][\.\)\、）]\s/.test(t)) {
         inStem = false;
-        const parts = t.match(/^([A-D])[\.\)\、）]\s*(.+)/);
+        const parts = t.match(/^([A-F])[\.\)\、）]\s*(.+)/);
         opts.push({ label: parts[1], text: parts[2].trim() });
+      } else if (!inStem && opts.length > 0) {
+        opts[opts.length - 1].text = `${opts[opts.length - 1].text} ${t}`.trim();
       } else if (inStem) {
         stem += (stem ? ' ' : '') + t;
       }
@@ -536,16 +558,27 @@ function parseQuestions(block) {
     // 跳过答案key行 (如 "1234567891011121314")
     if (/^\d{5,}$/.test(stem.replace(/\s/g, ''))) continue;
 
+    if (stem && opts.length === 0 && isInsertionQuestion(stem)) {
+      opts.push(
+        { label: 'A', text: 'Position A' },
+        { label: 'B', text: 'Position B' },
+        { label: 'C', text: 'Position C' },
+        { label: 'D', text: 'Position D' }
+      );
+    }
+
     if (stem && opts.length >= 2) {
       const qNum = parseInt(matches[i][1]);
+      const type = guessQuestionType(stem);
+      const maxOptions = type === 'summary' ? 6 : 4;
       qs.push({
-        content: stem.trim(),
-        options: opts.slice(0, 4).map(o => ({
+        content: cleanInlineText(stem),
+        options: opts.slice(0, maxOptions).map(o => ({
           label: o.label,
-          text: o.text
+          text: cleanInlineText(o.text)
         })),
         answer: '',
-        type: guessQuestionType(stem),
+        type,
         difficulty: 'medium',
         analysis: '规则解析，答案需人工确认。'
       });
@@ -554,11 +587,90 @@ function parseQuestions(block) {
   return qs;
 }
 
+function stripAnswerBlocks(text) {
+  return text.replace(/(?:^|\n)\s*\d+\s*[-–—]\s*Answers?\s*\n?[\s\S]*?(?=(?:^|\n)\s*\d+\s*[-–—]\s*(?:XPO|TPO|XTP)\b|\s*$)/gi, '\n').trim();
+}
+
+function cleanInlineText(text) {
+  return String(text || '')
+    .replace(/\t/g, ' ')
+    .replace(/[^\S\n]+/g, ' ')
+    .replace(/\s+([,.;:!?])/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseAnswerKeyBlock(block) {
+  const text = String(block || '').replace(/\t/g, ' ');
+  const lines = text.split(/\n+/).map(line => line.trim()).filter(Boolean);
+  const numberLine = lines.find(line => parseAnswerNumberLine(line).length >= 4);
+  const questionNumbers = numberLine ? parseAnswerNumberLine(numberLine) : [];
+  const questionCount = questionNumbers.length > 0 ? Math.max(...questionNumbers) : 0;
+  const labels = text.match(/[A-F]/g) || [];
+
+  if (labels.length === 0) return [];
+
+  if (questionCount > 0) {
+    if (labels.length > questionCount) {
+      return [
+        ...labels.slice(0, questionCount - 1),
+        labels.slice(questionCount - 1).join(',')
+      ];
+    }
+    return labels.slice(0, questionCount);
+  }
+
+  if (labels.length > 14) {
+    return [
+      ...labels.slice(0, 13),
+      labels.slice(13).join(',')
+    ];
+  }
+  return labels;
+}
+
+function parseAnswerNumberLine(line) {
+  const normalized = String(line || '').replace(/[^\d\s]/g, '').trim();
+  if (!normalized) return [];
+
+  const spaced = normalized.match(/\d+/g) || [];
+  if (spaced.length >= 4 && spaced.every((value, index) => Number(value) === index + 1)) {
+    return spaced.map(Number);
+  }
+
+  const compact = normalized.replace(/\s+/g, '');
+  const numbers = [];
+  let rest = compact;
+  for (let expected = 1; expected <= 40; expected++) {
+    const token = String(expected);
+    if (!rest.startsWith(token)) break;
+    numbers.push(expected);
+    rest = rest.slice(token.length);
+    if (!rest) break;
+  }
+  return numbers.length >= 4 ? numbers : [];
+}
+
+function splitAnswerLabels(answer) {
+  if (Array.isArray(answer)) return answer.map(String).map(a => a.trim()).filter(Boolean);
+  return String(answer || '').match(/[A-F]/g) || [];
+}
+
+function normalizeAnswer(answer) {
+  const labels = splitAnswerLabels(answer);
+  return labels.join(',');
+}
+
+function isInsertionQuestion(stem) {
+  const lower = stem.toLowerCase();
+  return /insert|sentence could be added|where would the sentence best fit|four squares/.test(lower);
+}
+
 function guessQuestionType(stem) {
   const lower = stem.toLowerCase();
   if (/closest in meaning/.test(lower) || /word.*paragraph/.test(lower)) return 'vocabulary';
   if (/inferred|inference|imply/.test(lower)) return 'inference';
-  if (/best expresses|essential information|summary/.test(lower)) return 'summary';
+  if (/summary|introductory sentence|selecting the three|essential information/.test(lower)) return 'summary';
   if (/purpose|why does the author/.test(lower)) return 'purpose';
   if (/refers to/.test(lower)) return 'reference';
   if (/except|not|least/.test(lower)) return 'negative';
@@ -570,4 +682,13 @@ function splitByBlankLines(text) {
   return text.split(/\n{3,}/).map(s => s.trim()).filter(s => s.length > 100);
 }
 
-module.exports = { parseTOEFLReadingPDF };
+module.exports = {
+  parseTOEFLReadingPDF,
+  _internals: {
+    preProcessText,
+    ruleBasedParseSegment,
+    parseQuestions,
+    parseAnswerKeyBlock,
+    normalizeAnswer
+  }
+};

@@ -88,6 +88,12 @@ export const questionAPI = {
   uploadStatus: (uploadId) => http.get(`/questions/upload/${uploadId}/status`),
 }
 
+export const adminAPI = {
+  questions: (params) => http.get('/admin/questions', { params }),
+  approveQuestion: (id) => http.put(`/admin/questions/${id}/approve`),
+  rejectQuestion: (id) => http.put(`/admin/questions/${id}/reject`),
+}
+
 // Practice
 export const practiceAPI = {
   submit: (data) => http.post('/practice/submit', data),
