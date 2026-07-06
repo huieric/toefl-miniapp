@@ -168,57 +168,87 @@ const answers = ref([])
 
 const currentQuestion = computed(() => questions.value[currentIndex.value] || {})
 
-// 将原始 passageText 智能分段（三重策略）：
-// 策略1: 空行（\n\n+）分段 — 适用于格式良好的文本/默认题库
-// 策略2: 行首缩进（PDF 提取后保留的前导空格）— 适用于缩进式排版
-// 策略3: 上一行以句末标点结尾 + 当前行以大写字母开头 + 已累积段落>100字 — 兜底启发式
+const cleanParagraph = (value) => String(value || '').replace(/\s+/g, ' ').trim()
+
+const sentenceSplitPattern = /(?<=[.!?]["')\]]?\s+)(?=[A-Z\u201c\u300c])/g
+const paragraphSignalPattern = /^(However|Furthermore|Moreover|Nevertheless|Despite|In contrast|By contrast|As a result|Consequently|For example|For instance|Another|Different|The largest|The unique|The sheer|The uppermost|Underneath|A little deeper|Passed|Because|Although|While)\b/
+
+const rebuildParagraphsFromSentences = (raw) => {
+  const fullText = cleanParagraph(raw)
+  if (!fullText) return []
+
+  const sentences = fullText
+    .split(sentenceSplitPattern)
+    .map(cleanParagraph)
+    .filter(sentence => sentence.length > 10)
+
+  if (sentences.length <= 1) return [fullText]
+
+  const wordCount = fullText.split(/\s+/).length
+  const targetParagraphCount = Math.min(7, Math.max(3, Math.round(wordCount / 115)))
+  const targetWordsPerParagraph = Math.max(75, Math.ceil(wordCount / targetParagraphCount))
+
+  const paragraphs = []
+  let current = []
+
+  for (const sentence of sentences) {
+    const currentWords = current.join(' ').split(/\s+/).filter(Boolean).length
+    const isSignalStart = paragraphSignalPattern.test(sentence)
+    const shouldStartNewParagraph = current.length > 0 && currentWords >= 55 && isSignalStart
+
+    if (shouldStartNewParagraph) {
+      paragraphs.push(current.join(' '))
+      current = []
+    }
+
+    current.push(sentence)
+
+    const nextWords = current.join(' ').split(/\s+/).filter(Boolean).length
+    const nextLength = current.join(' ').length
+    if (current.length >= 3 && (nextWords >= targetWordsPerParagraph || nextLength >= 520)) {
+      paragraphs.push(current.join(' '))
+      current = []
+    }
+  }
+
+  if (current.length > 0) {
+    if (paragraphs.length > 0 && current.join(' ').split(/\s+/).length < 35) {
+      paragraphs[paragraphs.length - 1] += ' ' + current.join(' ')
+    } else {
+      paragraphs.push(current.join(' '))
+    }
+  }
+
+  return paragraphs.length > 1 ? paragraphs : [fullText]
+}
+
+// 将原始 passageText 智能分段：
+// 1. 优先尊重后端/AI 已保留的空行分段
+// 2. 对 PDF 抽取产生的单换行行折返，先合并成正文
+// 3. 当整篇没有明确段落标记时，按句子和常见段落转折词重建自然段
 const passageParagraphs = computed(() => {
   const raw = passageText.value || ''
   if (!raw.trim()) return []
 
   const text = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-  const lines = text.split('\n')
+  const hasBlankParagraphs = /\n\s*\n/.test(text)
 
-  const paragraphs = []
-  let current = []
-
-  for (const line of lines) {
-    const trimmed = line.trim()
-
-    // 策略1: 空行 = 段落分隔
-    if (trimmed === '') {
-      if (current.length > 0) {
-        paragraphs.push(current.join(' '))
-        current = []
-      }
-      continue
-    }
-
-    // 策略2: 行首有空白 = 新段落（PDF 缩进遗留）
-    if (/^\s/.test(line) && current.length > 0) {
-      paragraphs.push(current.join(' '))
-      current = []
-    }
-
-    // 策略3: 上一行以句末标点结尾 + 当前行大写开头 + 累积段落够长
-    if (current.length > 0) {
-      const lastLine = current[current.length - 1]
-      const endsWithSentence = /[.!?]["')\]]?$/.test(lastLine)
-      const startsWithCapital = /^[A-Z\u201c\u300c(]/.test(trimmed)
-      const currentParaLen = current.join(' ').length
-      if (endsWithSentence && startsWithCapital && currentParaLen > 100) {
-        paragraphs.push(current.join(' '))
-        current = []
-      }
-    }
-
-    current.push(trimmed)
-  }
-  if (current.length > 0) {
-    paragraphs.push(current.join(' '))
+  if (hasBlankParagraphs) {
+    return text
+      .split(/\n\s*\n+/)
+      .map(block => cleanParagraph(block.replace(/\n+/g, ' ')))
+      .filter(Boolean)
   }
 
-  return paragraphs.filter(p => p.length > 0)
+  const lines = text.split('\n').map(line => line.trim()).filter(Boolean)
+  const lineBreakCount = Math.max(0, lines.length - 1)
+  const fullText = cleanParagraph(lines.length ? lines.join(' ') : text)
+
+  if (fullText.length > 500 && (lineBreakCount === 0 || lines.length > 4)) {
+    return rebuildParagraphsFromSentences(fullText)
+  }
+
+  return lines.length ? lines.map(cleanParagraph).filter(Boolean) : rebuildParagraphsFromSentences(fullText)
 })
 
 const parsedOptions = computed(() => {
