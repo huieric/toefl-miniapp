@@ -36,25 +36,41 @@ async function getClient() {
  */
 function splitSql(sql) {
   const statements = [];
+  let inSingleQuote = false;
   let inDollar = false;
   let buf = '';
   const cleaned = sql.replace(/--.*$/gm, '');
-  for (const ch of cleaned) {
+
+  for (let i = 0; i < cleaned.length; i += 1) {
+    const ch = cleaned[i];
+    const next = cleaned[i + 1];
     buf += ch;
-    if (!inDollar && buf.endsWith('$$')) {
+
+    if (!inDollar && ch === "'") {
+      if (inSingleQuote && next === "'") {
+        buf += next;
+        i += 1;
+        continue;
+      }
+      inSingleQuote = !inSingleQuote;
+      continue;
+    }
+
+    if (!inSingleQuote && !inDollar && buf.endsWith('$$')) {
       inDollar = true;
       continue;
     }
-    if (inDollar && buf.endsWith('$$')) {
+    if (!inSingleQuote && inDollar && buf.endsWith('$$')) {
       inDollar = false;
       continue;
     }
-    if (!inDollar && ch === ';') {
+    if (!inSingleQuote && !inDollar && ch === ';') {
       const stmt = buf.slice(0, -1).trim();
       if (stmt.length > 0) statements.push(stmt);
       buf = '';
     }
   }
+
   const last = buf.trim();
   if (last.length > 0) statements.push(last);
   return statements;

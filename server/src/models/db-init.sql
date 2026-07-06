@@ -537,13 +537,13 @@ ON CONFLICT (title, subject) DO UPDATE SET content = EXCLUDED.content, options =
 INSERT INTO practice_sets (title, description, subject, difficulty, question_ids, time_limit, total_score)
 VALUES
 ('阅读综合练习', '包含3篇托福阅读文章共15道题目', 'reading', 'medium',
- (SELECT json_agg(id)::text FROM questions WHERE subject='reading' AND status='approved'), 3600, 30),
+ (SELECT COALESCE(json_agg(id), '[]'::json)::jsonb FROM questions WHERE subject='reading' AND status='approved'), 3600, 30),
 ('听力综合训练', '包含讲座和对话共10道听力题目', 'listening', 'medium',
- (SELECT json_agg(id)::text FROM questions WHERE subject='listening' AND status='approved'), 2400, 30),
+ (SELECT COALESCE(json_agg(id), '[]'::json)::jsonb FROM questions WHERE subject='listening' AND status='approved'), 2400, 30),
 ('口语专项练习', '包含独立和综合口语共6题', 'speaking', 'medium',
- (SELECT json_agg(id)::text FROM questions WHERE subject='speaking' AND status='approved'), 1800, 30),
+ (SELECT COALESCE(json_agg(id), '[]'::json)::jsonb FROM questions WHERE subject='speaking' AND status='approved'), 1800, 30),
 ('写作综合练习', '包含独立和综合写作共6题', 'writing', 'medium',
- (SELECT json_agg(id)::text FROM questions WHERE subject='writing' AND status='approved'), 3600, 30);
+ (SELECT COALESCE(json_agg(id), '[]'::json)::jsonb FROM questions WHERE subject='writing' AND status='approved'), 3600, 30);
 
 -- 商业化扩展表（v2.0）
 -- ============================================================
