@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Paragraph Split Test</title>
+<style>
+body { font-family: Georgia, serif; max-width: 720px; margin: 40px auto; padding: 0 20px; background: #faf9f6; color: #2a2a2a; }
+h1 { font-size: 20px; border-bottom: 2px solid #e0ddd5; padding-bottom: 10px; }
+.article-para { margin: 0 0 1.4em 0; text-indent: 2em; font-size: 16px; line-height: 2.1; text-align: justify; }
+.raw-info { background: #f0ede6; padding: 12px 16px; border-radius: 8px; font-family: monospace; font-size: 12px; margin-bottom: 20px; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+label { display: block; margin: 10px 0 4px; font-weight: bold; font-size: 14px; }
+select, textarea { width: 100%; padding: 8px; font-size: 14px; margin-bottom: 10px; }
+button { padding: 8px 20px; font-size: 14px; cursor: pointer; background: #409eff; color: white; border: none; border-radius: 6px; }
+.para-count { color: #409eff; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>Paragraph Split Test</h1>
+<div class="raw-info" id="rawInfo"></div>
+<p>Paragraphs: <span class="para-count" id="paraCount">0</span></p>
+<div id="output"></div>
+
+<script>
+// --- Copy of the logic from ReadingPassage.vue ---
+
+const cleanParagraph = (value) => String(value || '').replace(/\s+/g, ' ').trim()
+
+const sentenceSplitPattern = /(?<=[.!?]["')\]]?\s+)(?=[A-Z\u201c\u300c])/g
+const paragraphSignalPattern = /^(However|Furthermore|Moreover|Nevertheless|Despite|In contrast|By contrast|As a result|Consequently|For example|For instance|Another|Different|The largest|The unique|The sheer|The uppermost|Underneath|A little deeper|Passed|Because|Although|While)\b/
+
+const rebuildParagraphsFromSentences = (raw) => {
+  const fullText = cleanParagraph(raw)
+  if (!fullText) return []
+
+  const sentences = fullText
+    .split(sentenceSplitPattern)
+    .map(cleanParagraph)
+    .filter(sentence => sentence.length > 10)
+
+  if (sentences.length <= 1) return [fullText]
+
+  const wordCount = fullText.split(/\s+/).length
+  const targetParagraphCount = Math.min(7, Math.max(3, Math.round(wordCount / 115)))
+  const targetWordsPerParagraph = Math.max(75, Math.ceil(wordCount / targetParagraphCount))
+
+  const paragraphs = []
+  let current = []
+
+  for (const sentence of sentences) {
+    const currentWords = current.join(' ').split(/\s+/).filter(Boolean).length
+    const isSignalStart = paragraphSignalPattern.test(sentence)
+    const shouldStartNewParagraph = current.length > 0 && currentWords >= 55 && isSignalStart
+
+    if (shouldStartNewParagraph) {
+      paragraphs.push(current.join(' '))
+      current = []
+    }
+
+    current.push(sentence)
+
+    const nextWords = current.join(' ').split(/\s+/).filter(Boolean).length
+    const nextLength = current.join(' ').length
+    if (current.length >= 3 && (nextWords >= targetWordsPerParagraph || nextLength >= 520)) {
+      paragraphs.push(current.join(' '))
+      current = []
+    }
+  }
+
+  if (current.length > 0) {
+    if (paragraphs.length > 0 && current.join(' ').split(/\s+/).length < 35) {
+      paragraphs[paragraphs.length - 1] += ' ' + current.join(' ')
+    } else {
+      paragraphs.push(current.join(' '))
+    }
+  }
+
+  return paragraphs.length > 1 ? paragraphs : [fullText]
+}
+
+const passageParagraphs = (raw) => {
+  if (!raw.trim()) return []
+
+  const text = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  const hasBlankParagraphs = /\n\s*\n/.test(text)
+
+  if (hasBlankParagraphs) {
+    return text
+      .split(/\n\s*\n+/)
+      .map(block => cleanParagraph(block.replace(/\n+/g, ' ')))
+      .filter(Boolean)
+  }
+
+  const lines = text.split('\n').map(line => line.trim()).filter(Boolean)
+  const lineBreakCount = Math.max(0, lines.length - 1)
+  const fullText = cleanParagraph(lines.length ? lines.join(' ') : text)
+
+  if (fullText.length > 500 && (lineBreakCount === 0 || lines.length > 4)) {
+    return rebuildParagraphsFromSentences(fullText)
+  }
+
+  return lines.length ? lines.map(cleanParagraph).filter(Boolean) : rebuildParagraphsFromSentences(fullText)
+}
+
+// --- Test data ---
+
+// Test 1: Seed data passage with \n\n separators
+const test1 = `Social media has fundamentally transformed the way people communicate in the 21st century. Unlike traditional forms of communication such as letters, telephone calls, and even email, social media platforms enable instantaneous, multi-directional communication across vast distances. Platforms like Facebook, Twitter, and Instagram have created virtual spaces where individuals can share ideas, opinions, and personal updates with hundreds or thousands of people simultaneously.
+
+One of the most significant changes brought about by social media is the democratization of information dissemination. In the past, access to large audiences was primarily reserved for established media organizations, celebrities, and political figures. Today, anyone with an internet connection can potentially reach millions of people through a single post. This shift has empowered grassroots movements, citizen journalism, and niche communities that would have struggled to find audiences in the pre-digital era.
+
+However, this transformation has not been without its drawbacks. The rapid spread of information on social media has also facilitated the dissemination of misinformation and disinformation. Studies have shown that false news stories spread significantly faster and reach more people than true stories on platforms like Twitter. The algorithmic amplification of engaging content—regardless of its accuracy—has created echo chambers where users are primarily exposed to information that confirms their existing beliefs.
+
+Furthermore, the psychological effects of social media use have become a growing concern among researchers. Multiple studies have linked heavy social media use to increased rates of anxiety, depression, and loneliness, particularly among adolescents and young adults. The constant comparison with carefully curated representations of others' lives can lead to feelings of inadequacy and diminished self-esteem.
+
+Despite these concerns, social media continues to evolve and integrate more deeply into daily life. Businesses have embraced social media as essential marketing tools, using targeted advertising and influencer partnerships to reach consumers. Educational institutions have incorporated social media into their teaching methods, recognizing its potential to facilitate collaborative learning and student engagement. The challenge for the future will be to harness the benefits of social media while mitigating its harmful effects through better platform design, digital literacy education, and thoughtful regulation.`
+
+// Test 2: PDF-extracted text with single \n line breaks (no blank lines)
+const test2 = `Social media has fundamentally transformed the way people communicate in the 21st century.
+Unlike traditional forms of communication such as letters, telephone calls, and even email,
+social media platforms enable instantaneous, multi-directional communication across vast distances.
+Platforms like Facebook, Twitter, and Instagram have created virtual spaces where individuals can
+share ideas, opinions, and personal updates with hundreds or thousands of people simultaneously.
+One of the most significant changes brought about by social media is the democratization of
+information dissemination. In the past, access to large audiences was primarily reserved for
+established media organizations, celebrities, and political figures. Today, anyone with an internet
+connection can potentially reach millions of people through a single post. This shift has empowered
+grassroots movements, citizen journalism, and niche communities that would have struggled to find
+audiences in the pre-digital era.
+However, this transformation has not been without its drawbacks. The rapid spread of information
+on social media has also facilitated the dissemination of misinformation and disinformation.
+Studies have shown that false news stories spread significantly faster and reach more people than
+true stories on platforms like Twitter. The algorithmic amplification of engaging content—regardless
+of its accuracy—has created echo chambers where users are primarily exposed to information that
+confirms their existing beliefs.
+Furthermore, the psychological effects of social media use have become a growing concern among
+researchers. Multiple studies have linked heavy social media use to increased rates of anxiety,
+depression, and loneliness, particularly among adolescents and young adults. The constant comparison
+with carefully curated representations of others' lives can lead to feelings of inadequacy and
+diminished self-esteem.
+Despite these concerns, social media continues to evolve and integrate more deeply into daily life.
+Businesses have embraced social media as essential marketing tools, using targeted advertising and
+influencer partnerships to reach consumers. Educational institutions have incorporated social media
+into their teaching methods, recognizing its potential to facilitate collaborative learning and
+student engagement. The challenge for the future will be to harness the benefits of social media
+while mitigating its harmful effects through better platform design, digital literacy education, and
+thoughtful regulation.`
+
+// Test 3: One single long string with no newlines at all
+const test3 = `Sleep is a universal biological phenomenon observed in virtually all animal species, yet its fundamental purpose remains one of the most intriguing mysteries in neuroscience. Despite spending approximately one-third of our lives asleep, scientists are still working to fully understand why sleep is so essential for survival. Research conducted over the past several decades has revealed that sleep serves multiple critical functions. During sleep, the brain engages in a process known as synaptic homeostasis, during which connections between neurons are strengthened or weakened based on their importance. This process is believed to be crucial for memory consolidation—the transformation of short-term memories into long-term storage. Studies have demonstrated that students who sleep after learning new material perform significantly better on subsequent tests compared to those who remain awake. Another vital function of sleep is the clearance of metabolic waste products from the brain. The glymphatic system, discovered in 2012, is a network of channels that becomes significantly more active during sleep, flushing out toxins including beta-amyloid, a protein associated with Alzheimer's disease. This finding has led researchers to propose that chronic sleep deprivation may increase the risk of neurodegenerative disorders. Sleep also plays an essential role in emotional regulation and psychological well-being. The rapid eye movement (REM) stage of sleep, during which most dreaming occurs, appears to be particularly important for processing emotional experiences. During REM sleep, levels of norepinephrine—a stress-related neurotransmitter—drop to nearly zero, allowing the brain to reprocess emotional memories in a calmer neurochemical environment. The consequences of insufficient sleep extend far beyond mere fatigue. Chronic sleep deprivation has been linked to a wide range of health problems, including cardiovascular disease, obesity, diabetes, and impaired immune function. Shift workers, who frequently experience disrupted sleep patterns, show higher rates of various health conditions, providing compelling evidence for sleep's role in maintaining physical health.`
+
+const tests = { 'Seed data (\\n\\n)': test1, 'PDF extracted (single \\n)': test2, 'No newlines': test3 }
+
+function render(testName) {
+  const raw = tests[testName]
+  const paras = passageParagraphs(raw)
+
+  document.getElementById('rawInfo').textContent = `[${testName}] length=${raw.length} first50=${JSON.stringify(raw.slice(0, 50))} hasBlankLine=/${\n\s*\n/.test(raw)}`
+  document.getElementById('paraCount').textContent = paras.length
+
+  const out = document.getElementById('output')
+  out.innerHTML = paras.map((p, i) => `<p class="article-para">[${i + 1}] ${p.slice(0, 120)}${p.length > 120 ? '...' : ''}</p>`).join('')
+}
+
+// Default render test1
+render('Seed data (\\n\\n)')
+</script>
+</body>
+</html>
