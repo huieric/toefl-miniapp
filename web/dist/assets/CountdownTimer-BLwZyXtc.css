@@ -1,0 +1,1 @@
+.countdown[data-v-de7b7941]{display:inline-flex;align-items:center;gap:4px;font-size:16px;font-weight:600;color:var(--text)}.countdown.is-warning[data-v-de7b7941]{color:var(--danger);animation:blink-de7b7941 1s infinite}@keyframes blink-de7b7941{50%{opacity:.5}}
