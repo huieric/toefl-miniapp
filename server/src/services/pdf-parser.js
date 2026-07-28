@@ -317,6 +317,7 @@ Return ONLY valid JSON array. Format:
 
 CRITICAL RULES:
 - Separate the reading passage from questions. passage_text = reading material only.
+- ⚠️ passage_text MUST preserve paragraph structure: separate each paragraph with double newline (\\n\\n). Do NOT merge all paragraphs into a single block of text. TOEFL passages typically have 3-6 paragraphs.
 - Questions often start with a number on its own line, then question text.
 - Options may use formats: "A. text", "(A) text", "◯ A text", or "A text"
 - ⚠️ EVERY question MUST have a non-empty "answer" field (A/B/C/D). 
@@ -371,6 +372,8 @@ CRITICAL RULES:
   for (const passage of parsed) {
     if (passage.passage_text) {
       passage.passage_text = passage.passage_text.replace(/^\d+\s*[-\-]\s*(?:XPO|TPO|XTP)\s*\d+\s*[-\-]\s*.+\n/, '').trim();
+      // 后处理: 确保 passage_text 有段落分隔
+      passage.passage_text = preserveParagraphs(passage.passage_text);
     }
   }
 
@@ -494,13 +497,74 @@ function splitPassageAndQuestions(text) {
   for (const m of markers) {
     const match = text.match(m);
     if (match && match.index > 100) {
+      const passageText = text.substring(0, match.index).trim();
+      // 保护段落分隔：确保 passageText 中段落之间保留 \n\n
+      const preserved = preserveParagraphs(passageText);
       return {
-        passageText: text.substring(0, match.index).trim(),
+        passageText: preserved,
         questionBlock: text.substring(match.index).trim()
       };
     }
   }
-  return { passageText: text, questionBlock: '' };
+  return { passageText: preserveParagraphs(text), questionBlock: '' };
+}
+
+/**
+ * 保护/恢复段落分隔结构：
+ * 1. 保留原文中已有的 \n\n 分段
+ * 2. 对单换行 (\n) 后有缩进空白的情况，升级为 \n\n
+ * 3. 对完全没有分段标记的长文本，用句末标点+大写字母启发式断段
+ */
+function preserveParagraphs(text) {
+  if (!text || text.length < 50) return text || '';
+
+  // 已经有足够的空行分段，直接返回
+  const blankLineCount = (text.match(/\n\s*\n/g) || []).length;
+  if (blankLineCount >= 2) return text;
+
+  // 尝试恢复缩进分段：行首有空白 → 视为新段落
+  const lines = text.split('\n');
+  const restored = [];
+  let prevWasBlank = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    
+    // 空行 → 段落分隔
+    if (trimmed === '') {
+      restored.push('');
+      prevWasBlank = true;
+      continue;
+    }
+
+    // 行首有空白（缩进遗留）+ 上一行有内容 → 新段落
+    if (/^\s{2,}/.test(line) && restored.length > 0 && !prevWasBlank) {
+      restored.push(''); // 插入空行作为分隔
+    }
+
+    restored.push(trimmed);
+    prevWasBlank = false;
+  }
+
+  // 检查恢复效果
+  let result = restored.join('\n');
+  const restoredBlankCount = (result.match(/\n\s*\n/g) || []).length;
+
+  if (restoredBlankCount >= 2) return result;
+
+  // 兜底：对仍然没有分段的长文本，用启发式强制断段
+  // 句末标点 (.!?]") 后跟换行+大写字母/段落标记 → 插入额外空行
+  result = result.replace(/\n(?=[A-Z\u201c\u300c(])/g, (match, offset) => {
+    // 检查上一行末尾是否是句末标点
+    const before = result.substring(Math.max(0, offset - 20), offset).trimEnd();
+    if (/[.!?]["')\]]?$/.test(before) && before.length > 40) {
+      return '\n\n';
+    }
+    return match;
+  });
+
+  return result;
 }
 
 function parseQuestions(block) {

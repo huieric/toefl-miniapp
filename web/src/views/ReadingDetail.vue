@@ -20,7 +20,9 @@
       <!-- Passage -->
       <div class="passage" v-if="question?.passageText">
         <h4>阅读文章</h4>
-        <div class="passage-content" v-html="formatPassage(question.passageText)"></div>
+        <div class="passage-content">
+          <p v-for="(para, pi) in passageParagraphs" :key="pi" class="passage-para">{{ para }}</p>
+        </div>
       </div>
       <el-alert
         v-else-if="question"
@@ -76,6 +78,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { questionAPI, practiceAPI } from '@/api'
+import { splitPassageParagraphs } from '@/utils/passageParagraphs'
 import CountdownTimer from '@/components/CountdownTimer.vue'
 
 const route = useRoute()
@@ -118,10 +121,7 @@ const options = computed(() => {
 
 const resultText = computed(() => isCorrect.value ? '回答正确！' : `回答错误，正确答案是 ${question.value?.answer || '待定'}`)
 
-const formatPassage = (text) => {
-  if (!text) return ''
-  return text.replace(/\n/g, '<br/>')
-}
+const passageParagraphs = computed(() => splitPassageParagraphs(question.value?.passageText))
 
 const handleSubmit = async () => {
   if (submitted.value) return
@@ -186,6 +186,14 @@ onMounted(async () => {
   font-size: 14px;
   max-height: 400px;
   overflow-y: auto;
+  text-align: justify;
+}
+.passage-para {
+  margin: 0 0 1em 0;
+  text-indent: 2em;
+}
+.passage-para:last-child {
+  margin-bottom: 0;
 }
 .passage-empty { margin-bottom: 24px; }
 .question-block { margin-bottom: 24px; }

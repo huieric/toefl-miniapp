@@ -150,6 +150,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowDown, ArrowRight, Select, Check, InfoFilled } from '@element-plus/icons-vue'
 import { questionAPI, practiceAPI } from '@/api'
+import { splitPassageParagraphs } from '@/utils/passageParagraphs'
 
 const route = useRoute()
 const router = useRouter()
@@ -168,88 +169,7 @@ const answers = ref([])
 
 const currentQuestion = computed(() => questions.value[currentIndex.value] || {})
 
-const cleanParagraph = (value) => String(value || '').replace(/\s+/g, ' ').trim()
-
-const sentenceSplitPattern = /(?<=[.!?]["')\]]?\s+)(?=[A-Z\u201c\u300c])/g
-const paragraphSignalPattern = /^(However|Furthermore|Moreover|Nevertheless|Despite|In contrast|By contrast|As a result|Consequently|For example|For instance|Another|Different|The largest|The unique|The sheer|The uppermost|Underneath|A little deeper|Passed|Because|Although|While)\b/
-
-const rebuildParagraphsFromSentences = (raw) => {
-  const fullText = cleanParagraph(raw)
-  if (!fullText) return []
-
-  const sentences = fullText
-    .split(sentenceSplitPattern)
-    .map(cleanParagraph)
-    .filter(sentence => sentence.length > 10)
-
-  if (sentences.length <= 1) return [fullText]
-
-  const wordCount = fullText.split(/\s+/).length
-  const targetParagraphCount = Math.min(7, Math.max(3, Math.round(wordCount / 115)))
-  const targetWordsPerParagraph = Math.max(75, Math.ceil(wordCount / targetParagraphCount))
-
-  const paragraphs = []
-  let current = []
-
-  for (const sentence of sentences) {
-    const currentWords = current.join(' ').split(/\s+/).filter(Boolean).length
-    const isSignalStart = paragraphSignalPattern.test(sentence)
-    const shouldStartNewParagraph = current.length > 0 && currentWords >= 55 && isSignalStart
-
-    if (shouldStartNewParagraph) {
-      paragraphs.push(current.join(' '))
-      current = []
-    }
-
-    current.push(sentence)
-
-    const nextWords = current.join(' ').split(/\s+/).filter(Boolean).length
-    const nextLength = current.join(' ').length
-    if (current.length >= 3 && (nextWords >= targetWordsPerParagraph || nextLength >= 520)) {
-      paragraphs.push(current.join(' '))
-      current = []
-    }
-  }
-
-  if (current.length > 0) {
-    if (paragraphs.length > 0 && current.join(' ').split(/\s+/).length < 35) {
-      paragraphs[paragraphs.length - 1] += ' ' + current.join(' ')
-    } else {
-      paragraphs.push(current.join(' '))
-    }
-  }
-
-  return paragraphs.length > 1 ? paragraphs : [fullText]
-}
-
-// 将原始 passageText 智能分段：
-// 1. 优先尊重后端/AI 已保留的空行分段
-// 2. 对 PDF 抽取产生的单换行行折返，先合并成正文
-// 3. 当整篇没有明确段落标记时，按句子和常见段落转折词重建自然段
-const passageParagraphs = computed(() => {
-  const raw = passageText.value || ''
-  if (!raw.trim()) return []
-
-  const text = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-  const hasBlankParagraphs = /\n\s*\n/.test(text)
-
-  if (hasBlankParagraphs) {
-    return text
-      .split(/\n\s*\n+/)
-      .map(block => cleanParagraph(block.replace(/\n+/g, ' ')))
-      .filter(Boolean)
-  }
-
-  const lines = text.split('\n').map(line => line.trim()).filter(Boolean)
-  const lineBreakCount = Math.max(0, lines.length - 1)
-  const fullText = cleanParagraph(lines.length ? lines.join(' ') : text)
-
-  if (fullText.length > 500 && (lineBreakCount === 0 || lines.length > 4)) {
-    return rebuildParagraphsFromSentences(fullText)
-  }
-
-  return lines.length ? lines.map(cleanParagraph).filter(Boolean) : rebuildParagraphsFromSentences(fullText)
-})
+const passageParagraphs = computed(() => splitPassageParagraphs(passageText.value))
 
 const parsedOptions = computed(() => {
   const opts = currentQuestion.value.options

@@ -131,6 +131,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, ArrowDown, Refresh, CircleCheckFilled, CircleCloseFilled, EditPen } from '@element-plus/icons-vue'
+import { splitPassageParagraphs } from '@/utils/passageParagraphs'
 
 const route = useRoute()
 const router = useRouter()
@@ -141,52 +142,7 @@ const passageVisible = ref(false)
 
 const questions = computed(() => resultData.value?.questions || [])
 
-// 智能分段（三重策略）：空行分段 / 缩进分段 / 句末标点+大写启发式
-const passageParagraphs = computed(() => {
-  const raw = resultData.value?.passageText || ''
-  if (!raw.trim()) return []
-
-  const text = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
-  const lines = text.split('\n')
-
-  const paragraphs = []
-  let current = []
-
-  for (const line of lines) {
-    const trimmed = line.trim()
-
-    if (trimmed === '') {
-      if (current.length > 0) {
-        paragraphs.push(current.join(' '))
-        current = []
-      }
-      continue
-    }
-
-    if (/^\s/.test(line) && current.length > 0) {
-      paragraphs.push(current.join(' '))
-      current = []
-    }
-
-    if (current.length > 0) {
-      const lastLine = current[current.length - 1]
-      const endsWithSentence = /[.!?]["')\]]?$/.test(lastLine)
-      const startsWithCapital = /^[A-Z\u201c\u300c(]/.test(trimmed)
-      const currentParaLen = current.join(' ').length
-      if (endsWithSentence && startsWithCapital && currentParaLen > 100) {
-        paragraphs.push(current.join(' '))
-        current = []
-      }
-    }
-
-    current.push(trimmed)
-  }
-  if (current.length > 0) {
-    paragraphs.push(current.join(' '))
-  }
-
-  return paragraphs.filter(p => p.length > 0)
-})
+const passageParagraphs = computed(() => splitPassageParagraphs(resultData.value?.passageText))
 
 const totalCount = computed(() => questions.value.length)
 const correctCount = computed(() => questions.value.filter(r => r.isCorrect).length)

@@ -336,7 +336,7 @@ async function generateWithOpenAI(subject, count, difficulty) {
 
 Return ONLY a valid JSON array. Each object must have these fields:
 - title: short descriptive title
-- passage_text: a short academic passage (150-300 words) relevant to ${subjectName} section
+- passage_text: a short academic passage (150-300 words) relevant to ${subjectName} section. MUST preserve paragraph structure: use \\n\\n to separate paragraphs (TOEFL passages typically have 3-6 paragraphs). Do NOT merge all paragraphs into one block.
 - content: the question text
 - options: array of 4 objects with "label" (A/B/C/D) and "text" (option text)
 - answer: correct option label (A/B/C/D)
