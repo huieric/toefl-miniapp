@@ -119,7 +119,7 @@ router.get('/review-plan', auth, async (req, res) => {
 router.post('/:id/redo', auth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { isCorrect, quality } = req.body;
+    const { quality } = req.body;
 
     if (quality === undefined) {
       return res.status(400).json({ code: 400, message: '缺少quality参数（0-5评分）' });

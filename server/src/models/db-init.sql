@@ -79,6 +79,10 @@ WHERE answer IS NULL AND options IS NOT NULL AND jsonb_array_length(options) > 0
 -- 数据修复：为已有题目补默认 source
 UPDATE questions SET source = 'simulated' WHERE source IS NULL;
 
+-- 数据修复：去 TPO 化——历史 'real' 来源与 TPO 标题统一改为自研样本
+UPDATE questions SET source = 'simulated' WHERE source = 'real';
+UPDATE questions SET title = REPLACE(title, 'TPO', 'Sample') WHERE title LIKE '%TPO%';
+
 -- 4. 练习套题表
 CREATE TABLE IF NOT EXISTS practice_sets (
     id SERIAL PRIMARY KEY,
