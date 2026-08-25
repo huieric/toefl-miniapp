@@ -31,6 +31,10 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 const app = express();
+
+// Render 反向代理会注入 X-Forwarded-For，信任代理以让 express-rate-limit 正确识别客户端 IP
+app.set('trust proxy', 1);
+
 const startupState = {
   database: 'pending',
   databaseError: null,
