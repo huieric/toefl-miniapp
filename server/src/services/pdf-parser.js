@@ -155,7 +155,7 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
       try {
         await db.query(
           `INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, source, status, passage_id, question_order)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'real', 'approved', $10, $11)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'user', 'approved', $10, $11)`,
           [
             'reading',
             q.type || 'detail',
@@ -734,9 +734,9 @@ function guessQuestionType(stem) {
   const lower = stem.toLowerCase();
   if (/closest in meaning/.test(lower) || /word.*paragraph/.test(lower)) return 'vocabulary';
   if (/inferred|inference|imply/.test(lower)) return 'inference';
-  if (/summary|introductory sentence|selecting the three|essential information/.test(lower)) return 'summary';
+  if (/summar|introductory sentence|selecting the three|essential information/.test(lower)) return 'summary';
   if (/purpose|why does the author/.test(lower)) return 'purpose';
-  if (/refers to/.test(lower)) return 'reference';
+  if (/refers? to/.test(lower)) return 'reference';
   if (/except|not|least/.test(lower)) return 'negative';
   if (/insert|best fit|square/.test(lower)) return 'insertion';
   return 'detail';
@@ -753,6 +753,7 @@ module.exports = {
     ruleBasedParseSegment,
     parseQuestions,
     parseAnswerKeyBlock,
-    normalizeAnswer
+    normalizeAnswer,
+    guessQuestionType
   }
 };

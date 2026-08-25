@@ -60,7 +60,7 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
     const maxPages = parseInt(req.query.maxPages) || 0;
     const maxPassages = parseInt(req.query.maxPassages) || 0;
 
-    // 异步解析PDF，source 设为 'real'，passage_id = uploadId
+    // 异步解析PDF，source 设为 'user'，passage_id = uploadId
     parseTOEFLReadingPDF(req.file.path, db, uploadId, { maxPages, maxPassages })
       .then(async (result) => {
         const count = result.insertedCount || 0;
@@ -196,7 +196,7 @@ router.get('/', auth, async (req, res) => {
            FROM questions WHERE status = 'approved' AND passage_id IS NULL
            AND subject = $1 AND source = $2
            ORDER BY created_at DESC`,
-          [subject || 'reading', source || 'real']
+          [subject || 'reading', source || 'user']
         );
         orphans = orphanResult.rows;
       } catch (_) { /* 忽略散题查询失败 */ }

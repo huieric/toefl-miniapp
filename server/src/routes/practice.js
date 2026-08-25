@@ -193,7 +193,7 @@ router.post('/submit', auth, async (req, res) => {
 
     // 获取题目
     const qResult = await db.query(
-      'SELECT id, subject, type, title, content AS question_content, options, correct_answer, passage_text FROM questions WHERE id = $1',
+      'SELECT id, subject, type, title, content AS question_content, options, answer AS correct_answer, passage_text FROM questions WHERE id = $1',
       [questionId]
     );
     const question = qResult.rows[0];

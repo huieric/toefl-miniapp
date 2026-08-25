@@ -33,14 +33,17 @@
           <el-icon><Edit /></el-icon>
           <span>写作练习</span>
         </el-menu-item>
+        <!-- MVP 阶段隐藏入口（路由/代码保留，后续按需恢复）：
         <el-menu-item index="/mock-exam">
           <el-icon><Trophy /></el-icon>
           <span>模拟考试</span>
         </el-menu-item>
+        -->
         <el-menu-item index="/wrong-book">
           <el-icon><Collection /></el-icon>
           <span>错题本</span>
         </el-menu-item>
+        <!--
         <el-menu-item index="/ai-talk">
           <el-icon><ChatDotRound /></el-icon>
           <span>AI陪练</span>
@@ -53,6 +56,7 @@
           <el-icon><Calendar /></el-icon>
           <span>学习计划</span>
         </el-menu-item>
+        -->
         <el-menu-item index="/profile">
           <el-icon><User /></el-icon>
           <span>个人中心</span>
@@ -84,9 +88,9 @@
           <el-icon :size="22"><Reading /></el-icon>
           <span>练习</span>
         </router-link>
-        <router-link to="/ai-talk" class="tab-item" :class="{ active: $route.path.startsWith('/ai-talk') }">
-          <el-icon :size="22"><ChatDotRound /></el-icon>
-          <span>AI陪练</span>
+        <router-link to="/wrong-book" class="tab-item" :class="{ active: $route.path.startsWith('/wrong-book') }">
+          <el-icon :size="22"><Collection /></el-icon>
+          <span>错题本</span>
         </router-link>
         <router-link to="/profile" class="tab-item" :class="{ active: $route.path.startsWith('/profile') }">
           <el-icon :size="22"><User /></el-icon>

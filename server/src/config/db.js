@@ -95,6 +95,10 @@ const COLUMN_DEFS = [
   { table: 'user_stats', name: 'listening_progress', type: 'JSONB', def: "'{\"correct\":0,\"total\":0,\"accuracy\":0}'" },
   { table: 'user_stats', name: 'speaking_progress',  type: 'JSONB', def: "'{\"correct\":0,\"total\":0,\"accuracy\":0}'" },
   { table: 'user_stats', name: 'writing_progress',   type: 'JSONB', def: "'{\"correct\":0,\"total\":0,\"accuracy\":0}'" },
+  { table: 'wrong_questions', name: 'updated_at',    type: 'TIMESTAMP', def: 'CURRENT_TIMESTAMP' },
+  { table: 'wrong_questions', name: 'fsrs_stability',  type: 'DOUBLE PRECISION' },
+  { table: 'wrong_questions', name: 'fsrs_difficulty', type: 'DOUBLE PRECISION' },
+  { table: 'wrong_questions', name: 'last_review_at',  type: 'TIMESTAMP' },
 ];
 
 async function ensureMissingColumns(client) {

@@ -34,7 +34,7 @@ router.get('/', auth, async (req, res) => {
         wq.id, wq.question_id, wq.user_answer, wq.is_correct,
         wq.wrong_count, wq.last_wrong_at, wq.next_review_at,
         wq.sm2_easiness, wq.sm2_interval, wq.sm2_repetitions,
-        q.subject, q.type, q.difficulty, q.title, q.content, q.options, q.answer, q.analysis
+        q.subject, q.type, q.difficulty, q.title, q.content, q.options, q.analysis
       FROM wrong_questions wq
       JOIN questions q ON wq.question_id = q.id
       WHERE ${whereClause}
@@ -64,7 +64,6 @@ router.get('/', auth, async (req, res) => {
             title: row.title,
             content: row.content,
             options: row.options,
-            answer: row.answer,
             analysis: row.analysis,
           },
         })),
@@ -135,14 +134,19 @@ router.post('/:id/redo', auth, async (req, res) => {
       return res.status(404).json({ code: 404, message: '错题记录不存在' });
     }
 
-    // SM-2 算法更新
-    const { updateSM2 } = require('../services/sm2');
-    const sm2Result = updateSM2(
-      wrong.sm2_easiness,
-      wrong.sm2_interval,
-      wrong.sm2_repetitions,
-      parseInt(quality)
-    );
+    // FSRS-4.5 算法更新（取代 SM-2）
+    const { review: fsrsReview, mapQualityToRating } = require('../services/fsrs');
+    const rating = mapQualityToRating(quality);
+    const isCorrect = req.body.isCorrect != null
+      ? req.body.isCorrect === true
+      : rating >= 2; // hard/good/easy 均视为回忆起（答对）
+
+    const fsrsState = {
+      stability: wrong.fsrs_stability,
+      difficulty: wrong.fsrs_difficulty,
+      lastReviewAt: wrong.last_review_at,
+    };
+    const fsrsResult = fsrsReview(fsrsState, rating);
 
     await db.query(
       `UPDATE wrong_questions SET
@@ -150,18 +154,17 @@ router.post('/:id/redo', auth, async (req, res) => {
         wrong_count = CASE WHEN $2 = false THEN wrong_count + 1 ELSE wrong_count END,
         last_wrong_at = CASE WHEN $2 = false THEN CURRENT_TIMESTAMP ELSE last_wrong_at END,
         next_review_at = $3,
-        sm2_easiness = $4,
-        sm2_interval = $5,
-        sm2_repetitions = $6,
+        fsrs_stability = $4,
+        fsrs_difficulty = $5,
+        last_review_at = CURRENT_TIMESTAMP,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $1`,
       [
         id,
-        isCorrect === true,
-        sm2Result.nextReviewDate,
-        sm2Result.easiness,
-        sm2Result.interval,
-        sm2Result.repetitions,
+        isCorrect,
+        fsrsResult.due,
+        fsrsResult.stability,
+        fsrsResult.difficulty,
       ]
     );
 
@@ -170,10 +173,12 @@ router.post('/:id/redo', auth, async (req, res) => {
       data: {
         wrongId: id,
         isCorrect,
-        nextReviewAt: sm2Result.nextReviewDate,
-        sm2Easiness: sm2Result.easiness,
-        sm2Interval: sm2Result.interval,
-        sm2Repetitions: sm2Result.repetitions,
+        rating,
+        retrievability: fsrsResult.retrievability,
+        nextReviewAt: fsrsResult.due.toISOString(),
+        intervalDays: fsrsResult.interval,
+        fsrsStability: fsrsResult.stability,
+        fsrsDifficulty: fsrsResult.difficulty,
       },
     });
   } catch (err) {
