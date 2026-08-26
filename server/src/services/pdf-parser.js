@@ -148,8 +148,9 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
 
   console.log(`[PDF-Parser v5] 解析出 ${passages.length} 篇文章`);
 
-  // Step 4: 入库
+  // Step 4: 入库（重复题自动跳过）
   let inserted = 0;
+  let skipped = 0;
   for (let pi = 0; pi < passages.length; pi++) {
     const p = passages[pi];
     const subPassageId = passageId ? `${passageId}-p${pi + 1}` : `pdf-p${pi + 1}`;
@@ -157,9 +158,10 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
     for (let qi = 0; qi < (p.questions || []).length; qi++) {
       const q = p.questions[qi];
       try {
-        await db.query(
+        const ins = await db.query(
           `INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, source, status, passage_id, question_order)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'user', 'approved', $10, $11)`,
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'user', 'approved', $10, $11)
+           ON CONFLICT DO NOTHING`,
           [
             'reading',
             q.type || 'detail',
@@ -177,7 +179,8 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
             qi + 1
           ]
         );
-        inserted++;
+        if (ins.rowCount > 0) inserted++;
+        else skipped++;
       } catch (err) {
         console.error(`[PDF-Parser v5] 入库失败:`, err.message);
       }
@@ -187,9 +190,10 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
   const pageLimited = maxPages > 0 && pdfData.numpages > maxPages;
   const segmentLimited = segments.length > MAX_SEGMENTS;
 
-  console.log(`[PDF-Parser v5] 完成: ${inserted} 题入库 (${passages.length} 篇文章)`);
+  console.log(`[PDF-Parser v5] 完成: ${inserted} 题入库, ${skipped} 题已存在跳过 (${passages.length} 篇文章)`);
   return {
     insertedCount: inserted,
+    skippedCount: skipped,
     passageCount: passages.length,
     discoveredPassageCount: segments.length,
     totalPages: pdfData.numpages,

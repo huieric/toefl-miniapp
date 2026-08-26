@@ -78,6 +78,7 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
             truncated: result.truncated,
             pageLimited: result.pageLimited,
             segmentLimited: result.segmentLimited,
+            skippedCount: result.skippedCount || 0,
           },
         });
         // 解析完成后清理上传文件

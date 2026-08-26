@@ -216,6 +216,9 @@ const handleFileChange = async (e) => {
               } else {
                 ElMessage.success(`解析完成！共入库 ${st.parsedCount} 道真题`)
               }
+            } else if (st.meta?.skippedCount > 0) {
+              await fetchList()
+              ElMessage.info('这些题目之前已经导入过了，已刷新列表')
             } else {
               ElMessage.warning('PDF解析完成但未提取到题目，请检查PDF格式')
             }
