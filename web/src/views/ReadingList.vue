@@ -202,7 +202,7 @@ const handleFileChange = async (e) => {
 
     if (uploadId) {
       let resolved = false
-      for (let i = 0; i < 10; i++) {
+      for (let i = 0; i < 60; i++) {
         await new Promise(r => setTimeout(r, 3000))
         try {
           const s = await questionAPI.uploadStatus(uploadId)
@@ -230,7 +230,7 @@ const handleFileChange = async (e) => {
       }
       if (!resolved) {
         await fetchList()
-        ElMessage.warning('解析超时，请稍后刷新页面查看')
+        ElMessage.warning('解析仍在后台进行，请稍后刷新列表查看（大文件/AI 解析可能需要几分钟）')
       }
     } else {
       await new Promise(r => setTimeout(r, 5000))

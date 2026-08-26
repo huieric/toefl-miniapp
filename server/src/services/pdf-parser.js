@@ -105,6 +105,10 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
   const rawText = (pdfData.text || '').replace(/\u0000/g, '');
   console.log(`[PDF-Parser v5] 文本: ${rawText.length} 字符, ${pdfData.numpages} 页`);
 
+  if (rawText.trim().length < 100) {
+    throw new Error('PDF 未提取到文字层（可能是扫描件/图片型 PDF），暂不支持 OCR，请使用带文字层的 PDF');
+  }
+
   // Step 2: 预处理 — 分割文章 + 提取答案key
   const segments = preProcessText(rawText);
   console.log(`[PDF-Parser v5] 预处理: ${segments.length} 个文本段`);
@@ -417,7 +421,8 @@ async function callAI(apiKey, backend, userPrompt, systemPrompt) {
       { role: 'user', content: userPrompt }
     ],
     temperature: 0.1,
-    max_tokens: 8192
+    max_tokens: 8192,
+    timeout: 60000
   });
 
   return response.choices[0].message.content;
