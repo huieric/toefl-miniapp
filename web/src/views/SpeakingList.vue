@@ -125,7 +125,7 @@ const fetchList = async () => {
   loading.value = true
   setSafetyTimeout()
   try {
-    const params = { subject: 'speaking', source: sourceTab.value }
+    const params = { subject: 'speaking' }
     const res = await withRetry(() => questionAPI.list(params), { retries: 2, retryDelay: 2000 })
     const data = res.data?.data?.list || res.data?.list || res.data || []
     list.value = Array.isArray(data) ? data : []
