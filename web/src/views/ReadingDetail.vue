@@ -8,8 +8,8 @@
     <div class="card" v-loading="loading">
       <!-- Source tag -->
       <div class="detail-meta" v-if="question">
-        <el-tag :type="question.source === 'real' ? 'success' : 'primary'" size="small" effect="plain">
-          {{ question.source === 'real' ? '真题' : '模拟题' }}
+        <el-tag :type="question.source === 'user' ? 'success' : 'primary'" size="small" effect="plain">
+          {{ question.source === 'user' ? '真题' : '模拟题' }}
         </el-tag>
         <span class="meta-sep">|</span>
         <span class="meta-text">{{ typeLabel(question.type) }}</span>

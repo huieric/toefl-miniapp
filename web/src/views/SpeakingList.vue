@@ -4,11 +4,11 @@
 
     <div class="source-tabs">
       <el-radio-group v-model="sourceTab" @change="onSourceChange">
-        <el-radio-button value="real">真题练习</el-radio-button>
+        <el-radio-button value="user">真题练习</el-radio-button>
         <el-radio-button value="simulated">模拟练习</el-radio-button>
       </el-radio-group>
       <div class="tab-actions">
-        <template v-if="sourceTab === 'real'">
+        <template v-if="sourceTab === 'user'">
           <el-button type="primary" size="small" disabled>暂无上传</el-button>
         </template>
         <template v-else>
@@ -27,8 +27,8 @@
         </el-table-column>
         <el-table-column label="来源" width="90">
           <template #default="{ row }">
-            <el-tag :type="row.source === 'real' ? 'success' : 'primary'" size="small" effect="plain">
-              {{ row.source === 'real' ? '真题' : '模拟题' }}
+            <el-tag :type="row.source === 'user' ? 'success' : 'primary'" size="small" effect="plain">
+              {{ row.source === 'user' ? '真题' : '模拟题' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -74,7 +74,7 @@ const router = useRouter()
 const list = ref([])
 const loading = ref(false)
 const generating = ref(false)
-const sourceTab = ref('real')
+const sourceTab = ref('user')
 const genVisible = ref(false)
 const genCount = ref(5)
 const genDifficulty = ref('medium')
@@ -89,7 +89,7 @@ function setSafetyTimeout() {
   }, SAFETY_TIMEOUT)
 }
 
-const emptyDesc = computed(() => sourceTab.value === 'real' ? '暂无口语真题' : '暂无模拟题')
+const emptyDesc = computed(() => sourceTab.value === 'user' ? '暂无口语真题' : '暂无模拟题')
 
 const diffMap = { easy: '简单', medium: '中等', hard: '困难' }
 const diffLabel = (d) => diffMap[d] || d || '中等'

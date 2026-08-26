@@ -5,11 +5,11 @@
     <!-- Tab切换 -->
     <div class="source-tabs">
       <el-radio-group v-model="sourceTab" @change="onSourceChange">
-        <el-radio-button value="real">真题练习</el-radio-button>
+        <el-radio-button value="user">真题练习</el-radio-button>
         <el-radio-button value="simulated">模拟练习</el-radio-button>
       </el-radio-group>
       <div class="tab-actions">
-        <template v-if="sourceTab === 'real'">
+        <template v-if="sourceTab === 'user'">
           <input ref="fileInputRef" type="file" accept=".pdf" style="display:none" @change="handleFileChange" />
           <el-button type="primary" size="small" @click="triggerUpload">上传PDF真题</el-button>
         </template>
@@ -21,7 +21,7 @@
 
     <div v-loading="loading" :element-loading-text="loadingText">
       <el-empty v-if="!loading && !passages.length" :description="emptyDesc">
-        <template v-if="sourceTab === 'real'">
+        <template v-if="sourceTab === 'user'">
           <el-button type="primary" @click="triggerUpload">上传PDF题目</el-button>
         </template>
         <template v-else>
@@ -41,8 +41,8 @@
           <div class="card-body">
             <h3 class="card-title">{{ cleanTitle(p.title) }}</h3>
             <div class="card-tags">
-              <el-tag :type="p.source === 'real' ? 'success' : 'primary'" size="small" effect="plain">
-                {{ p.source === 'real' ? '真题' : '模拟题' }}
+              <el-tag :type="p.source === 'user' ? 'success' : 'primary'" size="small" effect="plain">
+                {{ p.source === 'user' ? '真题' : '模拟题' }}
               </el-tag>
               <el-tag :type="diffTag(p.difficulty)" size="small" effect="plain">
                 {{ diffLabel(p.difficulty) }}
@@ -135,7 +135,7 @@ const orphans = ref([])
 const loading = ref(false)
 const uploading = ref(false)
 const generating = ref(false)
-const sourceTab = ref('real')
+const sourceTab = ref('user')
 const fileInputRef = ref(null)
 const progressVisible = ref(false)
 const uploadProgress = ref(0)
@@ -145,7 +145,7 @@ const genDifficulty = ref('medium')
 
 const loadPhase = ref('')
 
-const emptyDesc = computed(() => sourceTab.value === 'real' ? '暂无阅读真题' : '暂无模拟题')
+const emptyDesc = computed(() => sourceTab.value === 'user' ? '暂无阅读真题' : '暂无模拟题')
 
 const loadingText = computed(() => {
   if (loadPhase.value === 'waking') return '正在连接服务器...'
