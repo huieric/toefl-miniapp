@@ -258,7 +258,7 @@ router.post('/submit', auth, async (req, res) => {
     if (!isCorrect && (subject === 'reading' || subject === 'listening')) {
       await db.query(
         `INSERT INTO wrong_questions (user_id, question_id, user_answer, is_correct, wrong_count, next_review_at, sm2_easiness, sm2_interval, sm2_repetitions)
-         VALUES ($1, $2, $3, FALSE, 1, CURRENT_TIMESTAMP + INTERVAL '1 day', 2.50, 1, 0)
+         VALUES ($1, $2, $3, FALSE, 1, CURRENT_TIMESTAMP, 2.50, 1, 0)
          ON CONFLICT DO NOTHING`,
         [req.user.id, questionId, content || (answers ? JSON.stringify(answers) : '')]
       );

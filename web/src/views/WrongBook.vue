@@ -15,10 +15,6 @@
         <div class="stat-value">{{ stats.todayReview || 0 }}</div>
         <div class="stat-label">今日待复习</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-value">{{ stats.mastered || 0 }}</div>
-        <div class="stat-label">已掌握</div>
-      </div>
     </div>
 
     <div class="card">
@@ -66,7 +62,7 @@ import AdBanner from '@/components/AdBanner.vue'
 
 const subjectMap = { reading: '阅读', listening: '听力', speaking: '口语', writing: '写作' }
 const list = ref([])
-const stats = reactive({ total: 0, todayReview: 0, mastered: 0 })
+const stats = reactive({ total: 0, todayReview: 0 })
 
 const getMastery = (row) => {
   const ease = row.ease || 2.5
@@ -94,7 +90,9 @@ onMounted(async () => {
   try {
     const [listRes, statsRes] = await Promise.all([wrongAPI.list({}), wrongAPI.stats()])
     list.value = listRes.data?.list || listRes.data?.wrongs || listRes.data || []
-    if (statsRes.data) Object.assign(stats, statsRes.data)
+    const sd = statsRes.data?.data || {}
+    stats.total = sd.total || 0
+    stats.todayReview = sd.due || 0
   } catch (e) { console.error(e) }
 })
 </script>

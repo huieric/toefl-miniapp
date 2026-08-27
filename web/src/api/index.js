@@ -117,7 +117,8 @@ export const examAPI = {
 export const wrongAPI = {
   list: (params) => http.get('/wrong', { params }),
   stats: () => http.get('/wrong/stats'),
-  redo: () => http.get('/wrong/redo'),
+  reviewPlan: () => http.get('/wrong/review-plan'),
+  submitReview: (wrongId, rating) => http.post(`/wrong/${wrongId}/redo`, { rating }),
 }
 
 // AI Talk

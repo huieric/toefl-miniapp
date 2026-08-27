@@ -1,127 +1,162 @@
 <template>
-  <div class="page-container">
-    <div class="page-header">
+  <div class="review-page">
+    <div class="review-top">
       <el-button text @click="$router.push('/wrong-book')"><el-icon><ArrowLeft /></el-icon> 返回</el-button>
-      <h2>重做错题</h2>
+      <span v-if="queue.length" class="progress">{{ index + 1 }} / {{ queue.length }}</span>
     </div>
 
-    <div class="card" v-if="questions.length">
-      <div class="progress-bar">
-        <span>第 {{ currentIdx + 1 }} / {{ questions.length }} 题</span>
-        <el-progress :percentage="Math.round((currentIdx + 1) / questions.length * 100)" :stroke-width="6" style="width: 120px;" />
-      </div>
+    <div v-if="loading" v-loading="true" class="center"></div>
 
-      <div class="question-block" v-if="currentQ">
-        <el-tag size="small">{{ subjectMap[currentQ.subject] }}</el-tag>
-        <p class="q-text">{{ currentQ.question || currentQ.stem }}</p>
+    <div v-else-if="!queue.length" class="done">
+      <el-icon :size="52" color="#67c23a"><CircleCheck /></el-icon>
+      <p class="done-text">今日错题复习完成 🎉</p>
+      <el-button type="primary" @click="$router.push('/wrong-book')">返回错题本</el-button>
+    </div>
 
-        <el-radio-group v-model="selected" class="options-group" size="large">
-          <div v-for="(opt, idx) in getOptions(currentQ)" :key="idx" class="option-item" :class="{ selected: selected === idx }">
-            <el-radio :value="idx">
-              <span class="opt-letter">{{ letters[idx] }}.</span> {{ opt }}
-            </el-radio>
+    <div v-else class="card-wrap" :key="current.wrongId">
+      <div class="q-card">
+        <el-tag size="small" type="info">{{ subjectLabel(current.subject) }}</el-tag>
+        <p v-if="current.passageText" class="passage">{{ current.passageText }}</p>
+        <p class="q-text">{{ current.content }}</p>
+
+        <div class="options">
+          <div
+            v-for="opt in parsedOptions"
+            :key="opt.label"
+            class="option"
+            :class="{ selected: selected === opt.label, correct: revealed && isInAnswer(opt.label), wrong: revealed && selected === opt.label && !isInAnswer(opt.label) }"
+            @click="selectOption(opt.label)"
+          >
+            <span class="opt-letter">{{ opt.label }}.</span> {{ opt.text }}
           </div>
-        </el-radio-group>
+        </div>
 
-        <div class="result-feedback" v-if="showResult">
-          <el-alert
-            :title="isCorrect ? '回答正确！' : `回答错误，正确答案是 ${letters[currentQ.answer]}`"
-            :type="isCorrect ? 'success' : 'error'"
-            :closable="false"
-            show-icon
-          />
+        <div v-if="revealed" class="feedback">
+          <el-alert :title="feedbackText" :type="isCorrect ? 'success' : 'error'" :closable="false" show-icon />
         </div>
       </div>
 
-      <div class="action-bar">
-        <el-button :disabled="selected === null || showResult" type="primary" @click="checkAnswer">提交</el-button>
-        <el-button v-if="showResult && currentIdx < questions.length - 1" @click="nextQuestion">下一题</el-button>
-        <el-button v-if="showResult && currentIdx === questions.length - 1" type="success" @click="$router.push('/wrong-book')">完成</el-button>
+      <div v-if="!revealed" class="action">
+        <el-button type="primary" :disabled="!selected" @click="submitAnswer">提交答案</el-button>
       </div>
-    </div>
-
-    <div class="card" v-else>
-      <el-empty description="没有待复习的错题">
-        <el-button type="primary" @click="$router.push('/reading')">去练习</el-button>
-      </el-empty>
+      <div v-else class="rating-btns">
+        <button class="rate again" @click="rate(1)">忘记</button>
+        <button class="rate hard" @click="rate(2)">模糊</button>
+        <button class="rate good" @click="rate(3)">认识</button>
+        <button class="rate easy" @click="rate(4)">轻松</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { ArrowLeft } from '@element-plus/icons-vue'
-import { wrongAPI, practiceAPI } from '@/api'
+import { ElMessage } from 'element-plus'
+import { ArrowLeft, CircleCheck } from '@element-plus/icons-vue'
+import { wrongAPI } from '@/api'
 
-const subjectMap = { reading: '阅读', listening: '听力', speaking: '口语', writing: '写作' }
-const letters = ['A', 'B', 'C', 'D', 'E', 'F']
+const subjectLabel = (s) => ({ reading: '阅读', listening: '听力', speaking: '口语', writing: '写作' }[s] || s || '阅读')
 
-const questions = ref([])
-const currentIdx = ref(0)
+const loading = ref(true)
+const queue = ref([])
+const index = ref(0)
 const selected = ref(null)
-const showResult = ref(false)
+const revealed = ref(false)
 const isCorrect = ref(false)
-const results = ref([])
 
-const currentQ = computed(() => questions.value[currentIdx.value] || null)
+const current = computed(() => queue.value[index.value] || {})
 
-const getOptions = (q) => {
-  const opts = q?.options
-  if (Array.isArray(opts)) return opts
-  if (typeof opts === 'object') return [opts?.A, opts?.B, opts?.C, opts?.D, opts?.E, opts?.F].filter(Boolean)
-  return []
+const parseOptions = (opts) => {
+  if (!opts) return []
+  let arr = opts
+  if (typeof opts === 'string') { try { arr = JSON.parse(opts) } catch (_) { return [] } }
+  if (!Array.isArray(arr)) return []
+  return arr.map((o, i) => {
+    if (o && typeof o === 'object') return { label: o.label || String.fromCharCode(65 + i), text: o.text || '' }
+    return { label: String.fromCharCode(65 + i), text: String(o) }
+  }).filter(o => o.text !== '')
 }
 
-const checkAnswer = async () => {
-  const q = currentQ.value
-  const answer = letters[selected.value]
-  const correct = typeof q.answer === 'number' ? letters[q.answer] : q.answer
-  isCorrect.value = answer === correct
-  showResult.value = true
-  results.value.push({
-    questionId: q._id || q.id,
-    userAnswer: answer,
-    isCorrect: isCorrect.value,
-  })
+const parsedOptions = computed(() => parseOptions(current.value.options))
 
-  try {
-    await practiceAPI.submit({
-      questionId: q._id || q.id,
-      subject: q.subject,
-      userAnswer: answer,
-      isCorrect: isCorrect.value,
-    })
-  } catch (e) { console.error(e) }
-}
-
-const nextQuestion = () => {
-  currentIdx.value++
-  selected.value = null
-  showResult.value = false
-}
-
-onMounted(async () => {
-  try {
-    const res = await wrongAPI.redo()
-    questions.value = res.data?.list || res.data?.questions || res.data || []
-  } catch (e) { console.error(e) }
+const answerLabels = computed(() => {
+  const a = current.value.answer
+  if (Array.isArray(a)) return a.map(String).map(s => s.trim()).filter(Boolean)
+  return String(a || '').match(/[A-F]/g) || []
 })
+const isInAnswer = (label) => answerLabels.value.includes(label)
+const feedbackText = computed(() => {
+  if (isCorrect.value) return '回答正确！'
+  const right = answerLabels.value.join(', ')
+  return `回答错误，正确答案是 ${right}`
+})
+
+const selectOption = (label) => {
+  if (revealed.value) return
+  selected.value = label
+}
+
+const submitAnswer = () => {
+  isCorrect.value = isInAnswer(selected.value)
+  revealed.value = true
+}
+
+const rate = async (rating) => {
+  try {
+    await wrongAPI.submitReview(current.value.wrongId, rating)
+    selected.value = null
+    revealed.value = false
+    if (index.value + 1 < queue.value.length) {
+      index.value++
+    } else {
+      await fetchQueue()
+    }
+  } catch (e) {
+    ElMessage.error(e?.response?.data?.message || '提交失败')
+  }
+}
+
+const fetchQueue = async () => {
+  loading.value = true
+  try {
+    const res = await wrongAPI.reviewPlan()
+    queue.value = res.data?.data?.list || []
+    index.value = 0
+    selected.value = null
+    revealed.value = false
+  } catch (e) {
+    queue.value = []
+    ElMessage.error(e?._userMessage || '加载复习队列失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(fetchQueue)
 </script>
 
 <style scoped>
-.progress-bar {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 20px;
-}
-.question-block { margin-bottom: 20px; }
+.review-page { max-width: 680px; margin: 0 auto; padding: 16px; min-height: 100vh; display: flex; flex-direction: column; }
+.review-top { display: flex; align-items: center; justify-content: space-between; }
+.progress { color: var(--text-secondary); font-size: 14px; }
+.center, .done { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 60vh; }
+.done-text { color: var(--text-secondary); }
+.card-wrap { flex: 1; display: flex; flex-direction: column; gap: 16px; padding-top: 8px; }
+.q-card { border: 1px solid var(--border); border-radius: 14px; padding: 18px 16px; background: var(--card-bg); }
+.passage { font-size: 13px; color: var(--text-secondary); line-height: 1.6; max-height: 180px; overflow-y: auto; background: var(--bg); padding: 10px; border-radius: 8px; margin: 10px 0; }
 .q-text { font-size: 15px; font-weight: 500; margin: 12px 0; line-height: 1.7; }
-.options-group { width: 100%; }
-.option-item {
-  padding: 10px 14px; margin-bottom: 8px;
-  border: 1px solid var(--border); border-radius: 8px;
-}
-.option-item.selected { border-color: var(--primary); background: rgba(74,144,217,0.04); }
+.options { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.option { padding: 11px 14px; border: 1px solid var(--border); border-radius: 9px; cursor: pointer; font-size: 14px; line-height: 1.5; transition: all 0.12s; }
+.option.selected { border-color: var(--primary); background: rgba(74,144,217,0.05); }
+.option.correct { border-color: #67c23a; background: #f0f9eb; }
+.option.wrong { border-color: #f56c6c; background: #fef0f0; }
 .opt-letter { font-weight: 700; }
-.result-feedback { margin-top: 16px; }
-.action-bar { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+.feedback { margin-top: 14px; }
+.action { display: flex; justify-content: flex-end; }
+.rating-btns { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.rate { height: 48px; border-radius: 12px; border: 1px solid var(--border); cursor: pointer; font-size: 15px; font-weight: 600; background: var(--card-bg); }
+.rate.again { background: #fdecea; color: #d43030; }
+.rate.hard { background: #fff4e6; color: #e8861a; }
+.rate.good { background: #eaf7ea; color: #149033; }
+.rate.easy { background: #e8f2ff; color: #2563eb; }
 </style>

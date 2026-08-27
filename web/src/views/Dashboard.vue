@@ -103,6 +103,18 @@
     </div>
 
     <!-- Quick Wrong Book Entry -->
+    <div class="card review-entry" v-if="dueWrong > 0" @click="$router.push('/wrong-book/redo')">
+      <div class="review-entry-icon">
+        <el-icon :size="24" color="#fff"><CollectionTag /></el-icon>
+      </div>
+      <div class="review-entry-info">
+        <div class="review-entry-title">今日错题复习</div>
+        <div class="review-entry-desc">有 {{ dueWrong }} 道错题已到复习时间，点击开始</div>
+      </div>
+      <el-icon :size="20" color="#4A90D9"><ArrowRight /></el-icon>
+    </div>
+
+    <!-- Quick Wrong Book Entry -->
     <div class="card">
       <div class="card-header">
         <h3 class="section-title" style="margin-bottom:0;">最近错题</h3>
@@ -173,7 +185,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Reading, Headset, Microphone, Edit, Trophy, UserFilled, CircleClose, CircleCheck, Clock, MagicStick, ArrowRight } from '@element-plus/icons-vue'
+import { Reading, Headset, Microphone, Edit, Trophy, UserFilled, CircleClose, CircleCheck, Clock, MagicStick, ArrowRight, CollectionTag } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { userAPI, practiceAPI, planAPI, wrongAPI } from '@/api'
 import { useUserStore } from '@/stores/user'
@@ -189,6 +201,7 @@ const stats = reactive({
 const recentRecords = ref([])
 const recentWrong = ref([])
 const dailyTasks = ref([])
+const dueWrong = ref(0)
 
 const subjects = [
   { key: 'reading', label: '阅读', percent: 0, color: '#4A90D9' },
@@ -269,6 +282,11 @@ onMounted(async () => {
     console.error('Dashboard load error', e)
     ElMessage.warning('部分数据加载失败，已使用离线数据')
   }
+
+  try {
+    const sr = await wrongAPI.stats()
+    dueWrong.value = sr.data?.data?.due || 0
+  } catch (_) { /* 忽略 */ }
 })
 </script>
 
@@ -365,4 +383,20 @@ onMounted(async () => {
 .task-item.completed { opacity: 0.55; }
 .task-title { flex: 1; }
 .task-duration { font-size: 12px; color: var(--text-secondary); flex-shrink: 0; }
+
+/* 错题复习入口 */
+.review-entry {
+  display: flex; align-items: center; gap: 14px; cursor: pointer;
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+  transition: all 0.2s;
+}
+.review-entry:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(245,108,108,0.2); }
+.review-entry-icon {
+  width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+  background: linear-gradient(135deg, #f56c6c 0%, #e04848 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.review-entry-info { flex: 1; }
+.review-entry-title { font-size: 15px; font-weight: 700; color: #333; }
+.review-entry-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 </style>

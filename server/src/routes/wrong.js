@@ -78,21 +78,38 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// GET /api/wrong/review-plan - 获取复习计划（基于SM-2）
+// GET /api/wrong/stats - 错题统计（总数 + 今日待复习）
+router.get('/stats', auth, async (req, res) => {
+  try {
+    const r = await db.query(
+      `SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE next_review_at IS NULL OR next_review_at <= NOW() OR fsrs_stability IS NULL)::int AS due
+      FROM wrong_questions
+      WHERE user_id = $1`,
+      [req.user.id]
+    );
+    res.json({ code: 200, data: { total: r.rows[0].total, due: r.rows[0].due } });
+  } catch (err) {
+    console.error('[Wrong] 获取统计失败:', err);
+    res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
+
+// GET /api/wrong/review-plan - 今日待复习队列（含完整题干，按到期排序）
 router.get('/review-plan', auth, async (req, res) => {
   try {
-    const now = new Date().toISOString();
-
     const result = await db.query(
       `SELECT
-        wq.id, wq.question_id, wq.next_review_at, wq.wrong_count,
-        q.subject, q.title
+        wq.id, wq.question_id, wq.next_review_at, wq.wrong_count, wq.fsrs_stability,
+        q.subject, q.type, q.difficulty, q.title, q.content, q.options, q.passage_text, q.answer
       FROM wrong_questions wq
       JOIN questions q ON wq.question_id = q.id
-      WHERE wq.user_id = $1 AND wq.next_review_at <= $2
-      ORDER BY wq.next_review_at ASC
+      WHERE wq.user_id = $1
+        AND (wq.next_review_at IS NULL OR wq.next_review_at <= NOW() OR wq.fsrs_stability IS NULL)
+      ORDER BY wq.next_review_at ASC NULLS FIRST
       LIMIT 50`,
-      [req.user.id, now]
+      [req.user.id]
     );
 
     res.json({
@@ -103,7 +120,13 @@ router.get('/review-plan', auth, async (req, res) => {
           wrongId: row.id,
           questionId: row.question_id,
           subject: row.subject,
+          type: row.type,
+          difficulty: row.difficulty,
           title: row.title,
+          content: row.content,
+          options: row.options,
+          passageText: row.passage_text,
+          answer: row.answer,
           wrongCount: row.wrong_count,
           nextReviewAt: row.next_review_at,
         })),
@@ -119,11 +142,7 @@ router.get('/review-plan', auth, async (req, res) => {
 router.post('/:id/redo', auth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { quality } = req.body;
-
-    if (quality === undefined) {
-      return res.status(400).json({ code: 400, message: '缺少quality参数（0-5评分）' });
-    }
+    const { rating, quality } = req.body || {};
 
     const wrong = (await db.query(
       'SELECT * FROM wrong_questions WHERE id = $1 AND user_id = $2',
@@ -134,19 +153,19 @@ router.post('/:id/redo', auth, async (req, res) => {
       return res.status(404).json({ code: 404, message: '错题记录不存在' });
     }
 
-    // FSRS-4.5 算法更新（取代 SM-2）
+    // FSRS-4.5 算法更新（rating: 1=again 2=hard 3=good 4=easy；兼容旧 quality 0-5）
     const { review: fsrsReview, mapQualityToRating } = require('../services/fsrs');
-    const rating = mapQualityToRating(quality);
-    const isCorrect = req.body.isCorrect != null
-      ? req.body.isCorrect === true
-      : rating >= 2; // hard/good/easy 均视为回忆起（答对）
+    const r = rating != null
+      ? Math.max(1, Math.min(4, parseInt(rating, 10)))
+      : mapQualityToRating(quality == null ? 4 : quality);
+    const isCorrect = r >= 2; // hard/good/easy 视为回忆起
 
     const fsrsState = {
       stability: wrong.fsrs_stability,
       difficulty: wrong.fsrs_difficulty,
       lastReviewAt: wrong.last_review_at,
     };
-    const fsrsResult = fsrsReview(fsrsState, rating);
+    const fsrsResult = fsrsReview(fsrsState, r);
 
     await db.query(
       `UPDATE wrong_questions SET
@@ -173,7 +192,7 @@ router.post('/:id/redo', auth, async (req, res) => {
       data: {
         wrongId: id,
         isCorrect,
-        rating,
+        rating: r,
         retrievability: fsrsResult.retrievability,
         nextReviewAt: fsrsResult.due.toISOString(),
         intervalDays: fsrsResult.interval,
