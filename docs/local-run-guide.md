@@ -13,6 +13,8 @@
 .\setup-local.ps1
 ```
 
+> ⚠️ 先启动 **Docker Desktop**（右下角图标变成「Engine running」），否则脚本会报「Docker daemon is NOT running」。
+
 它会：
 1. 用 Docker 启动 PostgreSQL（容器名 `toefl-postgres`，端口 `5433`，库 `toefl_db`，用户 `toefl`/密码 `toefl123`）；
 2. `server` 和 `web` 各执行 `npm install`（含 tesseract.js）。
