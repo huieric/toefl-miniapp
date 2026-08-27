@@ -162,6 +162,7 @@ export const vocabAPI = {
   add: (data) => http.post('/vocab', data),
   review: () => http.get('/vocab/review'),
   submitReview: (id, rating) => http.post(`/vocab/${id}/review`, { rating }),
+  lookup: (word) => http.get('/vocab/lookup', { params: { word } }),
 }
 
 export default http

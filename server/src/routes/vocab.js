@@ -2,6 +2,7 @@ const express = require('express');
 const { auth } = require('../middleware/auth');
 const db = require('../config/db');
 const { review: fsrsReview } = require('../services/fsrs');
+const axios = require('axios');
 
 const router = express.Router();
 
@@ -126,6 +127,43 @@ router.post('/:id/review', auth, async (req, res) => {
   } catch (err) {
     console.error('[Vocab] 复习更新失败:', err);
     res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
+
+// GET /api/vocab/lookup?word=xxx - 查词（免费英文词典，返回音标+释义+例句）
+router.get('/lookup', auth, async (req, res) => {
+  const word = String(req.query.word || '').trim().toLowerCase();
+  if (!/^[a-z'-]{2,}$/.test(word)) {
+    return res.status(400).json({ code: 400, message: 'word 不合法' });
+  }
+  try {
+    const resp = await axios.get(
+      `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`,
+      { timeout: 8000 }
+    );
+    const entry = Array.isArray(resp.data) ? resp.data[0] : null;
+    if (!entry) return res.json({ code: 200, data: { word, found: false } });
+
+    const phonetic =
+      entry.phonetic ||
+      (entry.phonetics && entry.phonetics[0] && entry.phonetics[0].text) ||
+      '';
+    const meanings = [];
+    for (const m of entry.meanings || []) {
+      for (const d of m.definitions || []) {
+        meanings.push({
+          partOfSpeech: m.partOfSpeech || '',
+          definition: d.definition || '',
+          example: d.example || '',
+        });
+        if (meanings.length >= 4) break;
+      }
+      if (meanings.length >= 4) break;
+    }
+    res.json({ code: 200, data: { word: entry.word || word, phonetic, meanings } });
+  } catch (e) {
+    console.error('[Vocab] 查词失败:', word, e.message);
+    res.json({ code: 200, data: { word, found: false, error: '查词失败' } });
   }
 });
 

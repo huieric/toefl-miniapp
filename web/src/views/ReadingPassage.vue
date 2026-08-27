@@ -157,7 +157,13 @@
     <!-- 生词弹窗 -->
     <el-dialog v-model="vocabDialog" title="加入生词本" width="min(92vw, 360px)">
       <div class="vocab-pick">
-        <div class="vocab-pick-word">{{ selectedWord }}</div>
+        <div class="vocab-pick-word">
+          {{ selectedWord }}
+          <span v-if="selectedPhonetic" class="vocab-phonetic">{{ selectedPhonetic }}</span>
+        </div>
+        <div v-if="looking" class="vocab-looking">查词中…</div>
+        <div v-else-if="selectedMeaning" class="vocab-meaning">{{ selectedMeaning }}</div>
+        <div v-else class="vocab-meaning vocab-meaning-empty">未查到释义，可稍后在生词本手动补充</div>
         <div v-if="selectedContext" class="vocab-pick-context">{{ selectedContext }}</div>
       </div>
       <template #footer>
@@ -207,6 +213,9 @@ const passageParagraphs = computed(() => splitPassageParagraphs(passageText.valu
 const vocabDialog = ref(false)
 const selectedWord = ref('')
 const selectedContext = ref('')
+const selectedPhonetic = ref('')
+const selectedMeaning = ref('')
+const looking = ref(false)
 const splitWords = (para) => String(para || '').split(/\s+/).filter(Boolean)
 const cleanWord = (w) => String(w || '').replace(/^[^A-Za-z']+|[^A-Za-z']+$/g, '')
 const sentenceOf = (para, word) => {
@@ -214,17 +223,37 @@ const sentenceOf = (para, word) => {
   const sentences = String(para || '').split(/(?<=[.!?])\s+/)
   return sentences.find((s) => s.toLowerCase().includes(w)) || para
 }
+const lookupWord = async (word) => {
+  looking.value = true
+  selectedPhonetic.value = ''
+  selectedMeaning.value = ''
+  try {
+    const res = await vocabAPI.lookup(word)
+    const d = res.data?.data
+    if (d && d.meanings && d.meanings.length) {
+      selectedPhonetic.value = d.phonetic || ''
+      const first = d.meanings[0]
+      selectedMeaning.value = `${first.partOfSpeech ? '[' + first.partOfSpeech + '] ' : ''}${first.definition}`
+    }
+  } catch (_) {
+    selectedMeaning.value = ''
+  } finally {
+    looking.value = false
+  }
+}
 const onWordClick = (raw, para) => {
   const word = cleanWord(raw)
   if (!/^[A-Za-z'-]{2,}$/.test(word)) return
   selectedWord.value = word
   selectedContext.value = sentenceOf(para, word)
   vocabDialog.value = true
+  lookupWord(word)
 }
 const addToVocab = async () => {
   try {
     await vocabAPI.add({
       word: selectedWord.value,
+      meaning: selectedMeaning.value,
       context: selectedContext.value,
       subject: 'reading',
       questionId: currentQuestion.value.id || null,
@@ -811,6 +840,26 @@ onMounted(loadPassageData)
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.6;
+}
+.vocab-phonetic {
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+.vocab-looking {
+  font-size: 13px;
+  color: var(--text-muted, #999);
+  margin: 6px 0;
+}
+.vocab-meaning {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  margin: 6px 0;
+}
+.vocab-meaning-empty {
+  color: var(--text-muted, #bbb);
 }
 
 /* 移动端：文章/答题 切换 */
