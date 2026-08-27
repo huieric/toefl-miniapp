@@ -1,7 +1,10 @@
 import axios from 'axios'
 
+// 后端 API 地址：本地开发用 VITE_API_BASE 覆盖（见 web/.env.development），生产默认指向已部署后端
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://toefl-api-m1ue.onrender.com/api'
+
 const http = axios.create({
-  baseURL: 'https://toefl-api-m1ue.onrender.com/api',
+  baseURL: API_BASE,
   timeout: 45000,
   headers: { 'Content-Type': 'application/json' },
 })
@@ -65,7 +68,7 @@ export const authAPI = {
 
 // Health
 export const healthAPI = {
-  check: () => axios.get('https://toefl-api-m1ue.onrender.com/api/health', { timeout: 12000 }),
+  check: () => axios.get(`${API_BASE}/health`, { timeout: 12000 }),
 }
 
 // Questions
