@@ -21,9 +21,13 @@
     </div>
 
     <div v-loading="loading" element-loading-text="加载篇章中..." class="exam-content">
+      <div v-if="isMobile && !loading && questions.length" class="mobile-view-toggle">
+        <button :class="{ active: mobileView === 'passage' }" @click="mobileView = 'passage'; passageCollapsed = false">阅读文章</button>
+        <button :class="{ active: mobileView === 'question' }" @click="mobileView = 'question'">答题</button>
+      </div>
       <div v-if="!loading && questions.length" class="exam-layout">
         <!-- 左侧：阅读文章（考试风格） -->
-        <aside class="reading-panel" :class="{ collapsed: passageCollapsed }">
+        <aside class="reading-panel" :class="{ collapsed: passageCollapsed, 'mobile-hidden': isMobile && mobileView !== 'passage' }">
           <div class="reading-panel-header" @click="passageCollapsed = !passageCollapsed">
             <span class="reading-panel-label">DIRECTIONS</span>
             <span class="reading-panel-hint">阅读以下文章并回答右侧问题</span>
@@ -50,7 +54,7 @@
         </aside>
 
         <!-- 右侧：答题区域 -->
-        <main class="question-panel">
+        <main class="question-panel" :class="{ 'mobile-hidden': isMobile && mobileView !== 'question' }">
           <!-- 题目导航条 -->
           <div class="question-nav">
             <div class="nav-dots">
@@ -165,7 +169,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowDown, ArrowRight, Select, Check, InfoFilled } from '@element-plus/icons-vue'
@@ -182,6 +186,14 @@ const passageSource = ref('')
 const questions = ref([])
 const loading = ref(true)
 const passageCollapsed = ref(false)
+
+// 移动端「文章 / 答题」切换
+const windowWidth = ref(window.innerWidth)
+const isMobile = computed(() => windowWidth.value < 768)
+const mobileView = ref('question') // 'passage' | 'question'
+const onResize = () => { windowWidth.value = window.innerWidth }
+onMounted(() => window.addEventListener('resize', onResize))
+onUnmounted(() => window.removeEventListener('resize', onResize))
 
 const currentIndex = ref(0)
 const selectedAnswer = ref([])
@@ -799,5 +811,30 @@ onMounted(loadPassageData)
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.6;
+}
+
+/* 移动端：文章/答题 切换 */
+.mobile-view-toggle { display: none; }
+.mobile-hidden { display: none !important; }
+@media (max-width: 767px) {
+  .mobile-view-toggle {
+    display: flex; gap: 8px; padding: 8px 12px;
+    background: #fafafa; border-bottom: 1px solid #e4e4e4; flex-shrink: 0;
+  }
+  .mobile-view-toggle button {
+    flex: 1; height: 40px; border-radius: 10px;
+    border: 1px solid #e4e4e4; background: #fff;
+    font-size: 14px; font-weight: 600; color: #555;
+  }
+  .mobile-view-toggle button.active {
+    background: var(--el-color-primary); color: #fff; border-color: var(--el-color-primary);
+  }
+  .exam-layout { grid-template-rows: 1fr; }
+  .reading-panel { border-right: none; }
+  .reading-panel-header { padding: 8px 14px; }
+  .reading-panel-hint { font-size: 12px; }
+  .question-nav { padding: 8px 12px; }
+  .question-container { padding: 16px 14px; }
+  .nav-dot { width: 40px; height: 40px; }
 }
 </style>
