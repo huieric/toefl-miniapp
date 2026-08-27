@@ -92,6 +92,21 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// === 托管前端静态文件（构建产物 web/dist）===
+// 本地/cpolar 单域名部署：后端同时服务前端页面与 /api
+const webDist = path.join(__dirname, '..', '..', 'web', 'dist');
+if (fs.existsSync(webDist)) {
+  app.use(express.static(webDist));
+  // SPA fallback：非 /api 的 GET 请求回退到 index.html
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next();
+    res.sendFile(path.join(webDist, 'index.html'));
+  });
+  console.log(`[TOEFL-Server] 静态资源目录: ${webDist}`);
+} else {
+  console.log('[TOEFL-Server] 未找到 web/dist，跳过静态托管（先 cd web && npm run build）');
+}
+
 // === 404 ===
 app.use((req, res) => {
   res.status(404).json({ code: 404, message: `路由 ${req.method} ${req.path} 不存在` });

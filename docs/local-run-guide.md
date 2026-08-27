@@ -114,3 +114,42 @@ pdftoppm -v
 - **AI（DeepSeek/OpenAI）**：本地不配 key → 走规则引擎解析，够用；要 AI 解析再在 `server/.env` 加 `DEEPSEEK_API_KEY`。
 - **数据在本地 Docker 里**：`docker start/stop toefl-postgres` 控制；数据存在卷 `toefl_pgdata`，删容器不丢。
 - 想彻底清空重来：`docker rm -f toefl-postgres` 后重跑 `setup-local.ps1`。
+
+---
+
+## 七、外网访问（cpolar 单域名，当前推荐）
+
+**原理**：构建前端 → 后端（:10000）同时托管页面和 API → cpolar 暴露 10000 → 一个域名访问全部。
+
+### 一次性准备
+```powershell
+# 1. 装 cpolar（已装好：C:\Users\hui\cpolar\cpolar，已加入 PATH）
+# 2. 注册 cpolar 账号（https://dashboard.cpolar.com 免费注册）
+# 3. 绑定密钥（cpolar 后台「验证」页面拿 authtoken）：
+cpolar authtoken <你的token>
+```
+
+### 构建前端（每次改前端后）
+```powershell
+cd D:\TapTap游戏赛道调研\toefl-miniapp\web
+$env:VITE_BASE = '/'
+$env:VITE_API_BASE = '/api'
+npm run build
+```
+
+### 启动（一条命令）
+```powershell
+cd D:\TapTap游戏赛道调研\toefl-miniapp
+.\run.ps1     # 确保后端在跑 + 启动 cpolar 隧道到 10000
+```
+cpolar 输出里找 `Forwarding  https://xxxx.cpolar.io -> localhost:10000`，**手机/外网访问该 https 域名**即可（不再需要前端 5173）。
+
+### 停止
+- cpolar 隧道：Ctrl+C；
+- 后端：`.\stop-backend.ps1`。
+
+### DSH（52071）也要外网访问？
+```powershell
+cpolar http 52071
+```
+> 免费版隧道数量可能有限，TOEFL（10000）优先；且把 DSH 暴露公网有安全风险（等于公开 agent 控制面板），务必确认 DSH 有鉴权，不建议长期公开。

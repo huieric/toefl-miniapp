@@ -4,7 +4,7 @@ import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [vue()],
-  base: '/toefl-miniapp/web/',
+  base: process.env.VITE_BASE || '/toefl-miniapp/web/',
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
