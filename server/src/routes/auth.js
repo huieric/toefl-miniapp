@@ -30,8 +30,8 @@ router.post('/send-code', (req, res) => {
     return res.status(400).json({ code: 400, message: '手机号格式不正确' });
   }
 
-  // 开发环境生成随机码，生产环境用固定码（无真实短信服务）
-  const code = config.nodeEnv === 'production' ? '123456' : generateCode();
+  // 固定验证码（未接真实短信服务；可用 AUTH_FIXED_CODE 环境变量覆盖）
+  const code = process.env.AUTH_FIXED_CODE || '123456';
   codeStore.set(phone, { code, expires: Date.now() + 5 * 60 * 1000 });
 
   if (config.nodeEnv !== 'production') {
