@@ -233,6 +233,26 @@ CREATE INDEX IF NOT EXISTS idx_usage_events_user ON usage_events(user_id);
 CREATE INDEX IF NOT EXISTS idx_usage_events_type ON usage_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_usage_events_date ON usage_events(created_at);
 
+-- 12. 生词本（从做题中提取的生词，FSRS 间隔重复复习）
+CREATE TABLE IF NOT EXISTS vocabulary (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    word VARCHAR(100) NOT NULL,
+    meaning TEXT,
+    context TEXT,
+    subject VARCHAR(20),
+    question_id INTEGER,
+    fsrs_stability DOUBLE PRECISION,
+    fsrs_difficulty DOUBLE PRECISION,
+    last_review_at TIMESTAMP,
+    next_review_at TIMESTAMP,
+    review_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, word)
+);
+CREATE INDEX IF NOT EXISTS idx_vocab_user ON vocabulary(user_id);
+CREATE INDEX IF NOT EXISTS idx_vocab_next_review ON vocabulary(next_review_at);
+
 -- ============================================================
 -- 初始化默认数据
 -- ============================================================

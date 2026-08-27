@@ -35,7 +35,15 @@
             <article class="reading-article">
               <h1 class="article-title">{{ cleanTitle(passageTitle) }}</h1>
               <div class="article-text">
-                <p v-for="(para, pi) in passageParagraphs" :key="pi" class="article-para">{{ para }}</p>
+                <p v-for="(para, pi) in passageParagraphs" :key="pi" class="article-para">
+                  <span
+                    v-for="(w, wi) in splitWords(para)"
+                    :key="wi"
+                    class="vocab-word"
+                    v-text="w + ' '"
+                    @click="onWordClick(w, para)"
+                  ></span>
+                </p>
               </div>
             </article>
           </div>
@@ -141,6 +149,18 @@
 
       <el-empty v-if="!loading && !questions.length" description="该篇章没有题目" />
     </div>
+
+    <!-- 生词弹窗 -->
+    <el-dialog v-model="vocabDialog" title="加入生词本" width="min(92vw, 360px)">
+      <div class="vocab-pick">
+        <div class="vocab-pick-word">{{ selectedWord }}</div>
+        <div v-if="selectedContext" class="vocab-pick-context">{{ selectedContext }}</div>
+      </div>
+      <template #footer>
+        <el-button @click="vocabDialog = false">取消</el-button>
+        <el-button type="primary" @click="addToVocab">加入生词本</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -149,7 +169,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, ArrowDown, ArrowRight, Select, Check, InfoFilled } from '@element-plus/icons-vue'
-import { questionAPI, practiceAPI } from '@/api'
+import { questionAPI, practiceAPI, vocabAPI } from '@/api'
 import { splitPassageParagraphs } from '@/utils/passageParagraphs'
 
 const route = useRoute()
@@ -170,6 +190,39 @@ const answers = ref([])
 const currentQuestion = computed(() => questions.value[currentIndex.value] || {})
 
 const passageParagraphs = computed(() => splitPassageParagraphs(passageText.value))
+
+// —— 生词本：点击单词加入 ——
+const vocabDialog = ref(false)
+const selectedWord = ref('')
+const selectedContext = ref('')
+const splitWords = (para) => String(para || '').split(/\s+/).filter(Boolean)
+const cleanWord = (w) => String(w || '').replace(/^[^A-Za-z']+|[^A-Za-z']+$/g, '')
+const sentenceOf = (para, word) => {
+  const w = word.toLowerCase()
+  const sentences = String(para || '').split(/(?<=[.!?])\s+/)
+  return sentences.find((s) => s.toLowerCase().includes(w)) || para
+}
+const onWordClick = (raw, para) => {
+  const word = cleanWord(raw)
+  if (!/^[A-Za-z'-]{2,}$/.test(word)) return
+  selectedWord.value = word
+  selectedContext.value = sentenceOf(para, word)
+  vocabDialog.value = true
+}
+const addToVocab = async () => {
+  try {
+    await vocabAPI.add({
+      word: selectedWord.value,
+      context: selectedContext.value,
+      subject: 'reading',
+      questionId: currentQuestion.value.id || null,
+    })
+    ElMessage.success(`「${selectedWord.value}」已加入生词本`)
+    vocabDialog.value = false
+  } catch (e) {
+    ElMessage.error(e?.response?.data?.message || '加入失败')
+  }
+}
 
 const parsedOptions = computed(() => {
   const opts = currentQuestion.value.options
@@ -727,5 +780,24 @@ onMounted(loadPassageData)
   padding: 0 24px 10px;
   background: #fafafa;
   flex-shrink: 0;
+}
+
+.vocab-word {
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.12s ease;
+}
+.vocab-word:hover {
+  background: #fff3bf;
+}
+.vocab-pick-word {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.vocab-pick-context {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 </style>

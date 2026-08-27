@@ -43,6 +43,10 @@
           <el-icon><Collection /></el-icon>
           <span>错题本</span>
         </el-menu-item>
+        <el-menu-item index="/vocab">
+          <el-icon><Notebook /></el-icon>
+          <span>生词本</span>
+        </el-menu-item>
         <!--
         <el-menu-item index="/ai-talk">
           <el-icon><ChatDotRound /></el-icon>
@@ -91,6 +95,10 @@
         <router-link to="/wrong-book" class="tab-item" :class="{ active: $route.path.startsWith('/wrong-book') }">
           <el-icon :size="22"><Collection /></el-icon>
           <span>错题本</span>
+        </router-link>
+        <router-link to="/vocab" class="tab-item" :class="{ active: $route.path.startsWith('/vocab') }">
+          <el-icon :size="22"><Notebook /></el-icon>
+          <span>生词</span>
         </router-link>
         <router-link to="/profile" class="tab-item" :class="{ active: $route.path.startsWith('/profile') }">
           <el-icon :size="22"><User /></el-icon>

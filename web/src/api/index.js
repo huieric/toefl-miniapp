@@ -155,4 +155,12 @@ export const aiTutorAPI = {
   dataPreview: () => http.get('/ai-tutor/data-preview'),
 }
 
+// Vocabulary（生词本）
+export const vocabAPI = {
+  list: () => http.get('/vocab'),
+  add: (data) => http.post('/vocab', data),
+  review: () => http.get('/vocab/review'),
+  submitReview: (id, rating) => http.post(`/vocab/${id}/review`, { rating }),
+}
+
 export default http

@@ -183,6 +183,18 @@ const routes = [
     component: () => import('@/views/Membership.vue'),
     meta: { title: '会员中心' },
   },
+  {
+    path: '/vocab',
+    name: 'VocabList',
+    component: () => import('@/views/VocabList.vue'),
+    meta: { title: '生词本' },
+  },
+  {
+    path: '/vocab/review',
+    name: 'VocabReview',
+    component: () => import('@/views/VocabReview.vue'),
+    meta: { title: '生词复习' },
+  },
   // Admin routes (independent layout, no sidebar)
   {
     path: '/admin',
