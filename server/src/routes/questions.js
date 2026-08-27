@@ -61,7 +61,27 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
     const maxPassages = parseInt(req.query.maxPassages) || 0;
 
     // 异步解析PDF，source 设为 'user'，passage_id = uploadId
-    parseTOEFLReadingPDF(req.file.path, db, uploadId, { maxPages, maxPassages })
+    parseTOEFLReadingPDF(
+      req.file.path,
+      db,
+      uploadId,
+      { maxPages, maxPassages },
+      (progress) => {
+        // 后台解析进度上报：前端据此展示「已解析 X 篇，剩余继续」
+        if (progress && progress.phase === 'parse') {
+          setUploadStatus(uploadId, {
+            status: 'processing',
+            fileName: req.file.originalname,
+            parsedCount: progress.questionsInserted || 0,
+            error: null,
+            meta: {
+              parsedPassages: progress.passagesDone || 0,
+              totalPassages: progress.passagesTotal || 0,
+            },
+          });
+        }
+      }
+    )
       .then(async (result) => {
         const count = result.insertedCount || 0;
         console.log(`[Questions] PDF解析完成 uploadId=${uploadId}，共插入 ${count} 道题目 (${result.passageCount}篇, ${result.totalPages}页)`);

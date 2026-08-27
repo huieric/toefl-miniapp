@@ -22,7 +22,8 @@
     "express-rate-limit": "^7.1.5",
     "axios": "^1.6.2",
     "pdf-parse": "^1.1.1",
-    "openai": "^4.60.0"
+    "openai": "^4.60.0",
+    "tesseract.js": "^5.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

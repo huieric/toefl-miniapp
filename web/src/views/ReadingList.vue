@@ -202,6 +202,7 @@ const handleFileChange = async (e) => {
 
     if (uploadId) {
       let resolved = false
+      let lastParsedPassages = 0
       // 立即刷新一次，先把已解析出的篇章显示出来
       await fetchList()
       ElMessage.info('开始后台解析，已解析出的题目会逐步显示，你可以先继续使用')
@@ -233,9 +234,14 @@ const handleFileChange = async (e) => {
             ElMessage.error(`解析失败: ${st.error || '未知错误'}`)
             break
           }
-          // 仍在解析中：刷新列表展示最新已解析的篇章
+          // 仍在解析中：刷新列表展示最新已解析的篇章，并提示进度
           if (st?.status === 'processing') {
             await fetchList()
+            const parsedP = st.meta?.parsedPassages || 0
+            if (parsedP > 0 && parsedP !== lastParsedPassages) {
+              lastParsedPassages = parsedP
+              ElMessage.info(`已解析 ${parsedP} 篇，剩余题目后台继续解析中，你可以先开始练习`)
+            }
           }
         } catch (_) {}
       }

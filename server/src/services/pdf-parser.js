@@ -63,7 +63,7 @@ function resolveBackend(aiConfig) {
 // 主入口
 // ============================================================
 
-async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
+async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}, onProgress) {
   console.log(`[PDF-Parser v5] 开始解析: ${filePath}`);
 
   // Step 1: PDF文本提取 (大文件分页处理)
@@ -102,22 +102,33 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
     }
   }
 
-  const rawText = (pdfData.text || '').replace(/\u0000/g, '');
+  let rawText = (pdfData.text || '').replace(/\u0000/g, '');
   console.log(`[PDF-Parser v5] 文本: ${rawText.length} 字符, ${pdfData.numpages} 页`);
 
+  // 文字层极少 → 疑似扫描版，尝试本地 OCR
   if (rawText.trim().length < 100) {
-    throw new Error('PDF 未提取到文字层（可能是扫描件/图片型 PDF），暂不支持 OCR，请使用带文字层的 PDF');
+    console.log('[PDF-Parser v5] 文字层极少，疑似扫描件，尝试本地 OCR...');
+    try {
+      const { extractTextViaOCR } = require('./ocr');
+      rawText = await extractTextViaOCR(filePath, {
+        onProgress: (done, total) => {
+          if (onProgress) onProgress({ phase: 'ocr', done, total });
+        },
+      });
+      console.log(`[PDF-Parser v5] OCR 完成: ${rawText.length} 字符`);
+    } catch (ocrErr) {
+      console.error('[PDF-Parser v5] OCR 失败:', ocrErr.message);
+      throw new Error(`PDF 无文字层且本地 OCR 不可用（需 poppler-utils + tesseract.js）：${ocrErr.message}`);
+    }
   }
 
   // Step 2: 预处理 — 分割文章 + 提取答案key
   const segments = preProcessText(rawText);
   console.log(`[PDF-Parser v5] 预处理: ${segments.length} 个文本段`);
 
-  // Step 3: AI 解析 (每个段落单独处理)
+  // Step 3+4: 逐段解析 + 立即入库（实现「跑完一套显示一套」+ 进度上报）
   const aiConfig = getAIConfig();
   const backend = resolveBackend(aiConfig);
-  let passages = [];
-
   const requestedMaxPassages = parseInt(options.maxPassages) || 0;
   // 默认尽量多解析（后台进行，前端分段展示）；上限 50 篇防止超大合集导致内存/超时问题
   const MAX_SEGMENTS = requestedMaxPassages > 0 ? requestedMaxPassages : 50;
@@ -128,74 +139,89 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
 
   if (backend) {
     console.log(`[PDF-Parser v5] AI后端: ${backend.description} (${backend.model})`);
-    for (let si = 0; si < segmentsToProcess.length; si++) {
-      const seg = segmentsToProcess[si];
-      console.log(`[PDF-Parser v5] 解析段 ${si + 1}/${segmentsToProcess.length} (${seg.text.length} 字符)...`);
+  } else {
+    console.log('[PDF-Parser v5] 未配置 AI Key，使用规则引擎');
+  }
+
+  let inserted = 0;
+  let skipped = 0;
+  let passagesDone = 0;
+
+  for (let si = 0; si < segmentsToProcess.length; si++) {
+    const seg = segmentsToProcess[si];
+    console.log(`[PDF-Parser v5] 解析段 ${si + 1}/${segmentsToProcess.length} (${seg.text.length} 字符)...`);
+
+    // 解析当前段（AI 优先，失败降级规则）
+    let segPassages = [];
+    if (backend) {
       try {
-        const segPassages = await aiParseSegment(seg, aiConfig.apiKey, backend);
-        passages.push(...segPassages);
+        segPassages = await aiParseSegment(seg, aiConfig.apiKey, backend);
       } catch (err) {
         console.error(`[PDF-Parser v5] 段 ${si + 1} AI解析失败:`, err.message);
         console.log(`[PDF-Parser v5] 段 ${si + 1} 降级到规则引擎...`);
-        passages.push(...ruleBasedParseSegment(seg));
+        segPassages = ruleBasedParseSegment(seg);
+      }
+    } else {
+      segPassages = ruleBasedParseSegment(seg);
+    }
+
+    // 立即入库当前段的题（重复题自动跳过）
+    for (let pi = 0; pi < segPassages.length; pi++) {
+      const p = segPassages[pi];
+      const subPassageId = passageId ? `${passageId}-p${passagesDone + pi + 1}` : `pdf-p${passagesDone + pi + 1}`;
+
+      for (let qi = 0; qi < (p.questions || []).length; qi++) {
+        const q = p.questions[qi];
+        try {
+          const ins = await db.query(
+            `INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, source, status, passage_id, question_order)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'user', 'approved', $10, $11)
+             ON CONFLICT DO NOTHING`,
+            [
+              'reading',
+              q.type || 'detail',
+              q.difficulty || 'medium',
+              `${(p.title || 'PDF Reading').replace(/[\t\r\n]+/g, ' ').replace(/\s+/g, ' ').trim()} - Q${qi + 1}`,
+              q.content || q.question,
+              JSON.stringify((q.options || []).map((o, i) => ({
+                label: o.label || String.fromCharCode(65 + i),
+                text: o.text || o
+              }))),
+              normalizeAnswer(q.answer),
+              q.analysis || q.explanation || '',
+              p.passage_text || p.passage || '',
+              subPassageId,
+              qi + 1
+            ]
+          );
+          if (ins.rowCount > 0) inserted++;
+          else skipped++;
+        } catch (err) {
+          console.error(`[PDF-Parser v5] 入库失败:`, err.message);
+        }
       }
     }
-  } else {
-    console.log('[PDF-Parser v5] 未配置 AI Key，使用规则引擎');
-    for (const seg of segmentsToProcess) {
-      passages.push(...ruleBasedParseSegment(seg));
-    }
-  }
+    passagesDone += segPassages.length;
 
-  console.log(`[PDF-Parser v5] 解析出 ${passages.length} 篇文章`);
-
-  // Step 4: 入库（重复题自动跳过）
-  let inserted = 0;
-  let skipped = 0;
-  for (let pi = 0; pi < passages.length; pi++) {
-    const p = passages[pi];
-    const subPassageId = passageId ? `${passageId}-p${pi + 1}` : `pdf-p${pi + 1}`;
-
-    for (let qi = 0; qi < (p.questions || []).length; qi++) {
-      const q = p.questions[qi];
-      try {
-        const ins = await db.query(
-          `INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, source, status, passage_id, question_order)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'user', 'approved', $10, $11)
-           ON CONFLICT DO NOTHING`,
-          [
-            'reading',
-            q.type || 'detail',
-            q.difficulty || 'medium',
-            `${(p.title || 'PDF Reading').replace(/[\t\r\n]+/g, ' ').replace(/\s+/g, ' ').trim()} - Q${qi + 1}`,
-            q.content || q.question,
-            JSON.stringify((q.options || []).map((o, i) => ({
-              label: o.label || String.fromCharCode(65 + i),
-              text: o.text || o
-            }))),
-            normalizeAnswer(q.answer),
-            q.analysis || q.explanation || '',
-            p.passage_text || p.passage || '',
-            subPassageId,
-            qi + 1
-          ]
-        );
-        if (ins.rowCount > 0) inserted++;
-        else skipped++;
-      } catch (err) {
-        console.error(`[PDF-Parser v5] 入库失败:`, err.message);
-      }
+    // 上报进度：每解析完一段就通知，前端据此展示「已解析 X 篇」
+    if (onProgress) {
+      onProgress({
+        phase: 'parse',
+        passagesDone,
+        passagesTotal: segmentsToProcess.length,
+        questionsInserted: inserted,
+      });
     }
   }
 
   const pageLimited = maxPages > 0 && pdfData.numpages > maxPages;
   const segmentLimited = segments.length > MAX_SEGMENTS;
 
-  console.log(`[PDF-Parser v5] 完成: ${inserted} 题入库, ${skipped} 题已存在跳过 (${passages.length} 篇文章)`);
+  console.log(`[PDF-Parser v5] 完成: ${inserted} 题入库, ${skipped} 题已存在跳过 (${passagesDone} 篇文章)`);
   return {
     insertedCount: inserted,
     skippedCount: skipped,
-    passageCount: passages.length,
+    passageCount: passagesDone,
     discoveredPassageCount: segments.length,
     totalPages: pdfData.numpages,
     parsedPages: maxPages > 0 ? Math.min(maxPages, pdfData.numpages) : pdfData.numpages,

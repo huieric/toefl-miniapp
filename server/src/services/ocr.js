@@ -1,148 +1,109 @@
-const axios = require('axios');
+/**
+ * 本地 OCR 服务（扫描版 PDF → 文字）
+ *
+ * 链路：PDF 页 → 渲染成 PNG（poppler pdftoppm）→ tesseract.js 识别 → 拼接文字
+ *
+ * 依赖：
+ *   - 系统：poppler-utils（提供 pdftoppm）  Ubuntu/Debian: apt install poppler-utils
+ *   - npm：tesseract.js
+ *
+ * 如需更高识别质量可换 RapidOCR（Python），见 docs/ocr-setup.md。
+ */
+
+const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const config = require('../config');
+const os = require('os');
 
 /**
- * 腾讯云OCR PDF解析服务
- * 将PDF文件上传到腾讯云COS，然后调用OCR接口解析
+ * 用 poppler 的 pdftoppm 把 PDF 渲染成 PNG 列表
+ * @param {string} pdfPath
+ * @param {string} outDir
+ * @param {number} dpi 渲染分辨率，扫描件建议 200-300
+ * @returns {Promise<string[]>} PNG 绝对路径数组（按页码排序）
  */
-
-/**
- * 解析上传的PDF文件，提取题目内容
- * @param {string} filePath - PDF文件路径
- * @returns {Promise<Array>} 解析出的题目列表
- */
-async function parsePDF(filePath) {
-  try {
-    // 1. 上传PDF到腾讯云COS（获取可访问URL）
-    const cosUrl = await uploadToCOS(filePath);
-
-    // 2. 调用腾讯云OCR接口
-    const ocrResult = await callTencentOCR(cosUrl);
-
-    // 3. 解析OCR结果，提取题目
-    const questions = parseOCRResult(ocrResult);
-
-    return questions;
-  } catch (err) {
-    console.error('[OCR] PDF解析失败:', err.message);
-    // 降级：返回模拟数据（实际项目中应抛出错误）
-    return generateMockQuestions();
-  }
-}
-
-/**
- * 上传文件到腾讯云COS
- */
-async function uploadToCOS(filePath) {
-  // 实际实现需使用 cos-nodejs-sdk-v5
-  // 这里返回模拟URL
-  console.log('[OCR] 上传文件到COS:', filePath);
-  return `https://${config.ossBucket}.cos.${config.ossRegion}.myqcloud.com/${path.basename(filePath)}`;
-}
-
-/**
- * 调用腾讯云OCR接口
- */
-async function callTencentOCR(fileUrl) {
-  try {
-    const response = await axios.post(
-      'https://ocr.tencentcloudapi.com/',
-      {
-        Action: 'GeneralBasicOCR',
-        Version: '2018-11-19',
-        ImageUrl: fileUrl,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-TC-SecretId': config.tencentSecretId,
-          'X-TC-SecretKey': config.tencentSecretKey,
-        },
+function renderPdfToImages(pdfPath, outDir, dpi = 200) {
+  return new Promise((resolve, reject) => {
+    const prefix = path.join(outDir, 'page');
+    execFile(
+      'pdftoppm',
+      ['-png', '-r', String(dpi), pdfPath, prefix],
+      { maxBuffer: 16 * 1024 * 1024 },
+      (err, _stdout, stderr) => {
+        if (err) {
+          return reject(new Error(`PDF 渲染失败（需安装 poppler-utils）：${(stderr || err.message).trim()}`));
+        }
+        const images = fs
+          .readdirSync(outDir)
+          .filter((f) => /^page-.*\.png$/i.test(f))
+          .map((f) => path.join(outDir, f))
+          .sort((a, b) => {
+            const na = parseInt(a.match(/page-(\d+)/)?.[1] || '0', 10);
+            const nb = parseInt(b.match(/page-(\d+)/)?.[1] || '0', 10);
+            return na - nb;
+          });
+        if (images.length === 0) return reject(new Error('PDF 渲染后未生成任何图片'));
+        resolve(images);
       }
     );
-    return response.data.Response;
-  } catch (err) {
-    console.error('[OCR] 调用OCR接口失败:', err.message);
-    throw err;
-  }
+  });
 }
 
 /**
- * 解析OCR结果，提取题目
+ * 用 tesseract.js 批量识别图片，返回拼接后的全文
+ * @param {string[]} images
+ * @param {object} [opts]
+ * @param {(done:number,total:number)=>void} [opts.onProgress] - 页级进度回调
+ * @returns {Promise<string>}
  */
-function parseOCRResult(ocrResult) {
-  const questions = [];
-  const textDetections = ocrResult?.TextDetections || [];
+async function ocrImagesWithTesseract(images, { onProgress } = {}) {
+  let Tesseract;
+  try {
+    Tesseract = require('tesseract.js');
+  } catch (e) {
+    throw new Error('tesseract.js 未安装：npm install tesseract.js');
+  }
 
-  // 简单解析逻辑：按行合并，识别题目编号
-  let currentQuestion = null;
+  const worker = await Tesseract.createWorker('eng', 1, {
+    logger: () => {}, // 静默
+  });
 
-  for (const detection of textDetections) {
-    const text = detection.DetectedText?.trim();
-    if (!text) continue;
-
-    // 识别题目开始（如 "1.", "Q1:", "Question 1"）
-    if (/^\d+[\.\)]/.test(text) || /^Q\d+[:：]/.test(text) || /^Question\s+\d+/i.test(text)) {
-      if (currentQuestion) {
-        questions.push(currentQuestion);
-      }
-      currentQuestion = {
-        subject: 'reading',
-        type: 'detail',
-        difficulty: 'medium',
-        title: text,
-        content: text,
-        options: [],
-        answer: '',
-        analysis: '',
-        status: 'pending',
-      };
-    } else if (currentQuestion) {
-      // 识别选项（A. B. C. D.）
-      const optionMatch = text.match(/^([A-D])[\.\)]\s*(.*)/);
-      if (optionMatch) {
-        currentQuestion.options.push({
-          label: optionMatch[1],
-          text: optionMatch[2] || '',
-        });
-      } else {
-        // 追加到内容
-        currentQuestion.content += '\n' + text;
-      }
+  const parts = [];
+  try {
+    for (let i = 0; i < images.length; i++) {
+      const { data } = await worker.recognize(images[i]);
+      parts.push(data.text || '');
+      if (onProgress) onProgress(i + 1, images.length);
     }
+  } finally {
+    await worker.terminate();
   }
-
-  if (currentQuestion) {
-    questions.push(currentQuestion);
-  }
-
-  return questions;
+  return parts.join('\n\n');
 }
 
 /**
- * 生成模拟题目（降级方案）
+ * 对扫描版 PDF 做整本 OCR，返回识别出的全文
+ * @param {string} pdfPath
+ * @param {object} [opts]
+ * @param {(done:number,total:number)=>void} [opts.onProgress] - OCR 页级进度
+ * @returns {Promise<string>}
  */
-function generateMockQuestions() {
-  return [
-    {
-      subject: 'reading',
-      type: 'detail',
-      difficulty: 'medium',
-      title: 'Sample Question 1',
-      content: 'What is the main idea of the passage?',
-      options: [
-        { label: 'A', text: 'Option A' },
-        { label: 'B', text: 'Option B' },
-        { label: 'C', text: 'Option C' },
-        { label: 'D', text: 'Option D' },
-      ],
-      answer: 'B',
-      analysis: 'This is a sample analysis.',
-      status: 'pending',
-    },
-  ];
+async function extractTextViaOCR(pdfPath, { onProgress } = {}) {
+  if (!fs.existsSync(pdfPath)) throw new Error('PDF 文件不存在');
+
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'toefl-ocr-'));
+  try {
+    const images = await renderPdfToImages(pdfPath, outDir);
+    const text = await ocrImagesWithTesseract(images, { onProgress });
+    if (!text.trim()) throw new Error('OCR 识别结果为空');
+    return text;
+  } finally {
+    try { fs.rmSync(outDir, { recursive: true, force: true }); } catch (_) {}
+  }
 }
 
-module.exports = { parsePDF };
+module.exports = {
+  extractTextViaOCR,
+  renderPdfToImages,
+  ocrImagesWithTesseract,
+};
