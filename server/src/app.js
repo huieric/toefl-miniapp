@@ -148,7 +148,8 @@ async function initDatabaseWithRetry() {
 }
 
 async function startServer() {
-  app.listen(config.port, () => {
+  // 显式绑定 0.0.0.0（IPv4 全接口），确保 Tailscale/局域网远端可访问
+  app.listen(config.port, '0.0.0.0', () => {
     console.log(`[TOEFL-Server] 服务已启动: http://localhost:${config.port}`);
     console.log(`[TOEFL-Server] 环境: ${config.nodeEnv}`);
   });
