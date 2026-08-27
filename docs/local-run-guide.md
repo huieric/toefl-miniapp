@@ -48,6 +48,14 @@ npm run dev
 2. 手机连同一个 WiFi，浏览器打开：`http://192.168.1.100:5173`；
 3. ⚠️ 前端要能访问后端：把 `web/.env.development` 里的 `VITE_API_BASE` 改成 `http://<你的局域网IP>:10000/api`，然后**重启 `npm run dev`**。
 
+### 方式 A-2：Tailscale（自己的设备，推荐，无需 cpolar）
+如果你电脑装了 Tailscale：
+1. 手机也装 **Tailscale App**，登录同一个账号，加入你的网络；
+2. 电脑上 `tailscale ip` 查你的 Tailscale IP（形如 `100.x.y.z`）；
+3. 手机浏览器打开：`http://100.x.y.z:5173`；
+4. 同样把 `web/.env.development` 的 `VITE_API_BASE` 改成 `http://100.x.y.z:10000/api`，重启前端。
+> 特点：只有你（和你授权的设备）能访问，安全私密；适合个人测试，不用装 cpolar。
+
 ### 方式 B：内网穿透（给 WiFi 外的用户/真实测试用户）
 用 **cpolar**（国内友好，免费版有随机公网域名）：
 
