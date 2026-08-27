@@ -202,25 +202,29 @@ const handleFileChange = async (e) => {
 
     if (uploadId) {
       let resolved = false
-      for (let i = 0; i < 60; i++) {
-        await new Promise(r => setTimeout(r, 3000))
+      // 立即刷新一次，先把已解析出的篇章显示出来
+      await fetchList()
+      ElMessage.info('开始后台解析，已解析出的题目会逐步显示，你可以先继续使用')
+
+      // 分段展示：轮询期间每次都刷新列表，新解析出的篇章会自动出现
+      for (let i = 0; i < 240; i++) {
+        await new Promise(r => setTimeout(r, 5000))
         try {
           const s = await questionAPI.uploadStatus(uploadId)
           const st = s.data?.data
           if (st?.status === 'completed') {
             resolved = true
+            await fetchList()
             if (st.parsedCount > 0) {
-              await fetchList()
               if (st.meta?.truncated) {
-                ElMessage.warning(`解析完成：已导入 ${st.parsedCount} 道题。文件较大，本次解析了前 ${st.meta.parsedPages || '-'} 页。`)
+                ElMessage.warning(`解析完成：已导入 ${st.parsedCount} 道题（${st.meta.passageCount} 篇）。文件较大仅解析前 ${st.meta.parsedPages || '-'} 页；若 PDF 是扫描图片（无文字层），其余内容无法解析，请用带文字层的 PDF 或拆分上传`)
               } else {
-                ElMessage.success(`解析完成！共入库 ${st.parsedCount} 道真题`)
+                ElMessage.success(`解析完成！共入库 ${st.parsedCount} 道题`)
               }
             } else if (st.meta?.skippedCount > 0) {
-              await fetchList()
               ElMessage.info('这些题目之前已经导入过了，已刷新列表')
             } else {
-              ElMessage.warning('PDF解析完成但未提取到题目，请检查PDF格式')
+              ElMessage.warning('PDF解析完成但未提取到题目：可能是扫描件/图片型 PDF（无文字层），请使用带文字层的 PDF')
             }
             break
           }
@@ -229,11 +233,15 @@ const handleFileChange = async (e) => {
             ElMessage.error(`解析失败: ${st.error || '未知错误'}`)
             break
           }
+          // 仍在解析中：刷新列表展示最新已解析的篇章
+          if (st?.status === 'processing') {
+            await fetchList()
+          }
         } catch (_) {}
       }
       if (!resolved) {
         await fetchList()
-        ElMessage.warning('解析仍在后台进行，请稍后刷新列表查看（大文件/AI 解析可能需要几分钟）')
+        ElMessage.warning('解析仍在后台进行（大文件较慢），已解析出的内容已显示；可稍后刷新列表查看新增')
       }
     } else {
       await new Promise(r => setTimeout(r, 5000))

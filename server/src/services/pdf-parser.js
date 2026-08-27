@@ -119,7 +119,8 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}) {
   let passages = [];
 
   const requestedMaxPassages = parseInt(options.maxPassages) || 0;
-  const MAX_SEGMENTS = requestedMaxPassages > 0 ? requestedMaxPassages : 8; // 最多处理8个段，防止超时
+  // 默认尽量多解析（后台进行，前端分段展示）；上限 50 篇防止超大合集导致内存/超时问题
+  const MAX_SEGMENTS = requestedMaxPassages > 0 ? requestedMaxPassages : 50;
   const segmentsToProcess = segments.slice(0, MAX_SEGMENTS);
   if (segments.length > MAX_SEGMENTS) {
     console.log(`[PDF-Parser v5] 文本段过多(${segments.length})，只处理前${MAX_SEGMENTS}个`);
