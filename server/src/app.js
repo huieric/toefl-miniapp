@@ -43,7 +43,17 @@ const startupState = {
 };
 
 // === 安全中间件 ===
-app.use(helmet());
+// 关闭 CSP 的 upgrade-insecure-requests：本服务是纯 http 部署（无 TLS），
+// 该指令会让浏览器把 /assets 等子资源升级成 https 导致 ERR_SSL_PROTOCOL_ERROR 白屏
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        'upgrade-insecure-requests': null,
+      },
+    },
+  })
+);
 
 // === CORS ===
 app.use(cors({
