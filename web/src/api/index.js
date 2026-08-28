@@ -75,6 +75,7 @@ export const healthAPI = {
 export const questionAPI = {
   list: (params) => http.get('/questions', { params }),
   listGrouped: (params) => http.get('/questions', { params: { ...params, groupBy: 'passage' } }),
+  listSets: (params) => http.get('/questions', { params: { ...params, groupBy: 'set' } }),
   getById: (id) => http.get(`/questions/${id}`),
   getPassage: (passageId) => http.get(`/questions/passage/${passageId}`),
   getBySubject: (subject, params) => http.get('/questions', { params: { subject, ...params } }),

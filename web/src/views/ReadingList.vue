@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <div class="page-header"><h2>阅读练习</h2><span v-if="passages.length" style="font-size:13px;color:var(--text-secondary)">共 {{ passages.length }} 篇 · {{ totalQuestions }} 题</span></div>
+    <div class="page-header"><h2>阅读练习</h2><span v-if="summaryText" style="font-size:13px;color:var(--text-secondary)">{{ summaryText }}</span></div>
 
     <!-- Tab切换 -->
     <div class="source-tabs">
@@ -19,16 +19,42 @@
     </div>
 
     <div v-loading="loading" :element-loading-text="loadingText">
-      <el-empty v-if="!loading && !passages.length" :description="emptyDesc">
+      <el-empty v-if="!loading && !hasData" :description="emptyDesc">
         <template v-if="sourceTab === 'user'">
-          <el-button type="primary" @click="triggerUpload">上传PDF题目</el-button>
+          <el-button type="primary" @click="uploadVisible = true">上传题目</el-button>
         </template>
         <template v-else>
           <el-button type="primary" @click="showGenDialog">生成模拟题</el-button>
         </template>
       </el-empty>
 
-      <!-- 篇章卡片列表 -->
+      <!-- 真题：题集两级折叠（题集 → 篇） -->
+      <div v-else-if="sourceTab === 'user'" class="sets-list">
+        <el-collapse v-model="activeSets">
+          <el-collapse-item v-for="s in sets" :key="s.batchId" :name="s.batchId">
+            <template #title>
+              <div class="set-header">
+                <span class="set-name">{{ s.batchName || '未命名题集' }}</span>
+                <span class="set-meta">{{ s.passageCount }} 篇 · {{ s.questionCount }} 题</span>
+              </div>
+            </template>
+            <div class="passage-list">
+              <div
+                v-for="p in s.passages"
+                :key="p.passageId"
+                class="passage-row"
+                @click="goPassage(p.passageId)"
+              >
+                <span class="passage-row-title">{{ cleanTitle(p.title) }}</span>
+                <span class="passage-row-meta">{{ p.questionCount }} 题 · {{ diffLabel(p.difficulty) }}</span>
+                <el-icon class="passage-row-arrow"><ArrowRight /></el-icon>
+              </div>
+            </div>
+          </el-collapse-item>
+        </el-collapse>
+      </div>
+
+      <!-- 模拟：平铺篇章卡片 -->
       <div v-else class="passage-grid">
         <el-card
           v-for="p in passages"
@@ -134,6 +160,8 @@ import UploadQuestionDialog from '@/components/UploadQuestionDialog.vue'
 const router = useRouter()
 const passages = ref([])
 const orphans = ref([])
+const sets = ref([])
+const activeSets = ref([])
 const loading = ref(false)
 const uploading = ref(false)
 const generating = ref(false)
@@ -150,6 +178,17 @@ const loadPhase = ref('')
 
 const emptyDesc = computed(() => sourceTab.value === 'user' ? '暂无阅读真题' : '暂无模拟题')
 const totalQuestions = computed(() => passages.value.reduce((s, p) => s + (p.questionCount || 0), 0))
+const hasData = computed(() => sourceTab.value === 'user' ? sets.value.length > 0 : (passages.value.length > 0 || orphans.value.length > 0))
+const summaryText = computed(() => {
+  if (sourceTab.value === 'user') {
+    if (!sets.value.length) return ''
+    const totalP = sets.value.reduce((s, st) => s + (st.passageCount || 0), 0)
+    const totalQ = sets.value.reduce((s, st) => s + (st.questionCount || 0), 0)
+    return `共 ${sets.value.length} 个题集 · ${totalP} 篇 · ${totalQ} 题`
+  }
+  if (!passages.value.length) return ''
+  return `共 ${passages.value.length} 篇 · ${totalQuestions.value} 题`
+})
 
 const loadingText = computed(() => {
   if (loadPhase.value === 'waking') return '正在连接服务器...'
@@ -288,6 +327,7 @@ const fetchList = async () => {
   loadPhase.value = ''
   passages.value = []
   orphans.value = []
+  sets.value = []
 
   loadPhase.value = 'waking'
   try {
@@ -304,17 +344,28 @@ const fetchList = async () => {
 
   loadPhase.value = 'loading'
   try {
-    const res = await withRetry(
-      () => questionAPI.listGrouped({ subject: 'reading' }),
-      { retries: 2, retryDelay: 5000 }
-    )
-    const data = res.data?.data
-    passages.value = data?.list || []
-    orphans.value = data?.orphans || []
+    if (sourceTab.value === 'user') {
+      // 真题：按题集两级展示
+      const res = await withRetry(
+        () => questionAPI.listSets({ subject: 'reading' }),
+        { retries: 2, retryDelay: 5000 }
+      )
+      sets.value = res.data?.data?.sets || []
+    } else {
+      // 模拟：平铺篇章
+      const res = await withRetry(
+        () => questionAPI.listGrouped({ subject: 'reading', source: 'simulated' }),
+        { retries: 2, retryDelay: 5000 }
+      )
+      const data = res.data?.data
+      passages.value = data?.list || []
+      orphans.value = data?.orphans || []
+    }
   } catch (e) {
     console.error('获取阅读篇章失败:', e)
     passages.value = []
     orphans.value = []
+    sets.value = []
     ElMessage.error('加载失败，请刷新页面重试')
   } finally {
     loadPhase.value = ''
@@ -414,5 +465,65 @@ onMounted(fetchList)
 }
 .orphans-divider {
   grid-column: 1 / -1;
+}
+
+/* 题集两级折叠 */
+.sets-list { margin-bottom: 16px; }
+.set-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+.set-name {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text-primary, #303133);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.set-meta {
+  font-size: 12px;
+  color: var(--text-secondary, #909399);
+  flex-shrink: 0;
+}
+.passage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0 8px;
+}
+.passage-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.passage-row:hover {
+  border-color: var(--primary, #4a90d9);
+  background: rgba(74,144,217,0.04);
+}
+.passage-row-title {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-primary, #303133);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.passage-row-meta {
+  font-size: 12px;
+  color: var(--text-secondary, #909399);
+  flex-shrink: 0;
+}
+.passage-row-arrow {
+  color: var(--text-placeholder, #c0c4cc);
+  flex-shrink: 0;
 }
 </style>
