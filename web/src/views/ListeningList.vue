@@ -10,8 +10,7 @@
       </el-radio-group>
       <div class="tab-actions">
         <template v-if="sourceTab === 'user'">
-          <input ref="fileInputRef" type="file" accept=".pdf" style="display:none" @change="handleFileChange" />
-          <el-button type="primary" size="small" @click="triggerUpload">上传PDF真题</el-button>
+          <el-button type="primary" size="small" @click="uploadVisible = true">上传题目</el-button>
         </template>
         <template v-else>
           <el-button type="primary" size="small" :loading="generating" @click="showGenDialog">生成模拟题</el-button>
@@ -69,6 +68,8 @@
         <el-button type="primary" :loading="generating" @click="doGenerate">生成</el-button>
       </template>
     </el-dialog>
+
+    <UploadQuestionDialog v-model="uploadVisible" default-subject="listening" @done="fetchList" />
   </div>
 </template>
 
@@ -77,6 +78,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { questionAPI, withRetry } from '@/api'
+import UploadQuestionDialog from '@/components/UploadQuestionDialog.vue'
 
 const router = useRouter()
 const list = ref([])
@@ -87,6 +89,7 @@ const sourceTab = ref('simulated')
 const fileInputRef = ref(null)
 const progressVisible = ref(false)
 const uploadProgress = ref(0)
+const uploadVisible = ref(false)
 const genVisible = ref(false)
 const genCount = ref(5)
 const genDifficulty = ref('medium')

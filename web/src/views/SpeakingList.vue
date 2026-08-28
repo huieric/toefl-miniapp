@@ -9,7 +9,7 @@
       </el-radio-group>
       <div class="tab-actions">
         <template v-if="sourceTab === 'user'">
-          <el-button type="primary" size="small" disabled>暂无上传</el-button>
+          <el-button type="primary" size="small" @click="uploadVisible = true">上传题目</el-button>
         </template>
         <template v-else>
           <el-button type="primary" size="small" :loading="generating" @click="showGenDialog">生成模拟题</el-button>
@@ -61,6 +61,8 @@
         <el-button type="primary" :loading="generating" @click="doGenerate">生成</el-button>
       </template>
     </el-dialog>
+
+    <UploadQuestionDialog v-model="uploadVisible" default-subject="speaking" @done="fetchList" />
   </div>
 </template>
 
@@ -69,6 +71,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { questionAPI, withRetry } from '@/api'
+import UploadQuestionDialog from '@/components/UploadQuestionDialog.vue'
 
 const router = useRouter()
 const list = ref([])
@@ -78,6 +81,7 @@ const sourceTab = ref('simulated')
 const genVisible = ref(false)
 const genCount = ref(5)
 const genDifficulty = ref('medium')
+const uploadVisible = ref(false)
 
 let _safetyTimer = null
 const SAFETY_TIMEOUT = 35000
