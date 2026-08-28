@@ -66,6 +66,10 @@ function resolveBackend(aiConfig) {
 async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}, onProgress) {
   console.log(`[PDF-Parser v5] 开始解析: ${filePath}`);
 
+  // 科目（默认阅读；听力/口语/写作上传时传入）+ 音频地址（听力题关联录音）
+  const subject = options.subject || 'reading';
+  const audioUrl = options.audioUrl || null;
+
   // Step 1: PDF文本提取 (大文件分页处理)
   let pdfParse;
   try { pdfParse = require('pdf-parse'); } catch (e) {
@@ -183,14 +187,14 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}, onPro
         const q = p.questions[qi];
         try {
           const ins = await db.query(
-            `INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, source, status, passage_id, question_order)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'user', 'approved', $10, $11)
+            `INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, audio_url, source, status, passage_id, question_order)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'user', 'approved', $11, $12)
              ON CONFLICT DO NOTHING`,
             [
-              'reading',
+              subject,
               q.type || 'detail',
               q.difficulty || 'medium',
-              `${(p.title || 'PDF Reading').replace(/[\t\r\n]+/g, ' ').replace(/\s+/g, ' ').trim()} - Q${qi + 1}`,
+              `${(p.title || 'PDF Passage').replace(/[\t\r\n]+/g, ' ').replace(/\s+/g, ' ').trim()} - Q${qi + 1}`,
               q.content || q.question,
               JSON.stringify((q.options || []).map((o, i) => ({
                 label: o.label || String.fromCharCode(65 + i),
@@ -199,6 +203,7 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}, onPro
               normalizeAnswer(q.answer),
               q.analysis || q.explanation || '',
               p.passage_text || p.passage || '',
+              audioUrl,
               subPassageId,
               qi + 1
             ]

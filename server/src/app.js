@@ -101,9 +101,11 @@ app.get('/api/health', (req, res) => {
 const webDist = path.join(__dirname, '..', '..', 'web', 'dist');
 if (fs.existsSync(webDist)) {
   app.use(express.static(webDist));
-  // SPA fallback：非 /api 的 GET 请求回退到 index.html
+  // 上传的音频（听力录音）静态托管
+  app.use('/uploads', express.static(uploadsDir));
+  // SPA fallback：非 /api、非 /uploads 的 GET 请求回退到 index.html
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api/')) return next();
+    if (req.path.startsWith('/api/') || req.path.startsWith('/uploads')) return next();
     res.sendFile(path.join(webDist, 'index.html'));
   });
   console.log(`[TOEFL-Server] 静态资源目录: ${webDist}`);
