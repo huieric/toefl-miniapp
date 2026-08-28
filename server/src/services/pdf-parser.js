@@ -651,18 +651,8 @@ function preserveParagraphs(text) {
 
   if (restoredBlankCount >= 2) return result;
 
-  // 兜底：对仍然没有分段的长文本，用启发式强制断段
-  // 句末标点 (.!?]") 后跟换行+大写字母/段落标记 → 插入额外空行
-  result = result.replace(/\n(?=[A-Z\u201c\u300c(])/g, (match, offset) => {
-    // 检查上一整行末尾是否是句末标点（原实现只取前20字符，>40判断恒为false，导致从未断段）
-    const lineStart = result.lastIndexOf('\n', offset - 1) + 1;
-    const before = result.substring(lineStart, offset).trimEnd();
-    if (/[.!?]["')\]]?$/.test(before) && before.length > 40) {
-      return '\n\n';
-    }
-    return match;
-  });
-
+  // 连续无分段标记（无空行、无缩进）的长文本：不做启发式断段（易切碎句子），
+  // 保留单换行交给前端 splitPassageParagraphs 按句子重建段落
   return result;
 }
 
