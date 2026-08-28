@@ -23,6 +23,7 @@ const membershipRoutes = require('./routes/membership');
 const adsRoutes = require('./routes/ads');
 const aiTutorRoutes = require('./routes/ai-tutor');
 const vocabRoutes = require('./routes/vocab');
+const aiRoutes = require('./routes/ai');
 
 // 确保 uploads 目录存在（multer 写文件的前提）
 const uploadsDir = path.join(__dirname, '..', 'uploads');
@@ -86,6 +87,7 @@ app.use('/api/membership', membershipRoutes);
 app.use('/api/ads', adsRoutes);
 app.use('/api/ai-tutor', aiTutorRoutes);
 app.use('/api/vocab', vocabRoutes);
+app.use('/api/ai', aiRoutes);
 
 // === 健康检查 ===
 app.get('/api/health', (req, res) => {

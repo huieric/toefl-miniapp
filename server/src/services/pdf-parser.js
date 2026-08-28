@@ -909,6 +909,9 @@ module.exports = {
     parseQuestions,
     parseAnswerKeyBlock,
     normalizeAnswer,
-    guessQuestionType
+    guessQuestionType,
+    callAI,
+    resolveBackend,
+    extractJSON
   }
 };
