@@ -324,8 +324,8 @@ function preProcessText(rawText) {
     return segments;
   }
 
-  // 中文格式边界: "TPO1 阅读第1篇" / "TPO 1 阅读第 1 篇"
-  const cnPattern = /(?:^|\n)\s*(?:TPO|XPO|XTP)\s*(\d+)\s*阅读第\s*(\d+)\s*篇/gi;
+  // 中文格式边界: "TPO1 阅读第1篇" / "Sample1 阅读第1篇" / "阅读第1篇"
+  const cnPattern = /(?:^|\n)\s*(?:(?:TPO|XPO|XTP|Sample)\s*\d+\s*)?阅读第\s*(\d+)\s*篇/gi;
   const cnMatches = [...text.matchAll(cnPattern)];
   if (cnMatches.length > 0) {
     const segments = [];
@@ -336,7 +336,7 @@ function preProcessText(rawText) {
       if (segText.length > 50) {
         segments.push({
           text: segText,
-          passageNum: parseInt(cnMatches[i][2], 10),
+          passageNum: parseInt(cnMatches[i][1], 10),
           title: null,
           answers: null,
         });
@@ -552,9 +552,9 @@ function ruleBasedParseSegment(segment) {
   let cleanPassageText = passageText || cleaned.substring(0, 3000);
   cleanPassageText = cleanPassageText
     .replace(/^\d+\s*[-\-]\s*(?:XPO|TPO|XTP)\s*\d+\s*[-\-]\s*.+\n/gi, '')
-    .replace(/^\s*(?:TPO|XPO|XTP)\s*\d+\s*阅读第\s*\d+\s*篇\s*\n?/gim, '')
+    .replace(/(?:(?:TPO|XPO|XTP|Sample)\s*\d+\s*)?阅读第\s*\d+\s*篇\s*/gi, '')
     .replace(/\s*学科分类[:：][^\n]*/gi, '')
-    .replace(/^\s*Passage\s*$/gim, '')
+    .replace(/\s*\bPassage\b\s*$/gim, '')
     .trim();
 
   // 提取真正的文章标题：跳过元数据行，取第一个英文标题行
