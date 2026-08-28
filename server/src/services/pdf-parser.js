@@ -98,9 +98,13 @@ async function extractTextWithLayout(dataBuffer, maxPages = 0) {
         let out = lines[0].str.trim();
         for (let i = 1; i < lines.length; i++) {
           const gap = lines[i - 1].y - lines[i].y;
-          const bigGap = gap > normalGap * 1.35;            // 行距突增 = 新段落
-          const indented = (lines[i].x - normalX) > 8;       // 行首缩进 = 新段落
-          out += (bigGap || indented ? '\n\n' : '\n') + lines[i].str.trim();
+          const prevLine = lines[i - 1].str.trim();
+          const endsSentence = /[.!?]["')\]]?$/.test(prevLine);   // 上一行以句号/问号/叹号结尾
+          const bigGap = gap > normalGap * 1.4;                    // 行距明显突增
+          const indented = (lines[i].x - normalX) > 8;             // 行首缩进
+          // 新段落 =（明显大行距 且 上句以句末标点结尾）或（行首缩进）
+          const newPara = (bigGap && endsSentence) || indented;
+          out += (newPara ? '\n\n' : '\n') + lines[i].str.trim();
         }
         return out + '\n\n'; // 页尾加空行，分隔相邻页
       });
