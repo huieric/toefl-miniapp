@@ -60,61 +60,7 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
     const maxPages = parseInt(req.query.maxPages) || 0;
     const maxPassages = parseInt(req.query.maxPassages) || 0;
 
-    // 异步解析PDF，source 设为 'user'，passage_id = uploadId
-    parseTOEFLReadingPDF(
-      req.file.path,
-      db,
-      uploadId,
-      { maxPages, maxPassages },
-      (progress) => {
-        // 后台解析进度上报：前端据此展示「已解析 X 篇，剩余继续」
-        if (progress && progress.phase === 'parse') {
-          setUploadStatus(uploadId, {
-            status: 'processing',
-            fileName: req.file.originalname,
-            parsedCount: progress.questionsInserted || 0,
-            error: null,
-            meta: {
-              parsedPassages: progress.passagesDone || 0,
-              totalPassages: progress.passagesTotal || 0,
-            },
-          });
-        }
-      }
-    )
-      .then(async (result) => {
-        const count = result.insertedCount || 0;
-        console.log(`[Questions] PDF解析完成 uploadId=${uploadId}，共插入 ${count} 道题目 (${result.passageCount}篇, ${result.totalPages}页)`);
-        setUploadStatus(uploadId, {
-          status: 'completed',
-          fileName: req.file.originalname,
-          parsedCount: count,
-          error: null,
-          meta: {
-            passageCount: result.passageCount,
-            discoveredPassageCount: result.discoveredPassageCount,
-            totalPages: result.totalPages,
-            parsedPages: result.parsedPages,
-            truncated: result.truncated,
-            pageLimited: result.pageLimited,
-            segmentLimited: result.segmentLimited,
-            skippedCount: result.skippedCount || 0,
-          },
-        });
-        // 解析完成后清理上传文件
-        try { fs.unlinkSync(req.file.path); } catch (_) {}
-      })
-      .catch((err) => {
-        console.error(`[Questions] PDF解析失败 uploadId=${uploadId}:`, err.message, err.stack);
-        setUploadStatus(uploadId, {
-          status: 'failed',
-          fileName: req.file.originalname,
-          parsedCount: 0,
-          error: err.message,
-        });
-        try { fs.unlinkSync(req.file.path); } catch (_) {}
-      });
-
+    // 先立即返回，再后台解析（setImmediate 确保响应先发出，前端立即进入进度轮询）
     res.json({
       code: 200,
       data: {
@@ -123,6 +69,62 @@ router.post('/upload', auth, upload.single('file'), async (req, res) => {
         status: 'processing',
         message: 'PDF上传成功，正在后台解析题目（标记为真题）...',
       },
+    });
+
+    setImmediate(() => {
+      parseTOEFLReadingPDF(
+        req.file.path,
+        db,
+        uploadId,
+        { maxPages, maxPassages },
+        (progress) => {
+          // 后台解析进度上报：前端据此展示「已解析 X 篇，剩余继续」
+          if (progress && progress.phase === 'parse') {
+            setUploadStatus(uploadId, {
+              status: 'processing',
+              fileName: req.file.originalname,
+              parsedCount: progress.questionsInserted || 0,
+              error: null,
+              meta: {
+                parsedPassages: progress.passagesDone || 0,
+                totalPassages: progress.passagesTotal || 0,
+              },
+            });
+          }
+        }
+      )
+        .then(async (result) => {
+          const count = result.insertedCount || 0;
+          console.log(`[Questions] PDF解析完成 uploadId=${uploadId}，共插入 ${count} 道题目 (${result.passageCount}篇, ${result.totalPages}页)`);
+          setUploadStatus(uploadId, {
+            status: 'completed',
+            fileName: req.file.originalname,
+            parsedCount: count,
+            error: null,
+            meta: {
+              passageCount: result.passageCount,
+              discoveredPassageCount: result.discoveredPassageCount,
+              totalPages: result.totalPages,
+              parsedPages: result.parsedPages,
+              truncated: result.truncated,
+              pageLimited: result.pageLimited,
+              segmentLimited: result.segmentLimited,
+              skippedCount: result.skippedCount || 0,
+            },
+          });
+          // 解析完成后清理上传文件
+          try { fs.unlinkSync(req.file.path); } catch (_) {}
+        })
+        .catch((err) => {
+          console.error(`[Questions] PDF解析失败 uploadId=${uploadId}:`, err.message, err.stack);
+          setUploadStatus(uploadId, {
+            status: 'failed',
+            fileName: req.file.originalname,
+            parsedCount: 0,
+            error: err.message,
+          });
+          try { fs.unlinkSync(req.file.path); } catch (_) {}
+        });
     });
   } catch (err) {
     console.error('[Questions] 上传失败:', err);
