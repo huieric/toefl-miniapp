@@ -1,6 +1,6 @@
 # 托福备考助手 (TOEFL Mini-App)
 
-一款面向托福考生的智能备考平台，覆盖阅读、听力、口语、写作四大科目，集成 AI 题目解析、智能陪练、自适应学习规划与后台数据分析。
+一款面向托福考生的备考工具：**自导题目 + 多端同步 + 错题/生词 FSRS 科学复习 + AI 打分**。核心理念是「用户自带真题资源，我们提供好用的考试系统」——上传 PDF/音频即可开始练习，不做版权内容分发。
 
 ---
 
@@ -10,37 +10,34 @@
 - [技术栈](#技术栈)
 - [项目结构](#项目结构)
 - [快速开始](#快速开始)
-- [部署指南](#部署指南)
+- [部署与访问](#部署与访问)
 - [API 文档](#api-文档)
 - [商业化设计](#商业化设计)
-- [后续迭代计划](#后续迭代计划)
-- [贡献指南](#贡献指南)
+- [测试](#测试)
+- [路线图](#路线图)
 - [许可证](#许可证)
 
 ---
 
 ## 功能特性
 
-### 四科练习
+### 核心（已实现）
 
-- **阅读**：文章阅读 + 题目练习 + 计时 + 结果分析
-- **听力**：音频播放 + 题目练习 + 倍速播放
-- **口语**：录音答题 + AI 评分（预留）
-- **写作**：在线编辑器 + 计时 + AI 批改（预留）
+- **PDF 题目自导入**：上传托福阅读/听力/口语/写作 PDF，自动解析文章、题目、选项、答案（带文字层的秒级解析；扫描图片型自动走本地 OCR）。
+- **多端同步**：Web 端为主，数据在服务端 PostgreSQL，多设备共享。
+- **错题本 + FSRS 科学复习**：答错自动入错题本，按 FSRS-4.5 遗忘曲线安排复习（忘记/模糊/认识/轻松 四键自评）。
+- **生词本 + 划词加词**：阅读/听力原文点击单词自动查释义（音标+英文释义+例句）加入生词本，FSRS 安排背诵。
+- **AI 打分（口语/写作）**：用户自带 AI Key（DeepSeek/OpenAI/自定义），对口语回答/作文给出 0-30 分 + 分维度评分 + 改进建议 + 参考回答/范文。
+- **听力**：支持上传音频+题目，无音频时可用浏览器 TTS 朗读原文。
 
-### 智能学习
+### 布局/体验
 
-- **AI 陪练**：口语对话 / 听力沉浸模式，实时评分反馈
-- **自适应学习计划**：基于目标分数和考试日期，自动生成分阶段学习计划
-- **遗忘曲线复习**：改进版 SM-2 算法，智能推送错题复习
-- **全真模拟**：四科连考模式，还原真实考试流程
+- 阅读总览**两级结构**：题集（一次上传=一个题集，带文件名）→ 每篇阅读。
+- 移动端适配，阅读页「文章/答题」一键切换。
 
 ### 商业化（预留）
 
-- **会员体系**：免费用户 / 付费会员，功能分级
-- **支付系统**：微信支付接入（预留），支持月卡/季卡/年卡
-- **广告系统**：首页 Banner、练习完成页、错题本广告位
-- **数据看板**：管理后台用户增长、活跃度、付费转化统计
+- 会员体系（免费/付费分级）、支付（微信支付，预留）、广告位。
 
 ---
 
@@ -48,14 +45,13 @@
 
 | 层次 | 技术 | 说明 |
 |------|------|------|
-| 小程序前端 | 微信小程序原生 (WXML/WXSS/JS) | 原生性能，直接调用微信 API |
-| Web 前端 | Vue 3 + Vite + Element Plus | 响应式设计，适配移动端 |
-| 管理后台 | Vue 3 + ECharts + Element Plus | 数据可视化 |
+| Web 前端 | Vue 3 + Vite + Element Plus | 响应式，移动端优先 |
 | 后端 | Node.js + Express | RESTful API，JWT 鉴权 |
-| 数据库 | PostgreSQL 16 | 关系型 + JSONB，适合题库存储 |
-| 缓存 | Redis | 会话管理 + 限流 |
-| AI 服务 | OpenAI API（预留） | AI 评分 + 陪练对话 |
-| 部署 | Render.com + GitHub Pages | 后端免费托管 + 前端静态部署 |
+| 数据库 | PostgreSQL 16 (Docker) | 关系型 + JSONB |
+| 记忆算法 | FSRS-4.5（自研实现） | 错题/生词复习排期 |
+| PDF 解析 | pdf-parse + 坐标布局分段 + tesseract.js + poppler | 文字版/扫描版都能解析 |
+| AI 打分 | DeepSeek / OpenAI / 自定义（用户自带 Key） | 口语/写作评分 |
+| 局域网/外网访问 | Tailscale / cpolar | 自托管暴露 |
 
 ---
 
@@ -63,32 +59,16 @@
 
 ```
 toefl-miniapp/
-├── miniprogram/          # 微信小程序前端
-│   ├── pages/            # 小程序页面
-│   ├── components/       # 通用组件（ad-banner 等）
-│   └── utils/            # 工具函数
-│
 ├── web/                  # Web 前端（Vue 3）
-│   ├── src/views/        # 页面组件
-│   ├── src/components/   # Vue 组件
-│   └── src/stores/      # 状态管理
-│
-├── admin/                # 管理后台前端
-│   └── src/views/admin/  # 管理页面
-│
+│   └── src/views/        # 页面（阅读/听力/口语/写作/生词本/错题本/AI设置…）
 ├── server/               # Node.js 后端
-│   ├── src/routes/       # API 路由
-│   ├── src/services/     # 业务逻辑层
-│   ├── src/models/       # 数据库模型
-│   └── src/middleware/   # 鉴权/日志/限流
-│
-├── docs/                 # 项目文档
-│   ├── deployment.md     # 部署文档
-│   ├── project-summary.md # 项目总结
-│   └── api-spec.md      # API 接口文档
-│
-├── render.yaml           # Render.com 部署配置
-├── .gitignore
+│   ├── src/routes/       # API 路由（questions/practice/vocab/wrong/ai…）
+│   ├── src/services/     # 业务（fsrs / ai-scoring / pdf-parser / ocr / pdf-layout）
+│   ├── src/models/       # 数据库初始化 SQL
+│   ├── scripts/          # 调试/回归脚本
+│   └── test/             # 单元测试
+├── docs/                 # 文档
+├── pdf/                  # 测试用 PDF（用户自己下载的真实 TPO）
 └── README.md
 ```
 
@@ -96,203 +76,108 @@ toefl-miniapp/
 
 ## 快速开始
 
-### 前置条件
+### 前置
 
-- Node.js >= 18.0.0
-- PostgreSQL >= 16.0
-- npm >= 9.0
+- Node.js >= 18
+- Docker（运行本地 PostgreSQL）
 
-### 1. 克隆项目
+### 1. 数据库（Docker）
 
 ```bash
-git clone https://github.com/huieric/toefl-miniapp.git
-cd toefl-miniapp
+docker run -d --name toefl-postgres -p 5433:5432 \
+  -e POSTGRES_USER=toefl -e POSTGRES_PASSWORD=toefl123 -e POSTGRES_DB=toefl_db \
+  postgres:16
 ```
 
-### 2. 启动后端
+### 2. 后端
 
 ```bash
 cd server
-
-# 安装依赖
 npm install
-
-# 配置环境变量（创建 .env 文件）
-cat > .env << EOF
-NODE_ENV=development
-PORT=10000
-DATABASE_URL=postgresql://user:password@localhost:5432/toefl_db
-JWT_SECRET=your-secret-key-change-this
-JWT_EXPIRE=7d
-OPENAI_API_KEY=sk-xxx  # 可选
-EOF
-
-# 初始化数据库
-psql "$DATABASE_URL" -f src/models/db-init.sql
-
-# 启动开发服务器（自动重载）
-npm run dev
+# server/.env 里配置：
+#   PORT=10000  DATABASE_URL=postgresql://toefl:toefl123@localhost:5433/toefl_db  JWT_SECRET=xxx
+npm start
 ```
 
-后端启动后访问 `http://localhost:10000/api/v1/health` 验证。
+首次启动自动建表 + 种子数据 + 回填题集。访问 `http://localhost:10000/api/health` 验证。
 
-### 3. 启动 Web 前端
+### 3. 前端（构建后由后端托管，单域名）
 
 ```bash
 cd web
-
 npm install
-
-# 启动开发服务器（默认 http://localhost:5173）
-npm run dev
+$env:VITE_BASE='/'; $env:VITE_API_BASE='/api'; npm run build   # Windows
+# Linux/Mac: VITE_BASE=/ VITE_API_BASE=/api npm run build
 ```
 
-### 4. 启动管理后台
+然后访问 `http://localhost:10000/` 即是完整应用（前端 + API 同源）。
 
-```bash
-cd admin
-
-npm install
-
-npm run dev
-```
-
-### 5. 小程序预览
-
-1. 打开 **微信开发者工具**
-2. 导入项目，选择 `miniprogram/` 目录
-3. 填入自己的 `AppID`（测试可使用测试号）
-4. 修改 `miniprogram/utils/config.js` 中的 API 地址为本地后端地址
+登录验证码固定为 `123456`（`server/.env` 可改 `AUTH_FIXED_CODE`）。
 
 ---
 
-## 部署指南
+## 部署与访问
 
-详细部署步骤请参考 [docs/deployment.md](./docs/deployment.md)。
-
-### 后端（Render.com 一键部署）
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
-
-1. Fork 本仓库到自己的 GitHub
-2. 登录 [Render.com](https://render.com) → **New +** → **Blueprint**
-3. 连接仓库，Render 自动读取 `render.yaml` 创建服务
-4. 等待部署完成，获取后端域名
-
-### Web 前端（GitHub Pages）
-
-```bash
-cd web
-npm install
-npm run build
-
-# 推送到 gh-pages 分支
-npx gh-pages -d dist --repo https://github.com/yourname/toefl-miniapp.git --branch gh-pages
-```
-
-访问：`https://yourname.github.io/toefl-miniapp/web/`
-
-### 小程序
-
-1. 在 [微信公众平台](https://mp.weixin.qq.com) 注册小程序，获取 `AppID`
-2. 配置服务器域名：`https://your-backend.onrender.com`
-3. 在微信开发者工具中点击 **上传**
-4. 提交审核，审核通过后发布
+- **本机**：`http://localhost:10000/`（后端托管前端+API，单域名）。
+- **局域网/外网**：Tailscale（本机 IP:10000）或 cpolar 隧道（公网 https 域名）。
+- 开机自启：`autostart.ps1`（Docker → Postgres → 后端 → cpolar）。
 
 ---
 
 ## API 文档
 
-详细 API 接口说明请参考 [docs/api-spec.md](./docs/api-spec.md)。
-
-**基础路径**：`/api/v1`
+基础路径：**`/api`**（非 `/api/v1`）。
 
 | 模块 | 主要接口 |
 |------|---------|
-| 认证 | `POST /auth/login` |
-| 用户 | `GET /user/profile`、`GET /user/usage-limit` |
-| 题库 | `GET /questions`、`GET /practice-sets` |
-| 考试 | `POST /exam/start`、`POST /exam/:id/submit` |
-| 错题 | `GET /wrong-questions`、`POST /wrong-questions/:id/redo` |
-| AI 陪练 | `POST /ai-talk/start`、`POST /ai-talk/:id/message` |
-| 学习计划 | `POST /plan/create`、`GET /plan/daily/:date` |
-| 会员 | `GET /membership/plans`、`POST /membership/create-order` |
-| 管理后台 | `GET /admin/dashboard/overview`（需 admin 权限） |
+| 认证 | `POST /api/auth/login` |
+| 题目 | `GET /api/questions?groupBy=passage|set`、`POST /api/questions/upload`（PDF+音频+subject） |
+| 练习 | `POST /api/practice/submit`（阅读/听力判分，口语/写作 AI 打分） |
+| 错题 | `GET /api/wrong`、`GET /api/wrong/review-plan`、`POST /api/wrong/:id/redo`（FSRS） |
+| 生词 | `GET/POST /api/vocab`、`GET /api/vocab/review`、`GET /api/vocab/lookup` |
+| AI 打分 | `POST /api/ai/grade` |
+| 听力音频 | `GET /uploads/:file` |
 
 ---
 
 ## 商业化设计
 
-### 会员套餐
-
-| 套餐 | 价格 | 说明 |
-|------|------|------|
-| 月卡 | ¥29.9/月 | 按月订阅 |
-| 季卡 | ¥79.9/季 | 相当于 ¥26.6/月 |
-| 年卡 | ¥299/年 | 相当于 ¥24.9/月，最优惠 |
-
-### 免费 vs 付费
-
-| 功能 | 免费用户 | 付费会员 |
-|------|---------|---------|
-| 每日做题量 | 限 20 题 | 无限制 |
-| AI 陪练时长 | 限 10 分钟/天 | 无限制 |
-| 全真模拟 | 限 1 次/天 | 无限制 |
-| 学习计划 | 基础版 | 完整功能 |
-
-### 广告位
-
-- **首页 Banner**：今日任务卡片下方
-- **练习完成页**：成绩展示后
-- **错题本**：错题列表下方
+- 会员套餐：月卡/季卡/年卡（预留支付接入）。
+- 免费用户限每日做题量 / AI 次数；会员全解锁。
+- 广告位：首页/练习完成页/错题本。
 
 ---
 
-## 后续迭代计划
+## 测试
 
-| 版本 | 重点 | 状态 |
-|------|------|------|
-| v1.0 | MVP：阅读+听力基础练习、错题集、PDF 上传解析 | ✅ 当前 |
-| v1.1 | AI 陪练：口语对话 + 听力沉浸模式 | 🔲 进行中 |
-| v1.2 | 全科覆盖：口语题、写作题 + AI 评分 | 🔲 待开发 |
-| v1.3 | 全真模拟：四科连考模式 | 🔲 待开发 |
-| v1.4 | AI 导师：学习计划自动生成 + 动态调节 | 🔲 待开发 |
-| v1.5 | 后台管理：数据监控 + 反馈管理 | 🔲 待开发 |
-| v2.0 | 商业化：付费会员完整支付流程 + 广告上线 | 🔲 待开发 |
+```bash
+cd server
+node test/sm2.test.js          # SM-2
+node test/fsrs.test.js         # FSRS
+node test/pdf-parser.test.js   # 答案/题型解析
+node test/parser-metadata.test.js  # 中文边界/元数据剥离/真实PDF段落
+node test/ai-scoring.test.js   # AI 打分
+node scripts/regression.js     # 全量回归（pdf/ 下 222 个测试 PDF）
+```
+
+当前 **26/26** 单元测试通过，PDF 全量回归 **222/222**。
 
 ---
 
-## 贡献指南
+## 路线图
 
-欢迎提交 Issue 和 Pull Request！
-
-### 开发规范
-
-1. Fork 本仓库并创建功能分支 (`git checkout -b feature/xxx`)
-2. 提交代码 (`git commit -m 'feat: add xxx'`)
-3. 推送到分支 (`git push origin feature/xxx`)
-4. 创建 Pull Request
-
-### 代码风格
-
-- 后端：使用 ESLint + Prettier
-- 前端：Vue 3 `<script setup>` 语法
-- 小程序：遵循微信小程序官方规范
-- 提交信息：遵循 [Conventional Commits](https://www.conventionalcommits.org/)
+| 状态 | 内容 |
+|------|------|
+| ✅ | PDF 自导入（文字版+OCR）、FSRS 错题/生词复习、AI 打分、题集两级浏览、Tailscale/cpolar 访问 |
+| 🔄 | 上线收尾：数据备份、部署脚本、README |
+| 🔲 | 会员支付、广告、AI 陪练/导师 |
 
 ---
 
 ## 许可证
 
-本项目采用 **MIT 许可证**，详见 [LICENSE](./LICENSE) 文件。
+MIT
 
 ---
 
-## 联系方式
-
-- 问题反馈：[GitHub Issues](https://github.com/huieric/toefl-miniapp/issues)
-- 邮箱：<your-email@example.com>
-
----
-
-*最后更新：2026-05-28*
+*最后更新：2026-08*
