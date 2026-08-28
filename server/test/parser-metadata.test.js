@@ -70,3 +70,18 @@ test('extractTextWithLayout: 真实 PDF 能检测段落边界', async () => {
   const paraCount = text.split(/\n\s*\n/).filter(Boolean).length;
   assert.ok(paraCount >= 3, `段落数应 >= 3，实际 ${paraCount}`);
 });
+
+test('中文格式 PDF：答案区（Answer Key 答案）能被提取并赋给题目', async () => {
+  const pdfPath = path.join(__dirname, '..', '..', '..', 'pdf', 'TPO01-1_Groundwater.pdf');
+  if (!fs.existsSync(pdfPath)) { test.skip('未找到测试 PDF'); return; }
+  const dataBuffer = fs.readFileSync(pdfPath);
+  const { text } = await extractTextWithLayout(dataBuffer, 100);
+  const segs = preProcessText(text);
+  assert.ok(segs.length >= 1, '应切出至少 1 段');
+  const passages = ruleBasedParseSegment(segs[0]);
+  const qs = passages[0]?.questions || [];
+  assert.ok(qs.length >= 10, `题目数应 >= 10，实际 ${qs.length}`);
+  const withAns = qs.filter((q) => q.answer && q.answer.trim()).length;
+  assert.equal(withAns, qs.length, `全部题目应有答案（${withAns}/${qs.length}）`);
+  assert.ok(qs[0].answer === 'C' || /^[A-F]$/.test(qs[0].answer), '第一题答案应为合法字母');
+});

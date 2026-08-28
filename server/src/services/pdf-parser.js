@@ -393,6 +393,12 @@ function preProcessText(rawText) {
   const cnPattern = /(?:^|\n)\s*(?:(?:TPO|XPO|XTP|Sample)\s*\d+\s*)?阅读第\s*(\d+)\s*篇/gi;
   const cnMatches = [...text.matchAll(cnPattern)];
   if (cnMatches.length > 0) {
+    // 中文答案区: "Answer Key 答案" 后跟 "N. A" 行
+    const cnAnswerMatch = text.match(/(?:^|\n)\s*Answer\s*Key\s*答案?\s*:?\s*\n([\s\S]*?)(?=\n\s*(?:TPO|XPO|XTP|Sample)\s*\d+\s*阅读第|\s*$)/i);
+    const cnAnswers = cnAnswerMatch ? parseAnswerKeyBlock(cnAnswerMatch[1]) : null;
+    if (cnAnswers && cnAnswers.length > 0) {
+      console.log(`[PDF-Parser v5] 中文答案区: ${cnAnswers.length} 个答案`);
+    }
     const segments = [];
     for (let i = 0; i < cnMatches.length; i++) {
       const start = cnMatches[i].index;
@@ -403,7 +409,7 @@ function preProcessText(rawText) {
           text: segText,
           passageNum: parseInt(cnMatches[i][1], 10),
           title: null,
-          answers: null,
+          answers: cnAnswers,
         });
       }
     }
