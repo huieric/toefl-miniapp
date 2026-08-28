@@ -158,6 +158,25 @@ async function dedupAndAddConstraint(client) {
   }
 }
 
+// 回填题集标识：旧数据 passage_id = {uploadId}-pN，提取 uploadId 作为 batch_id
+async function backfillBatchId(client) {
+  try {
+    const r1 = await client.query(
+      `UPDATE questions SET batch_id = REGEXP_REPLACE(passage_id, '-p[0-9]+$', '')
+       WHERE batch_id IS NULL AND passage_id IS NOT NULL`
+    );
+    const r2 = await client.query(
+      `UPDATE questions SET batch_name = '真题集 ' || LEFT(batch_id, 8)
+       WHERE batch_name IS NULL AND batch_id IS NOT NULL AND source = 'user'`
+    );
+    if ((r1.rowCount || 0) + (r2.rowCount || 0) > 0) {
+      console.log(`[DB] 题集回填: batch_id ${r1.rowCount || 0} 行, batch_name ${r2.rowCount || 0} 行`);
+    }
+  } catch (err) {
+    console.warn('[DB] 题集回填失败:', err.message.substring(0, 100));
+  }
+}
+
 async function initDatabase() {
   const sqlPath = path.join(__dirname, '..', 'models', 'db-init.sql');
   if (!fs.existsSync(sqlPath)) {
@@ -182,6 +201,9 @@ async function initDatabase() {
     await ensureMissingColumns(client);
     await dedupAndAddConstraint(client);
     console.log('[DB] Phase 2: 列补全/去重/约束 完成');
+
+    // Phase 2.5: 回填题集（旧数据的 batch_id 从 passage_id 提取）
+    await backfillBatchId(client);
 
     // Phase 3: 数据修复 UPDATE + 数据填充 INSERT
     for (const stmt of rest) {
