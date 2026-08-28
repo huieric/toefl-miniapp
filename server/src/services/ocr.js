@@ -22,12 +22,15 @@ const os = require('os');
  * @param {number} dpi 渲染分辨率，扫描件建议 200-300
  * @returns {Promise<string[]>} PNG 绝对路径数组（按页码排序）
  */
-function renderPdfToImages(pdfPath, outDir, dpi = 200) {
+function renderPdfToImages(pdfPath, outDir, dpi = 200, maxPages = 0) {
   return new Promise((resolve, reject) => {
     const prefix = path.join(outDir, 'page');
+    const args = ['-png', '-r', String(dpi)];
+    if (maxPages > 0) args.push('-f', '1', '-l', String(maxPages)); // 只渲染前 maxPages 页
+    args.push(pdfPath, prefix);
     execFile(
       'pdftoppm',
-      ['-png', '-r', String(dpi), pdfPath, prefix],
+      args,
       { maxBuffer: 16 * 1024 * 1024 },
       (err, _stdout, stderr) => {
         if (err) {
@@ -88,12 +91,12 @@ async function ocrImagesWithTesseract(images, { onProgress } = {}) {
  * @param {(done:number,total:number)=>void} [opts.onProgress] - OCR 页级进度
  * @returns {Promise<string>}
  */
-async function extractTextViaOCR(pdfPath, { onProgress } = {}) {
+async function extractTextViaOCR(pdfPath, { onProgress, maxPages = 0 } = {}) {
   if (!fs.existsSync(pdfPath)) throw new Error('PDF 文件不存在');
 
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'toefl-ocr-'));
   try {
-    const images = await renderPdfToImages(pdfPath, outDir);
+    const images = await renderPdfToImages(pdfPath, outDir, 200, maxPages);
     const text = await ocrImagesWithTesseract(images, { onProgress });
     if (!text.trim()) throw new Error('OCR 识别结果为空');
     return text;

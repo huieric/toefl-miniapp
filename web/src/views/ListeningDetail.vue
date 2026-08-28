@@ -9,6 +9,16 @@
       <!-- Audio -->
       <AudioPlayer v-if="question?.audioUrl" :src="question.audioUrl" />
 
+      <!-- 无录音材料时提供 TTS 朗读 -->
+      <el-button
+        v-if="!question?.audioUrl && question?.passageText"
+        size="small"
+        style="margin-bottom: 8px"
+        @click="speakTranscript"
+      >
+        {{ speaking ? '⏹ 停止朗读' : '🔊 朗读原文（TTS）' }}
+      </el-button>
+
       <!-- Transcript -->
       <div class="transcript" v-if="question?.passageText">
         <h4>听力原文（点击生词加入生词本）</h4>
@@ -95,6 +105,26 @@ const submitted = ref(false)
 const isCorrect = ref(false)
 const loading = ref(false)
 const timeLimit = ref(900)
+
+// TTS 朗读原文（无录音材料时的兜底）
+const speaking = ref(false)
+const speakTranscript = () => {
+  const text = question.value?.passageText
+  if (!text) return ElMessage.warning('该题没有原文')
+  if (!('speechSynthesis' in window)) return ElMessage.warning('当前浏览器不支持语音朗读')
+  if (speaking.value) {
+    window.speechSynthesis.cancel()
+    speaking.value = false
+    return
+  }
+  const u = new SpeechSynthesisUtterance(text)
+  u.lang = 'en-US'
+  u.rate = 0.95
+  u.onend = () => { speaking.value = false }
+  u.onerror = () => { speaking.value = false }
+  window.speechSynthesis.speak(u)
+  speaking.value = true
+}
 
 // —— 生词本：点击原文生词加入 ——
 const vocabDialog = ref(false)

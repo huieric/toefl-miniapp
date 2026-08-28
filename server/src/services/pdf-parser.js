@@ -82,7 +82,7 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}, onPro
   if (userMaxPages > 0) {
     maxPages = userMaxPages;
   } else if (fileSizeMB > 20) {
-    maxPages = 25;
+    maxPages = 100;
     console.log(`[PDF-Parser v5] 大文件(${fileSizeMB.toFixed(1)}MB)，限制前${maxPages}页`);
   } else if (fileSizeMB > 10) {
     maxPages = 50;
@@ -105,20 +105,29 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}, onPro
   let rawText = (pdfData.text || '').replace(/\u0000/g, '');
   console.log(`[PDF-Parser v5] 文本: ${rawText.length} 字符, ${pdfData.numpages} 页`);
 
-  // 文字层极少 → 疑似扫描版，尝试本地 OCR
-  if (rawText.trim().length < 100) {
-    console.log('[PDF-Parser v5] 文字层极少，疑似扫描件，尝试本地 OCR...');
+  // 判断是否疑似扫描版：文字层极短，或平均每页字符数过低（混合 PDF 的扫描页也覆盖）
+  const OCR_MAX_PAGES = 30;
+  const parsedPages = maxPages > 0 ? Math.min(maxPages, pdfData.numpages || 0) : (pdfData.numpages || 0);
+  const density = parsedPages > 0 ? rawText.length / parsedPages : 0;
+  const looksScanned = rawText.trim().length < 100 || density < 120;
+  if (looksScanned) {
+    console.log(`[PDF-Parser v5] 疑似扫描件(密度 ${density.toFixed(0)} 字符/页)，尝试本地 OCR（最多前 ${OCR_MAX_PAGES} 页）...`);
     try {
       const { extractTextViaOCR } = require('./ocr');
-      rawText = await extractTextViaOCR(filePath, {
+      const ocrText = await extractTextViaOCR(filePath, {
+        maxPages: OCR_MAX_PAGES,
         onProgress: (done, total) => {
           if (onProgress) onProgress({ phase: 'ocr', done, total });
         },
       });
-      console.log(`[PDF-Parser v5] OCR 完成: ${rawText.length} 字符`);
+      console.log(`[PDF-Parser v5] OCR 完成: ${ocrText.length} 字符`);
+      // OCR 结果更丰富则采用，否则保留原文本层继续解析
+      if (ocrText.length > rawText.length) rawText = ocrText;
     } catch (ocrErr) {
       console.error('[PDF-Parser v5] OCR 失败:', ocrErr.message);
-      throw new Error(`PDF 无文字层且本地 OCR 不可用（需 poppler-utils + tesseract.js）：${ocrErr.message}`);
+      if (rawText.trim().length < 100) {
+        throw new Error(`PDF 无文字层且本地 OCR 不可用（需 poppler-utils + tesseract.js）：${ocrErr.message}`);
+      }
     }
   }
 

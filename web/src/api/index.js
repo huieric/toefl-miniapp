@@ -82,6 +82,7 @@ export const questionAPI = {
   upload: (formData, onProgress) =>
     http.post('/questions/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 300000, // 大 PDF 上传放宽到 5 分钟
       onUploadProgress: (e) => {
         if (onProgress && e.total) {
           onProgress(Math.round((e.loaded * 100) / e.total))
