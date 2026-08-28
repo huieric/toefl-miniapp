@@ -94,7 +94,13 @@ const submit = async () => {
     const res = await questionAPI.upload(formData, (pct) => { progress.value = Math.round(pct) })
     const uploadId = res.data?.data?.uploadId
     ElMessage.success('上传成功，后台解析中...')
-    close()
+    // 立即关闭弹窗（先复位 uploading，否则 close() 会因 uploading 提前返回）
+    uploading.value = false
+    pdfFile.value = null
+    audioFile.value = null
+    progress.value = 0
+    statusText.value = ''
+    visible.value = false
     emit('uploaded', uploadId)
   } catch (e) {
     ElMessage.error(e?.response?.data?.message || '上传失败')

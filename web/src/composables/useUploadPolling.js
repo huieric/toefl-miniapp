@@ -20,9 +20,10 @@ export function useUploadPolling(refresh) {
         if (st?.status === 'completed') {
           resolved = true
           await refresh()
-          const n = st.parsedCount || 0
-          if (n > 0) {
-            ElMessage.success(`解析完成！共入库 ${n} 道题`)
+          const passages = st.meta?.passageCount || 0
+          const questions = st.parsedCount || 0
+          if (passages > 0) {
+            ElMessage.success(`解析完成：共 ${passages} 篇文章（${questions} 道题）`)
           } else if (st.meta?.skippedCount > 0) {
             ElMessage.info('这些题目之前已导入过，已刷新列表')
           } else {
