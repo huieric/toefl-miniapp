@@ -1,6 +1,6 @@
 <template>
   <div class="page-container">
-    <div class="page-header"><h2>阅读练习</h2></div>
+    <div class="page-header"><h2>阅读练习</h2><span v-if="passages.length" style="font-size:13px;color:var(--text-secondary)">共 {{ passages.length }} 篇 · {{ totalQuestions }} 题</span></div>
 
     <!-- Tab切换 -->
     <div class="source-tabs">
@@ -146,6 +146,7 @@ const genDifficulty = ref('medium')
 const loadPhase = ref('')
 
 const emptyDesc = computed(() => sourceTab.value === 'user' ? '暂无阅读真题' : '暂无模拟题')
+const totalQuestions = computed(() => passages.value.reduce((s, p) => s + (p.questionCount || 0), 0))
 
 const loadingText = computed(() => {
   if (loadPhase.value === 'waking') return '正在连接服务器...'
