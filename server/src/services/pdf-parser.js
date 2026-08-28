@@ -323,6 +323,28 @@ function preProcessText(rawText) {
     return segments;
   }
 
+  // 中文格式边界: "TPO1 阅读第1篇" / "TPO 1 阅读第 1 篇"
+  const cnPattern = /(?:^|\n)\s*(?:TPO|XPO|XTP)\s*(\d+)\s*阅读第\s*(\d+)\s*篇/gi;
+  const cnMatches = [...text.matchAll(cnPattern)];
+  if (cnMatches.length > 0) {
+    const segments = [];
+    for (let i = 0; i < cnMatches.length; i++) {
+      const start = cnMatches[i].index;
+      const end = i + 1 < cnMatches.length ? cnMatches[i + 1].index : text.length;
+      const segText = text.substring(start, end).trim();
+      if (segText.length > 50) {
+        segments.push({
+          text: segText,
+          passageNum: parseInt(cnMatches[i][2], 10),
+          title: null,
+          answers: null,
+        });
+      }
+    }
+    console.log(`[PDF-Parser v5] 中文格式：${segments.length} 篇文章`);
+    return segments;
+  }
+
   // 回退: 按空行分割
   return splitByBlankLines(text).map((t, i) => ({
     text: t,
@@ -525,12 +547,27 @@ function ruleBasedParseSegment(segment) {
     return [];
   }
 
-  const segTitle = (title || cleaned.split('\n')[0]?.trim()?.substring(0, 100) || 'PDF Reading')
-    .replace(/[\t\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
-
-  // 清理 passageText 开头的 TPO 头部
+  // 清理 passageText 开头的中英文 TPO 头部 + 中文元数据
   let cleanPassageText = passageText || cleaned.substring(0, 3000);
-  cleanPassageText = cleanPassageText.replace(/^\d+\s*[-\-]\s*(?:XPO|TPO|XTP)\s*\d+\s*[-\-]\s*.+\n/, '').trim();
+  cleanPassageText = cleanPassageText
+    .replace(/^\d+\s*[-\-]\s*(?:XPO|TPO|XTP)\s*\d+\s*[-\-]\s*.+\n/, '')
+    .replace(/^\s*(?:TPO|XPO|XTP)\s*\d+\s*阅读第\s*\d+\s*篇\s*\n?/i, '')
+    .replace(/^\s*学科分类[:：]\s*[^\n]*\n?/i, '')
+    .replace(/^\s*Passage\s*\n?/i, '')
+    .trim();
+
+  // 提取真正的文章标题：跳过元数据行，取第一个英文标题行
+  const extractRealTitle = (t) => {
+    const lines = String(t || '').split('\n').map((l) => l.trim()).filter(Boolean);
+    for (const l of lines) {
+      if (/阅读第\s*\d+\s*篇|学科分类|^Passage$/i.test(l)) continue;
+      if (/^[A-Z]/.test(l) && l.split(' ').length <= 15 && l.length <= 150) return l;
+    }
+    return lines[0] || 'PDF Reading';
+  };
+  const segTitle = (title && !/阅读第|学科分类|^Passage$/i.test(title))
+    ? title.replace(/[\t\r\n]+/g, ' ').replace(/\s+/g, ' ').trim()
+    : extractRealTitle(cleanPassageText);
 
   return [{
     title: segTitle,
