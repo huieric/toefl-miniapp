@@ -547,13 +547,13 @@ function ruleBasedParseSegment(segment) {
     return [];
   }
 
-  // 清理 passageText 开头的中英文 TPO 头部 + 中文元数据
+  // 清理 passageText 的中英文 TPO 头部 + 中文元数据（学科分类/Passage，任意位置）
   let cleanPassageText = passageText || cleaned.substring(0, 3000);
   cleanPassageText = cleanPassageText
-    .replace(/^\d+\s*[-\-]\s*(?:XPO|TPO|XTP)\s*\d+\s*[-\-]\s*.+\n/, '')
-    .replace(/^\s*(?:TPO|XPO|XTP)\s*\d+\s*阅读第\s*\d+\s*篇\s*\n?/i, '')
-    .replace(/^\s*学科分类[:：]\s*[^\n]*\n?/i, '')
-    .replace(/^\s*Passage\s*\n?/i, '')
+    .replace(/^\d+\s*[-\-]\s*(?:XPO|TPO|XTP)\s*\d+\s*[-\-]\s*.+\n/gi, '')
+    .replace(/^\s*(?:TPO|XPO|XTP)\s*\d+\s*阅读第\s*\d+\s*篇\s*\n?/gim, '')
+    .replace(/\s*学科分类[:：][^\n]*/gi, '')
+    .replace(/^\s*Passage\s*$/gim, '')
     .trim();
 
   // 提取真正的文章标题：跳过元数据行，取第一个英文标题行
@@ -568,6 +568,12 @@ function ruleBasedParseSegment(segment) {
   const segTitle = (title && !/阅读第|学科分类|^Passage$/i.test(title))
     ? title.replace(/[\t\r\n]+/g, ' ').replace(/\s+/g, ' ').trim()
     : extractRealTitle(cleanPassageText);
+
+  // 去掉文章正文里重复的标题行（标题单独展示，正文不再重复）
+  if (segTitle && segTitle !== 'PDF Reading') {
+    const esc = segTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    cleanPassageText = cleanPassageText.replace(new RegExp('^\\s*' + esc + '\\s*\\n?', 'i'), '').trim();
+  }
 
   return [{
     title: segTitle,
