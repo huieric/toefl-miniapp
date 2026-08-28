@@ -145,7 +145,7 @@
       </template>
     </el-dialog>
 
-    <UploadQuestionDialog v-model="uploadVisible" default-subject="reading" @done="fetchList" />
+    <UploadQuestionDialog v-model="uploadVisible" default-subject="reading" @uploaded="pollUpload" />
   </div>
 </template>
 
@@ -156,6 +156,7 @@ import { ElMessage } from 'element-plus'
 import { ArrowRight } from '@element-plus/icons-vue'
 import { questionAPI, healthAPI, withRetry } from '@/api'
 import UploadQuestionDialog from '@/components/UploadQuestionDialog.vue'
+import { useUploadPolling } from '@/composables/useUploadPolling'
 
 const router = useRouter()
 const passages = ref([])
@@ -372,6 +373,8 @@ const fetchList = async () => {
     loading.value = false
   }
 }
+
+const { pollUpload } = useUploadPolling(fetchList)
 
 onMounted(fetchList)
 </script>

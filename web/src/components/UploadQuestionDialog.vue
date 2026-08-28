@@ -47,7 +47,7 @@ const props = defineProps({
   modelValue: { type: Boolean, default: false },
   defaultSubject: { type: String, default: 'reading' },
 })
-const emit = defineEmits(['update:modelValue', 'done'])
+const emit = defineEmits(['update:modelValue', 'uploaded'])
 
 const visible = computed({
   get: () => props.modelValue,
@@ -93,43 +93,13 @@ const submit = async () => {
   try {
     const res = await questionAPI.upload(formData, (pct) => { progress.value = Math.round(pct) })
     const uploadId = res.data?.data?.uploadId
-    statusText.value = '上传完成，后台解析中...'
-
-    if (uploadId) {
-      let resolved = false
-      for (let i = 0; i < 200; i++) {
-        await new Promise((r) => setTimeout(r, 3000))
-        try {
-          const s = await questionAPI.uploadStatus(uploadId)
-          const st = s.data?.data
-          if (st?.status === 'completed') {
-            resolved = true
-            const n = st.parsedCount || 0
-            if (n > 0) {
-              ElMessage.success(`解析完成，共入库 ${n} 道题`)
-            } else if (st.meta?.skippedCount > 0) {
-              ElMessage.info('这些题目之前已导入过')
-            } else {
-              ElMessage.warning('未提取到题目：可能是扫描图片型 PDF（无文字层）')
-            }
-            break
-          }
-          if (st?.status === 'failed') {
-            resolved = true
-            ElMessage.error(`解析失败: ${st.error || '未知错误'}`)
-            break
-          }
-          const pp = st?.meta?.parsedPassages || 0
-          if (pp > 0) statusText.value = `已解析 ${pp} 篇，继续中...`
-        } catch (_) { /* 轮询失败忽略 */ }
-      }
-      if (!resolved) statusText.value = '解析仍在进行，可关闭窗口稍后刷新查看'
-    }
+    ElMessage.success('上传成功，后台解析中...')
+    close()
+    emit('uploaded', uploadId)
   } catch (e) {
     ElMessage.error(e?.response?.data?.message || '上传失败')
   } finally {
     uploading.value = false
-    emit('done')
   }
 }
 </script>
