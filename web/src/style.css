@@ -1,19 +1,23 @@
 :root {
-  --primary: #4A90D9;
-  --primary-light: #6BA5E7;
-  --primary-dark: #357ABD;
-  --bg: #F6F7FB;
+  --primary: #4A6CF7;
+  --primary-light: #6B8AFB;
+  --primary-dark: #3B57D6;
+  --bg: #F5F7FF;
   --card-bg: #ffffff;
-  --text: #333333;
-  --text-secondary: #999999;
-  --border: #EBEEF5;
-  --success: #67C23A;
-  --warning: #E6A23C;
-  --danger: #F56C6C;
-  --shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  --radius: 12px;
+  --text: #1F2937;
+  --text-secondary: #8B93A7;
+  --border: #E8ECF7;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+  --shadow-sm: 0 1px 3px rgba(30, 41, 74, 0.06), 0 1px 2px rgba(30, 41, 74, 0.04);
+  --shadow: 0 4px 20px rgba(30, 41, 74, 0.08);
+  --shadow-lg: 0 12px 32px rgba(30, 41, 74, 0.12);
+  --radius: 14px;
+  --radius-sm: 10px;
   --spacing: 16px;
   --sidebar-width: 220px;
+  --grad-primary: linear-gradient(135deg, #4A6CF7 0%, #7B61FF 100%);
 }
 
 * {
@@ -24,8 +28,11 @@
 
 html, body {
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   background-color: var(--bg);
+  background-image: radial-gradient(1200px 600px at 100% -10%, rgba(74, 108, 247, 0.06), transparent 60%),
+                    radial-gradient(900px 500px at -10% 110%, rgba(123, 97, 255, 0.05), transparent 55%);
+  background-attachment: fixed;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
 }
@@ -41,13 +48,17 @@ a {
 
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #ccc;
+  background: #c7cde0;
   border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #aeb6d0;
 }
 
 .page-container {
@@ -58,19 +69,27 @@ a {
 
 .page-header {
   margin-bottom: var(--spacing);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .page-header h2 {
   font-size: 22px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text);
+  letter-spacing: -0.01em;
 }
 
 .card {
   background: var(--card-bg);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(232, 236, 247, 0.7);
   padding: var(--spacing);
   margin-bottom: var(--spacing);
+  transition: box-shadow 0.25s ease;
 }
 
 .stat-cards {
@@ -83,14 +102,33 @@ a {
 .stat-card {
   background: var(--card-bg);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(232, 236, 247, 0.7);
   padding: 20px;
   text-align: center;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--grad-primary);
+  opacity: 0.8;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
 }
 .stat-card .stat-value {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--primary);
+  letter-spacing: -0.02em;
 }
 .stat-card .stat-label {
   font-size: 13px;
@@ -106,20 +144,26 @@ a {
 .subject-card {
   background: var(--card-bg);
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(232, 236, 247, 0.7);
   padding: 24px var(--spacing);
   text-align: center;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 .subject-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+  border-color: rgba(74, 108, 247, 0.3);
 }
 .subject-card .el-icon {
   font-size: 36px;
   color: var(--primary);
   margin-bottom: 10px;
+  display: inline-block;
+  border-radius: 12px;
+  padding: 8px;
+  background: rgba(74, 108, 247, 0.08);
 }
 .subject-card .subject-name {
   font-size: 15px;
