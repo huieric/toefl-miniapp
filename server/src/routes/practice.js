@@ -264,12 +264,19 @@ router.post('/submit', auth, async (req, res) => {
 
     const recordId = recordResult.rows[0].id;
 
-    // 答错自动加入错题本（仅阅读/听力）
+    // 答错自动加入错题本（仅阅读/听力）；重复答错则累加次数并重置记忆
     if (!isCorrect && (subject === 'reading' || subject === 'listening')) {
       await db.query(
         `INSERT INTO wrong_questions (user_id, question_id, user_answer, is_correct, wrong_count, next_review_at, sm2_easiness, sm2_interval, sm2_repetitions)
          VALUES ($1, $2, $3, FALSE, 1, CURRENT_TIMESTAMP, 2.50, 1, 0)
-         ON CONFLICT DO NOTHING`,
+         ON CONFLICT (user_id, question_id) DO UPDATE SET
+           user_answer = EXCLUDED.user_answer,
+           wrong_count = wrong_questions.wrong_count + 1,
+           is_correct = FALSE,
+           last_wrong_at = CURRENT_TIMESTAMP,
+           next_review_at = CURRENT_TIMESTAMP,
+           fsrs_stability = NULL,
+           updated_at = CURRENT_TIMESTAMP`,
         [req.user.id, questionId, content || (answers ? JSON.stringify(answers) : '')]
       );
     }

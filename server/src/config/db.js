@@ -158,6 +158,32 @@ async function dedupAndAddConstraint(client) {
   }
 }
 
+// 错题去重 + 唯一约束：同一用户+题目只保留一条（重复答错累加次数而非新增记录）
+async function dedupWrongAndAddConstraint(client) {
+  try {
+    await client.query(`
+      DELETE FROM wrong_questions w
+      USING wrong_questions w2
+      WHERE w.user_id = w2.user_id AND w.question_id = w2.question_id AND w.id < w2.id
+    `);
+    console.log('[DB] wrong_questions 去重完成');
+  } catch (err) {
+    console.warn('[DB] wrong_questions 去重失败:', err.message.substring(0, 100));
+  }
+  try {
+    await client.query(
+      `ALTER TABLE wrong_questions ADD CONSTRAINT uq_wrong_user_question UNIQUE (user_id, question_id)`
+    );
+    console.log('[DB] uq_wrong_user_question 约束已创建');
+  } catch (err) {
+    if (err.code === '42P07') {
+      console.log('[DB] uq_wrong_user_question 约束已存在，跳过');
+    } else {
+      throw err;
+    }
+  }
+}
+
 // 回填题集标识：旧数据 passage_id = {uploadId}-pN，提取 uploadId 作为 batch_id
 async function backfillBatchId(client) {
   try {
@@ -200,6 +226,7 @@ async function initDatabase() {
     // Phase 2: 列补全 + 去重 + 约束（Node.js 层面）
     await ensureMissingColumns(client);
     await dedupAndAddConstraint(client);
+    await dedupWrongAndAddConstraint(client);
     console.log('[DB] Phase 2: 列补全/去重/约束 完成');
 
     // Phase 2.5: 回填题集（旧数据的 batch_id 从 passage_id 提取）
