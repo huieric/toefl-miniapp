@@ -520,7 +520,7 @@ function ruleBasedParseSegment(segment) {
     .replace(/\r\n/g, '\n').replace(/\r/g, '\n')
     .replace(/\f/g, '\n')
     .replace(/\t/g, ' ')
-    .replace(/[^\S\n]+/g, ' ')
+    .replace(/(?<=\S)[^\S\n]+(?=\S)/g, ' ')  // 只折叠词间空白，保留行首缩进（段落识别依赖它）
     .replace(/\n{4,}/g, '\n\n\n');
 
   const { passageText, questionBlock } = splitPassageAndQuestions(cleaned);
@@ -654,8 +654,9 @@ function preserveParagraphs(text) {
   // 兜底：对仍然没有分段的长文本，用启发式强制断段
   // 句末标点 (.!?]") 后跟换行+大写字母/段落标记 → 插入额外空行
   result = result.replace(/\n(?=[A-Z\u201c\u300c(])/g, (match, offset) => {
-    // 检查上一行末尾是否是句末标点
-    const before = result.substring(Math.max(0, offset - 20), offset).trimEnd();
+    // 检查上一整行末尾是否是句末标点（原实现只取前20字符，>40判断恒为false，导致从未断段）
+    const lineStart = result.lastIndexOf('\n', offset - 1) + 1;
+    const before = result.substring(lineStart, offset).trimEnd();
     if (/[.!?]["')\]]?$/.test(before) && before.length > 40) {
       return '\n\n';
     }
