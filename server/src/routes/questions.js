@@ -11,6 +11,7 @@ const router = express.Router();
 
 // === 内存状态追踪：PDF 解析状态 ===
 const uploadStatusMap = new Map(); // uploadId -> { status, fileName, parsedCount, error, updatedAt }
+let parsingLock = false; // 并发锁：同一时间只允许一个后台解析，避免大 PDF 解析占满 CPU
 
 function setUploadStatus(uploadId, status) {
   uploadStatusMap.set(uploadId, { ...status, updatedAt: new Date().toISOString() });
@@ -82,6 +83,18 @@ router.post('/upload', auth, upload.fields([{ name: 'file', maxCount: 1 }, { nam
     });
 
     setImmediate(() => {
+      // 并发锁：已有解析在跑则拒绝本次，避免多个大解析同时占 CPU
+      if (parsingLock) {
+        setUploadStatus(uploadId, {
+          status: 'failed',
+          fileName: pdfFile.originalname,
+          parsedCount: 0,
+          error: '已有 PDF 正在解析中，请稍候再试',
+        });
+        try { fs.unlinkSync(pdfFile.path); } catch (_) {}
+        return;
+      }
+      parsingLock = true;
       parseTOEFLReadingPDF(
         pdfFile.path,
         db,
@@ -104,6 +117,7 @@ router.post('/upload', auth, upload.fields([{ name: 'file', maxCount: 1 }, { nam
         }
       )
         .then(async (result) => {
+          parsingLock = false;
           const count = result.insertedCount || 0;
           console.log(`[Questions] 解析完成 uploadId=${uploadId}，共插入 ${count} 道题目 (${result.passageCount}篇, ${result.totalPages}页)`);
           setUploadStatus(uploadId, {
@@ -126,6 +140,7 @@ router.post('/upload', auth, upload.fields([{ name: 'file', maxCount: 1 }, { nam
           try { fs.unlinkSync(pdfFile.path); } catch (_) {}
         })
         .catch((err) => {
+          parsingLock = false;
           console.error(`[Questions] 解析失败 uploadId=${uploadId}:`, err.message, err.stack);
           setUploadStatus(uploadId, {
             status: 'failed',

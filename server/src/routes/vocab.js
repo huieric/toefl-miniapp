@@ -131,10 +131,15 @@ router.post('/:id/review', auth, async (req, res) => {
 });
 
 // GET /api/vocab/lookup?word=xxx - 查词（免费英文词典，返回音标+释义+例句）
+const lookupCache = new Map(); // word -> { data, ts } 内存缓存 24h，减少外部 API 调用
 router.get('/lookup', auth, async (req, res) => {
   const word = String(req.query.word || '').trim().toLowerCase();
   if (!/^[a-z'-]{2,}$/.test(word)) {
     return res.status(400).json({ code: 400, message: 'word 不合法' });
+  }
+  const cached = lookupCache.get(word);
+  if (cached && Date.now() - cached.ts < 24 * 3600 * 1000) {
+    return res.json({ code: 200, data: cached.data });
   }
   try {
     const resp = await axios.get(
@@ -160,7 +165,10 @@ router.get('/lookup', auth, async (req, res) => {
       }
       if (meanings.length >= 4) break;
     }
-    res.json({ code: 200, data: { word: entry.word || word, phonetic, meanings } });
+    const data = { word: entry.word || word, phonetic, meanings };
+    lookupCache.set(word, { data, ts: Date.now() });
+    if (lookupCache.size > 2000) lookupCache.clear(); // 防内存膨胀
+    res.json({ code: 200, data });
   } catch (e) {
     console.error('[Vocab] 查词失败:', word, e.message);
     res.json({ code: 200, data: { word, found: false, error: '查词失败' } });
