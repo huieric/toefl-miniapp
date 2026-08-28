@@ -183,6 +183,7 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}, onPro
     // 立即入库当前段的题（重复题自动跳过）
     for (let pi = 0; pi < segPassages.length; pi++) {
       const p = segPassages[pi];
+      console.log(`[PDF-Parser v5] 篇: ${(p.title || '(无标题)').substring(0, 60)} | 正文: ${(p.passage_text || '').substring(0, 100).replace(/\s+/g, ' ')}`);
       const subPassageId = passageId ? `${passageId}-p${passagesDone + pi + 1}` : `pdf-p${passagesDone + pi + 1}`;
 
       for (let qi = 0; qi < (p.questions || []).length; qi++) {
