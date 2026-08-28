@@ -96,6 +96,10 @@ const handleSubmit = async () => {
       questionId: question.value?._id || question.value?.id,
       subject: 'writing',
       content: content.value,
+      aiProvider: localStorage.getItem('ai_provider') || undefined,
+      aiApiKey: localStorage.getItem('ai_api_key') || undefined,
+      aiBaseURL: localStorage.getItem('ai_base_url') || undefined,
+      aiModel: localStorage.getItem('ai_model') || undefined,
     })
     submitted.value = true
     aiResult.value = res.data?.result || res.data || {

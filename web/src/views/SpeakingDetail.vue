@@ -262,11 +262,16 @@ const handleSubmit = async () => {
   }
   submitting.value = true
   try {
+    // 带上用户自配的 AI 设置（localStorage），用于 AI 评分
     const res = await practiceAPI.submit({
       questionId: question.value?._id || question.value?.id,
       subject: 'speaking',
       content: transcript.value,
       timeSpent: recordTime.value,
+      aiProvider: localStorage.getItem('ai_provider') || undefined,
+      aiApiKey: localStorage.getItem('ai_api_key') || undefined,
+      aiBaseURL: localStorage.getItem('ai_base_url') || undefined,
+      aiModel: localStorage.getItem('ai_model') || undefined,
     })
     submitted.value = true
     aiResult.value = res.data?.data?.result || res.data?.result || res.data?.data || {

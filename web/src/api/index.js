@@ -167,4 +167,9 @@ export const vocabAPI = {
   lookup: (word) => http.get('/vocab/lookup', { params: { word } }),
 }
 
+// AI 打分
+export const aiAPI = {
+  grade: (data) => http.post('/ai/grade', data),
+}
+
 export default http

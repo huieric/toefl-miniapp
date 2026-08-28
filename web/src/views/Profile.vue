@@ -62,6 +62,11 @@
         <el-tag v-else size="small" type="info" effect="plain">免费</el-tag>
         <el-icon class="arrow"><ArrowRight /></el-icon>
       </div>
+      <div class="menu-item" @click="$router.push('/profile/ai-settings')">
+        <el-icon><MagicStick /></el-icon>
+        <span>AI 设置</span>
+        <el-icon class="arrow"><ArrowRight /></el-icon>
+      </div>
       <div class="menu-item" @click="$router.push('/profile/feedback')">
         <el-icon><ChatLineSquare /></el-icon>
         <span>意见反馈</span>
@@ -91,7 +96,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowRight, Trophy } from '@element-plus/icons-vue'
+import { ArrowRight, Trophy, List, Collection, Calendar, ChatLineSquare, MagicStick } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 import { userAPI, wrongAPI, examAPI } from '@/api'
 import { useUserStore } from '@/stores/user'

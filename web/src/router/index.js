@@ -178,6 +178,12 @@ const routes = [
     meta: { title: '练习历史' },
   },
   {
+    path: '/profile/ai-settings',
+    name: 'AiSettings',
+    component: () => import('@/views/AiSettings.vue'),
+    meta: { title: 'AI 设置' },
+  },
+  {
     path: '/membership',
     name: 'Membership',
     component: () => import('@/views/Membership.vue'),
