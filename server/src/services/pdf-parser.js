@@ -59,6 +59,56 @@ function resolveBackend(aiConfig) {
   return backends[provider] || backends.deepseek;
 }
 
+/**
+ * 带布局的 PDF 文本提取：按行坐标检测段落边界（行距突增 或 行首缩进），
+ * 段落之间用空行(\n\n)分隔，段落内保留单换行。
+ * 这是解决「纯文本无法区分段落/换行」的关键。
+ */
+async function extractTextWithLayout(dataBuffer, maxPages = 0) {
+  const pdfParse = require('pdf-parse');
+  const pdfData = await pdfParse(dataBuffer, {
+    max: maxPages || 0,
+    pagerender: (pageData) => {
+      return pageData.getTextContent().then((tc) => {
+        const items = (tc.items || [])
+          .filter((it) => it.str && it.str.trim() !== '')
+          .map((it) => ({ str: it.str, x: Math.round(it.transform[4]), y: Math.round(it.transform[5]) }));
+        if (items.length === 0) return '\n\n';
+
+        // 按 y 聚类成行
+        const lines = [];
+        let cur = null;
+        for (const it of items) {
+          if (!cur || Math.abs(it.y - cur.y) > 3) { cur = { y: it.y, x: it.x, str: '' }; lines.push(cur); }
+          if (it.x < cur.x) cur.x = it.x;
+          cur.str += it.str + ' ';
+        }
+        lines.sort((a, b) => b.y - a.y); // 从上到下
+
+        if (lines.length <= 1) return lines.map((l) => l.str.trim()).join('\n') + '\n';
+
+        // 正常行距 / 正常左边距 取中位数
+        const gaps = [];
+        for (let i = 1; i < lines.length; i++) gaps.push(lines[i - 1].y - lines[i].y);
+        const sortedGaps = [...gaps].sort((a, b) => a - b);
+        const normalGap = sortedGaps[Math.floor(sortedGaps.length / 2)] || 15;
+        const xs = lines.map((l) => l.x).sort((a, b) => a - b);
+        const normalX = xs[Math.floor(xs.length / 2)];
+
+        let out = lines[0].str.trim();
+        for (let i = 1; i < lines.length; i++) {
+          const gap = lines[i - 1].y - lines[i].y;
+          const bigGap = gap > normalGap * 1.35;            // 行距突增 = 新段落
+          const indented = (lines[i].x - normalX) > 8;       // 行首缩进 = 新段落
+          out += (bigGap || indented ? '\n\n' : '\n') + lines[i].str.trim();
+        }
+        return out + '\n\n'; // 页尾加空行，分隔相邻页
+      });
+    }
+  });
+  return { text: (pdfData.text || '').replace(/\u0000/g, ''), numpages: pdfData.numpages || 0 };
+}
+
 // ============================================================
 // 主入口
 // ============================================================
@@ -96,19 +146,30 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}, onPro
     maxPages = 0;
   }
 
-  let pdfData;
+  let pdfData = { numpages: 0 };
+  let rawText = '';
   try {
-    pdfData = await pdfParse(dataBuffer, { max: maxPages });
+    const layout = await extractTextWithLayout(dataBuffer, maxPages);
+    rawText = layout.text;
+    pdfData.numpages = layout.numpages;
   } catch (e) {
     if (maxPages === 0) {
       console.log(`[PDF-Parser v5] 全量解析失败，降级到前10页: ${e.message}`);
-      pdfData = await pdfParse(dataBuffer, { max: 10 });
+      try {
+        const layout = await extractTextWithLayout(dataBuffer, 10);
+        rawText = layout.text;
+        pdfData.numpages = layout.numpages;
+      } catch (e2) {
+        const fallback = await pdfParse(dataBuffer, { max: 10 });
+        rawText = fallback.text || '';
+        pdfData.numpages = fallback.numpages || 0;
+      }
     } else {
       throw new Error('PDF解析失败: ' + e.message);
     }
   }
 
-  let rawText = (pdfData.text || '').replace(/\u0000/g, '');
+  rawText = rawText.replace(/\u0000/g, '');
   console.log(`[PDF-Parser v5] 文本: ${rawText.length} 字符, ${pdfData.numpages} 页`);
 
   // 判断是否疑似扫描版：文字层极短，或平均每页字符数过低（混合 PDF 的扫描页也覆盖）
@@ -838,6 +899,7 @@ function splitByBlankLines(text) {
 module.exports = {
   parseTOEFLReadingPDF,
   _internals: {
+    extractTextWithLayout,
     preProcessText,
     ruleBasedParseSegment,
     parseQuestions,
