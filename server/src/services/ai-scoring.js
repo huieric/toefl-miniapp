@@ -2,19 +2,51 @@ const axios = require('axios');
 const config = require('../config');
 
 /**
- * AI评分服务 - 使用OpenAI API对口语/写作进行评分
+ * AI评分服务 - 支持 DeepSeek/OpenAI/自定义（OpenAI 兼容接口）。
+ * key 可由用户传入（前端「AI 设置」填写），否则回退到服务端配置。
  */
 
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+function resolveEndpoint(provider, baseURL, model) {
+  const p = provider || 'deepseek';
+  const endpoints = {
+    deepseek: { baseURL: baseURL || 'https://api.deepseek.com', model: model || 'deepseek-chat' },
+    openai: { baseURL: baseURL || 'https://api.openai.com/v1', model: model || 'gpt-4o-mini' },
+  };
+  return endpoints[p] || endpoints.deepseek;
+}
 
-/**
- * 评分口语回答
- * @param {string} question - 题目内容
- * @param {string} userAnswer - 用户回答（文字稿）
- * @param {number} timeSpent - 用时（秒）
- * @returns {Promise<Object>} 评分结果
- */
-async function scoreSpeaking(question, userAnswer, timeSpent) {
+async function callAI(prompt, aiConfig) {
+  const { provider, apiKey, baseURL, model } = aiConfig || {};
+  const key = apiKey || config.aiApiKey || config.openaiApiKey || process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY || '';
+  if (!key) throw new Error('未配置 AI Key');
+  const ep = resolveEndpoint(provider, baseURL, model);
+  const url = ep.baseURL.replace(/\/+$/, '') + '/chat/completions';
+  const response = await axios.post(
+    url,
+    {
+      model: ep.model,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+      max_tokens: 1500,
+    },
+    {
+      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+      timeout: 60000,
+    }
+  );
+  return response.data.choices[0].message.content;
+}
+
+function safeParse(raw, fallback) {
+  try { return JSON.parse(raw); } catch (_) {}
+  const block = String(raw || '').match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (block) { try { return JSON.parse(block[1]); } catch (_) {} }
+  const obj = String(raw || '').match(/\{[\s\S]*\}/);
+  if (obj) { try { return JSON.parse(obj[0]); } catch (_) {} }
+  return fallback;
+}
+
+async function scoreSpeaking(question, userAnswer, timeSpent, aiConfig) {
   const prompt = `你是托福口语评分官。请对以下口语回答进行评分（满分30分）。
 
 题目：${question}
@@ -26,19 +58,12 @@ async function scoreSpeaking(question, userAnswer, timeSpent) {
 2. 语言运用（Language Use）：语法、词汇、句式多样性
 3. 话题展开（Topic Development）：逻辑性、完整性、相关性
 
-输出JSON格式：
-{
-  "score": <0-30的数字>,
-  "delivery": <0-30>,
-  "languageUse": <0-30>,
-  "topicDevelopment": <0-30>,
-  "feedback": "<中文反馈，100字以内>",
-  "suggestions": ["建议1", "建议2"]
-}`;
+输出JSON格式（只输出JSON）：
+{"score": <0-30>, "delivery": <0-30>, "languageUse": <0-30>, "topicDevelopment": <0-30>, "feedback": "<中文反馈>", "suggestions": ["建议1", "建议2"]}`;
 
   try {
-    const response = await callOpenAI(prompt);
-    const result = JSON.parse(response);
+    const response = await callAI(prompt, aiConfig);
+    const result = safeParse(response, {});
     return {
       score: Math.min(30, Math.max(0, result.score || 20)),
       detail: {
@@ -55,14 +80,7 @@ async function scoreSpeaking(question, userAnswer, timeSpent) {
   }
 }
 
-/**
- * 评分写作文章
- * @param {string} question - 题目内容
- * @param {string} essay - 用户文章
- * @param {string} writingType - 'independent' | 'integrated'
- * @returns {Promise<Object>} 评分结果
- */
-async function scoreWriting(question, essay, writingType = 'independent') {
+async function scoreWriting(question, essay, writingType = 'independent', aiConfig) {
   const prompt = `你是托福写作评分官。请对以下${writingType === 'independent' ? '独立' : '综合'}写作进行评分（满分30分）。
 
 题目：${question}
@@ -76,21 +94,12 @@ ${essay}
 3. 语言运用（Language Use）：语法准确、词汇丰富、句式多样
 4. 技术规范（Mechanics）：拼写、标点、格式
 
-输出JSON格式：
-{
-  "score": <0-30的数字>,
-  "development": <0-30>,
-  "organization": <0-30>,
-  "languageUse": <0-30>,
-  "mechanics": <0-30>,
-  "feedback": "<中文反馈，150字以内>",
-  "suggestions": ["建议1", "建议2", "建议3"],
-  "highlights": ["优点1", "优点2"]
-}`;
+输出JSON格式（只输出JSON）：
+{"score": <0-30>, "development": <0-30>, "organization": <0-30>, "languageUse": <0-30>, "mechanics": <0-30>, "feedback": "<中文反馈>", "suggestions": ["建议1", "建议2", "建议3"], "highlights": ["优点1", "优点2"]}`;
 
   try {
-    const response = await callOpenAI(prompt);
-    const result = JSON.parse(response);
+    const response = await callAI(prompt, aiConfig);
+    const result = safeParse(response, {});
     return {
       score: Math.min(30, Math.max(0, result.score || 20)),
       detail: {
@@ -109,39 +118,12 @@ ${essay}
   }
 }
 
-/**
- * 调用OpenAI API
- */
-async function callOpenAI(prompt) {
-  if (!config.openaiApiKey) {
-    throw new Error('未配置OPENAI_API_KEY');
-  }
-
-  const response = await axios.post(
-    OPENAI_API_URL,
-    {
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.3,
-      max_tokens: 1000,
-    },
-    {
-      headers: {
-        'Authorization': `Bearer ${config.openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
-
-  return response.data.choices[0].message.content;
-}
-
 function getDefaultSpeakingScore() {
   return {
     score: 20,
     detail: { delivery: 20, languageUse: 20, topicDevelopment: 20 },
-    feedback: '系统评分服务暂不可用，已给出默认分数。',
-    suggestions: ['请检查网络连接后重试AI评分'],
+    feedback: '未配置 AI Key 或评分失败，已给出默认分数。请到「个人中心 → AI 设置」配置。',
+    suggestions: ['配置 AI Key 后可获得真实评分'],
   };
 }
 
@@ -149,8 +131,8 @@ function getDefaultWritingScore() {
   return {
     score: 20,
     detail: { development: 20, organization: 20, languageUse: 20, mechanics: 20 },
-    feedback: '系统评分服务暂不可用，已给出默认分数。',
-    suggestions: ['请检查网络连接后重试AI评分'],
+    feedback: '未配置 AI Key 或评分失败，已给出默认分数。请到「个人中心 → AI 设置」配置。',
+    suggestions: ['配置 AI Key 后可获得真实评分'],
     highlights: ['文章完成了基本要求'],
   };
 }

@@ -205,12 +205,21 @@ router.post('/submit', auth, async (req, res) => {
     let isCorrect = false;
     let aiResult = null;
 
+    // 用户自带的 AI 配置（前端「AI 设置」传入）；不传则用服务端配置
+    const aiConfig = {
+      provider: req.body.aiProvider,
+      apiKey: req.body.aiApiKey,
+      baseURL: req.body.aiBaseURL,
+      model: req.body.aiModel,
+    };
+
     if (subject === 'writing') {
       // 写作：调用 AI 评分
       aiResult = await aiScoring.scoreWriting(
         question.question_content || question.title,
         content || '',
-        question.type || 'independent'
+        question.type || 'independent',
+        aiConfig
       );
       score = aiResult.score;
       isCorrect = aiResult.score >= 20; // 20分以上算合格
@@ -219,7 +228,8 @@ router.post('/submit', auth, async (req, res) => {
       aiResult = await aiScoring.scoreSpeaking(
         question.question_content || question.title,
         content || '',
-        timeSpent || 0
+        timeSpent || 0,
+        aiConfig
       );
       score = aiResult.score;
       isCorrect = aiResult.score >= 20;
