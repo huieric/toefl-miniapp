@@ -66,9 +66,11 @@ function resolveBackend(aiConfig) {
 async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}, onProgress) {
   console.log(`[PDF-Parser v5] 开始解析: ${filePath}`);
 
-  // 科目（默认阅读；听力/口语/写作上传时传入）+ 音频地址（听力题关联录音）
+  // 科目（默认阅读；听力/口语/写作上传时传入）+ 音频地址（听力题关联录音）+ 题集标识
   const subject = options.subject || 'reading';
   const audioUrl = options.audioUrl || null;
+  const batchId = options.batchId || passageId || null;
+  const batchName = options.batchName || null;
 
   // Step 1: PDF文本提取 (大文件分页处理)
   let pdfParse;
@@ -187,8 +189,8 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}, onPro
         const q = p.questions[qi];
         try {
           const ins = await db.query(
-            `INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, audio_url, source, status, passage_id, question_order)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'user', 'approved', $11, $12)
+            `INSERT INTO questions (subject, type, difficulty, title, content, options, answer, analysis, passage_text, audio_url, batch_id, batch_name, source, status, passage_id, question_order)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'user', 'approved', $13, $14)
              ON CONFLICT DO NOTHING`,
             [
               subject,
@@ -204,6 +206,8 @@ async function parseTOEFLReadingPDF(filePath, db, passageId, options = {}, onPro
               q.analysis || q.explanation || '',
               p.passage_text || p.passage || '',
               audioUrl,
+              batchId,
+              batchName,
               subPassageId,
               qi + 1
             ]

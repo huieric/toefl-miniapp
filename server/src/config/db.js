@@ -88,6 +88,8 @@ const COLUMN_DEFS = [
   { table: 'questions', name: 'passage_id',     type: 'VARCHAR(50)' },
   { table: 'questions', name: 'question_order', type: 'INTEGER',      def: '0' },
   { table: 'questions', name: 'audio_url',    type: 'TEXT' },
+  { table: 'questions', name: 'batch_id',     type: 'VARCHAR(50)' },
+  { table: 'questions', name: 'batch_name',   type: 'TEXT' },
   { table: 'users',      name: 'phone',       type: 'VARCHAR(20)' },
   { table: 'users',      name: 'membership',  type: 'VARCHAR(20)', def: "'free'" },
   { table: 'users',      name: 'level',       type: 'VARCHAR(20)', def: "'beginner'" },

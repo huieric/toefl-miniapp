@@ -86,7 +86,7 @@ router.post('/upload', auth, upload.fields([{ name: 'file', maxCount: 1 }, { nam
         pdfFile.path,
         db,
         uploadId,
-        { maxPages, maxPassages, subject, audioUrl },
+        { maxPages, maxPassages, subject, audioUrl, batchId: uploadId, batchName: pdfFile.originalname },
         (progress) => {
           // 后台解析进度上报：前端据此展示「已解析 X 篇，剩余继续」
           if (progress && progress.phase === 'parse') {
@@ -186,6 +186,43 @@ router.get('/upload/:id/status', auth, async (req, res) => {
 router.get('/', auth, async (req, res) => {
   try {
     const { subject, difficulty, type, source, page = 1, limit = 20, groupBy } = req.query;
+
+    // === 题集聚合模式（一次上传 = 一个题集，题集下含多篇）===
+    if (groupBy === 'set') {
+      const sets = await db.query(
+        `SELECT
+          batch_id AS "batchId",
+          MAX(batch_name) AS "batchName",
+          COUNT(DISTINCT passage_id) AS "passageCount",
+          COUNT(*) AS "questionCount",
+          MAX(created_at) AS "createdAt"
+        FROM questions
+        WHERE status = 'approved' AND subject = $1 AND source = 'user' AND batch_id IS NOT NULL
+        GROUP BY batch_id
+        ORDER BY MAX(created_at) DESC`,
+        [subject || 'reading']
+      );
+      for (const set of sets.rows) {
+        const ps = await db.query(
+          `SELECT
+            passage_id AS "passageId",
+            REGEXP_REPLACE(MAX(title), '\\s+-\\s+Q\\d+$', '') AS title,
+            COUNT(*) AS "questionCount",
+            ARRAY_AGG(DISTINCT type) AS types,
+            MAX(difficulty) AS difficulty,
+            MAX(source) AS source,
+            MAX(created_at) AS "createdAt"
+          FROM questions
+          WHERE batch_id = $1 AND status = 'approved'
+          GROUP BY passage_id
+          ORDER BY MIN(question_order) ASC`,
+          [set.batchId]
+        );
+        set.passages = ps.rows;
+      }
+      res.json({ code: 200, data: { sets: sets.rows } });
+      return;
+    }
 
     // === 篇章聚合模式 ===
     if (groupBy === 'passage') {

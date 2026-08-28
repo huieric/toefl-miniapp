@@ -52,6 +52,8 @@ CREATE TABLE IF NOT EXISTS questions (
     answer TEXT NOT NULL,
     analysis TEXT,
     audio_url TEXT,
+    batch_id VARCHAR(50),
+    batch_name TEXT,
     passage_text TEXT,
     source VARCHAR(50) DEFAULT 'official',
     status VARCHAR(15) DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
