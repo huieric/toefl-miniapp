@@ -91,6 +91,16 @@ export const questionAPI = {
       },
     }),
   uploadStatus: (uploadId) => http.get(`/questions/upload/${uploadId}/status`),
+  // 题目管理
+  deleteQuestion: (id) => http.delete(`/questions/${id}`),
+  deleteBatch: (batchId) => http.delete(`/questions/batch/${batchId}`),
+  renameBatch: (batchId, batchName) => http.patch(`/questions/batch/${batchId}`, { batchName }),
+  renameQuestion: (id, title) => http.patch(`/questions/${id}`, { title }),
+  regroup: (data) => http.post('/questions/regroup', data),
+  uploadBatch: (formData) => http.post('/questions/upload-batch', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 300000,
+  }),
 }
 
 export const adminAPI = {
