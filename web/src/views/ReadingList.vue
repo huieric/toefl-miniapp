@@ -36,6 +36,10 @@
               <div class="set-header">
                 <span class="set-name">{{ s.batchName || '未命名题集' }}</span>
                 <span class="set-meta">{{ s.passageCount }} 篇 · {{ s.questionCount }} 题</span>
+                <span class="set-actions" @click.stop>
+                  <el-icon class="set-act" @click="renameBatch(s)"><Edit /></el-icon>
+                  <el-icon class="set-act danger" @click="deleteBatch(s)"><Delete /></el-icon>
+                </span>
               </div>
             </template>
             <div class="passage-list">
@@ -47,6 +51,7 @@
               >
                 <span class="passage-row-title">{{ cleanTitle(p.title) }}</span>
                 <span class="passage-row-meta">{{ p.questionCount }} 题 · {{ diffLabel(p.difficulty) }}</span>
+                <el-icon class="passage-row-del" @click.stop="deletePassage(p)"><Delete /></el-icon>
                 <el-icon class="passage-row-arrow"><ArrowRight /></el-icon>
               </div>
             </div>
@@ -152,8 +157,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { ArrowRight } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowRight, Edit, Delete } from '@element-plus/icons-vue'
 import { questionAPI, healthAPI, withRetry } from '@/api'
 import UploadQuestionDialog from '@/components/UploadQuestionDialog.vue'
 import { useUploadPolling } from '@/composables/useUploadPolling'
@@ -376,6 +381,45 @@ const fetchList = async () => {
 
 const { pollUpload } = useUploadPolling(fetchList)
 
+const renameBatch = async (s) => {
+  try {
+    const { value } = await ElMessageBox.prompt('请输入新的题集名称', '重命名题集', {
+      inputValue: s.batchName || '',
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+    })
+    if (value && value.trim()) {
+      await questionAPI.renameBatch(s.batchId, value.trim())
+      ElMessage.success('已重命名')
+      await fetchList()
+    }
+  } catch (_) { /* 取消 */ }
+}
+
+const deleteBatch = async (s) => {
+  try {
+    await ElMessageBox.confirm(
+      `确认删除题集「${s.batchName || '未命名'}」？将删除其中 ${s.questionCount} 道题，不可恢复。`,
+      '删除题集', { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
+    )
+    await questionAPI.deleteBatch(s.batchId)
+    ElMessage.success('已删除')
+    await fetchList()
+  } catch (_) { /* 取消 */ }
+}
+
+const deletePassage = async (p) => {
+  try {
+    await ElMessageBox.confirm(
+      `确认删除文章「${cleanTitle(p.title)}」？将删除其中 ${p.questionCount} 道题。`,
+      '删除文章', { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }
+    )
+    await questionAPI.deletePassage(p.passageId)
+    ElMessage.success('已删除')
+    await fetchList()
+  } catch (_) { /* 取消 */ }
+}
+
 onMounted(fetchList)
 </script>
 
@@ -529,4 +573,25 @@ onMounted(fetchList)
   color: var(--text-placeholder, #c0c4cc);
   flex-shrink: 0;
 }
+.set-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+.set-act {
+  cursor: pointer;
+  color: var(--text-secondary, #909399);
+  font-size: 15px;
+  padding: 4px;
+}
+.set-act:hover { color: var(--primary, #4a6cf7); }
+.set-act.danger:hover { color: var(--danger, #f56c6c); }
+.passage-row-del {
+  cursor: pointer;
+  color: var(--text-placeholder, #c0c4cc);
+  flex-shrink: 0;
+  font-size: 14px;
+}
+.passage-row-del:hover { color: var(--danger, #f56c6c); }
 </style>

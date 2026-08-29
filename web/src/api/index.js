@@ -93,6 +93,7 @@ export const questionAPI = {
   uploadStatus: (uploadId) => http.get(`/questions/upload/${uploadId}/status`),
   // 题目管理
   deleteQuestion: (id) => http.delete(`/questions/${id}`),
+  deletePassage: (passageId) => http.delete(`/questions/passage/${passageId}`),
   deleteBatch: (batchId) => http.delete(`/questions/batch/${batchId}`),
   renameBatch: (batchId, batchName) => http.patch(`/questions/batch/${batchId}`, { batchName }),
   renameQuestion: (id, title) => http.patch(`/questions/${id}`, { title }),

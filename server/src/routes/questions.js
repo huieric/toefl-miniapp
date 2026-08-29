@@ -788,6 +788,21 @@ router.post('/seed-defaults', auth, async (req, res) => {
 
 // ===== 题目管理：删除 / 重命名 / 重新分组 =====
 
+// DELETE /api/questions/passage/:passageId - 删除单篇文章（同一 passage_id 的所有题）
+router.delete('/passage/:passageId', auth, async (req, res) => {
+  try {
+    const { passageId } = req.params;
+    const r = await db.query(
+      `DELETE FROM questions WHERE passage_id = $1 AND source = 'user'`,
+      [passageId]
+    );
+    res.json({ code: 200, data: { deleted: r.rowCount || 0 } });
+  } catch (err) {
+    console.error('[Questions] 删除文章失败:', err);
+    res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
+
 // DELETE /api/questions/batch/:batchId - 删除整个题集（一批题目）
 router.delete('/batch/:batchId', auth, async (req, res) => {
   try {
