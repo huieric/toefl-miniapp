@@ -66,6 +66,7 @@ function resolveBackend(aiConfig) {
  */
 async function extractTextWithLayout(dataBuffer, maxPages = 0) {
   const pdfParse = require('pdf-parse');
+  const pageTexts = [];
   const pdfData = await pdfParse(dataBuffer, {
     max: maxPages || 0,
     pagerender: (pageData) => {
@@ -73,7 +74,7 @@ async function extractTextWithLayout(dataBuffer, maxPages = 0) {
         const items = (tc.items || [])
           .filter((it) => it.str && it.str.trim() !== '')
           .map((it) => ({ str: it.str, x: Math.round(it.transform[4]), y: Math.round(it.transform[5]) }));
-        if (items.length === 0) return '\n\n';
+        if (items.length === 0) { pageTexts.push(''); return ''; }
 
         // 按 y 聚类成行
         const lines = [];
@@ -85,7 +86,7 @@ async function extractTextWithLayout(dataBuffer, maxPages = 0) {
         }
         lines.sort((a, b) => b.y - a.y); // 从上到下
 
-        if (lines.length <= 1) return lines.map((l) => l.str.trim()).join('\n') + '\n';
+        if (lines.length <= 1) { const t = lines.map((l) => l.str.trim()).join('\n'); pageTexts.push(t); return t; }
 
         // 正常行距 / 正常左边距 取中位数
         const gaps = [];
@@ -95,22 +96,44 @@ async function extractTextWithLayout(dataBuffer, maxPages = 0) {
         const xs = lines.map((l) => l.x).sort((a, b) => a - b);
         const normalX = xs[Math.floor(xs.length / 2)];
 
+        const startsCapitalOf = (s) => {
+          const t = String(s || '').trim()
+            .replace(/^\[[A-F]\]\s*/, '')       // 去掉 [A]-[F] 插入题标记
+            .replace(/^["'“”‘’]\s*>\s*/, '')     // 去掉 " > 双语原文标记
+            .replace(/^["'“”‘’]/, '');            // 去掉行首引号
+          return /^[A-Z\u4e00-\u9fff]/.test(t);   // 英文大写 或 中文汉字
+        };
+
         let out = lines[0].str.trim();
         for (let i = 1; i < lines.length; i++) {
           const gap = lines[i - 1].y - lines[i].y;
           const prevLine = lines[i - 1].str.trim();
-          const endsSentence = /[.!?]["')\]]?$/.test(prevLine);   // 上一行以句号/问号/叹号结尾
-          const bigGap = gap > normalGap * 1.4;                    // 行距明显突增
+          const endsSentence = /[.!?]["')\]]?$/.test(prevLine);   // 上一行以句末标点结尾
+          const bigGap = gap > normalGap * 1.3;                    // 行距明显突增（1.3 才能抓到 22 vs 中位数16）
           const indented = (lines[i].x - normalX) > 8;             // 行首缩进
-          // 新段落 =（明显大行距 且 上句以句末标点结尾）或（行首缩进）
-          const newPara = (bigGap && endsSentence) || indented;
+          // 新段落 =（大行距且上句句末标点 或 缩进）且（去[A-F]后大写开头）
+          const newPara = ((bigGap && endsSentence) || indented) && startsCapitalOf(lines[i].str);
           out += (newPara ? '\n\n' : '\n') + lines[i].str.trim();
         }
-        return out + '\n\n'; // 页尾加空行，分隔相邻页
+        pageTexts.push(out);
+        return out;
       });
     }
   });
-  return { text: (pdfData.text || '').replace(/\u0000/g, ''), numpages: pdfData.numpages || 0 };
+
+  // 智能拼接各页：页边界只在「上页末行句末标点 且 下页首行(去[A-F])大写开头」才算段落，否则续接（跨页句子不被切断）
+  let full = pageTexts.length ? (pageTexts[0] || '') : '';
+  for (let i = 1; i < pageTexts.length; i++) {
+    const prevLines = full.split('\n').filter((l) => l.trim());
+    const prevLast = (prevLines[prevLines.length - 1] || '').trim();
+    const nextFirst = (pageTexts[i].split('\n').find((l) => l.trim()) || '').trim();
+    const nextStripped = nextFirst.replace(/^\[[A-F]\]\s*/, '').replace(/^["'“”‘’]\s*>\s*/, '').replace(/^["'“”‘’]/, '');
+    const endsSentence = /[.!?]["')\]]?$/.test(prevLast);
+    const startsCapital = /^[A-Z\u4e00-\u9fff]/.test(nextStripped);
+    full += (endsSentence && startsCapital ? '\n\n' : '\n') + pageTexts[i];
+  }
+
+  return { text: full.replace(/\u0000/g, ''), numpages: pdfData.numpages || 0 };
 }
 
 // ============================================================
