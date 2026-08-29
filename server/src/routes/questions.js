@@ -19,6 +19,48 @@ function setUploadStatus(uploadId, status) {
   setTimeout(() => uploadStatusMap.delete(uploadId), 15 * 60 * 1000);
 }
 
+// 批量解析队列：逐个处理，避免多个大 PDF 同时占满 CPU
+const batchParseQueue = [];
+let batchParsing = false;
+
+async function runParseJob(job) {
+  const { path: pdfPath, uploadId, subject, fileName, audioUrl } = job;
+  try {
+    const result = await parseTOEFLReadingPDF(
+      pdfPath, db, uploadId,
+      { maxPages: 0, maxPassages: 0, subject, audioUrl, batchId: uploadId, batchName: fileName },
+      (progress) => {
+        if (progress && progress.phase === 'parse') {
+          setUploadStatus(uploadId, {
+            status: 'processing', fileName, parsedCount: progress.questionsInserted || 0, error: null,
+            meta: { parsedPassages: progress.passagesDone || 0, totalPassages: progress.passagesTotal || 0 },
+          });
+        }
+      }
+    );
+    setUploadStatus(uploadId, {
+      status: 'completed', fileName, parsedCount: result.insertedCount || 0, error: null,
+      meta: { passageCount: result.passageCount, skippedCount: result.skippedCount || 0, totalPages: result.totalPages },
+    });
+    console.log(`[Questions] 批量解析完成 uploadId=${uploadId}，共插入 ${result.insertedCount || 0} 道题`);
+  } catch (e) {
+    console.error(`[Questions] 批量解析失败 uploadId=${uploadId}:`, e.message);
+    setUploadStatus(uploadId, { status: 'failed', fileName, parsedCount: 0, error: e.message });
+  } finally {
+    try { fs.unlinkSync(pdfPath); } catch (_) {}
+  }
+}
+
+async function drainBatchParseQueue() {
+  if (batchParsing) return;
+  batchParsing = true;
+  while (batchParseQueue.length) {
+    const job = batchParseQueue.shift();
+    await runParseJob(job);
+  }
+  batchParsing = false;
+}
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: path.join(__dirname, '../../uploads'),
@@ -741,6 +783,113 @@ router.post('/seed-defaults', auth, async (req, res) => {
   } catch (err) {
     console.error('[Seed] 导入默认题库失败:', err);
     res.status(500).json({ code: 500, message: '导入失败: ' + err.message });
+  }
+});
+
+// ===== 题目管理：删除 / 重命名 / 重新分组 =====
+
+// DELETE /api/questions/batch/:batchId - 删除整个题集（一批题目）
+router.delete('/batch/:batchId', auth, async (req, res) => {
+  try {
+    const { batchId } = req.params;
+    const r = await db.query(
+      `DELETE FROM questions WHERE batch_id = $1 AND source = 'user'`,
+      [batchId]
+    );
+    res.json({ code: 200, data: { deleted: r.rowCount || 0 } });
+  } catch (err) {
+    console.error('[Questions] 删除题集失败:', err);
+    res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
+
+// PATCH /api/questions/batch/:batchId - 重命名题集
+router.patch('/batch/:batchId', auth, async (req, res) => {
+  try {
+    const { batchId } = req.params;
+    const batchName = String(req.body.batchName || '').trim();
+    if (!batchName) return res.status(400).json({ code: 400, message: '缺少 batchName' });
+    await db.query(
+      `UPDATE questions SET batch_name = $1 WHERE batch_id = $2`,
+      [batchName, batchId]
+    );
+    res.json({ code: 200, data: { batchId, batchName } });
+  } catch (err) {
+    console.error('[Questions] 重命名题集失败:', err);
+    res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
+
+// POST /api/questions/regroup - 重新分组：把若干篇(passageId)移入目标题集
+// body: { passageIds: ['xxx','yyy'], targetBatchId: '...', targetBatchName: '...' }
+router.post('/regroup', auth, async (req, res) => {
+  try {
+    const { passageIds, targetBatchId, targetBatchName } = req.body || {};
+    if (!Array.isArray(passageIds) || passageIds.length === 0) {
+      return res.status(400).json({ code: 400, message: '缺少 passageIds' });
+    }
+    const batchId = targetBatchId || `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+    const batchName = targetBatchName || '重组题集';
+    const r = await db.query(
+      `UPDATE questions SET batch_id = $1, batch_name = $2 WHERE passage_id = ANY($3::text[]) AND source = 'user'`,
+      [batchId, batchName, passageIds]
+    );
+    res.json({ code: 200, data: { updated: r.rowCount || 0, batchId, batchName } });
+  } catch (err) {
+    console.error('[Questions] 重新分组失败:', err);
+    res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
+
+// DELETE /api/questions/:id - 删除单题
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!/^\d+$/.test(id)) return res.status(400).json({ code: 400, message: '无效的题目ID' });
+    const r = await db.query(
+      `DELETE FROM questions WHERE id = $1 AND source = 'user'`,
+      [parseInt(id)]
+    );
+    res.json({ code: 200, data: { deleted: r.rowCount || 0 } });
+  } catch (err) {
+    console.error('[Questions] 删除题目失败:', err);
+    res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
+
+// PATCH /api/questions/:id - 重命名单题标题
+router.patch('/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!/^\d+$/.test(id)) return res.status(400).json({ code: 400, message: '无效的题目ID' });
+    const title = String(req.body.title || '').trim();
+    if (!title) return res.status(400).json({ code: 400, message: '缺少 title' });
+    await db.query(`UPDATE questions SET title = $1 WHERE id = $2`, [title, parseInt(id)]);
+    res.json({ code: 200, data: { id: parseInt(id), title } });
+  } catch (err) {
+    console.error('[Questions] 重命名题目失败:', err);
+    res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
+
+// POST /api/questions/upload-batch - 批量上传多个 PDF（逐个后台解析）
+router.post('/upload-batch', auth, upload.array('files', 20), async (req, res) => {
+  try {
+    const files = req.files || [];
+    if (!files.length) return res.status(400).json({ code: 400, message: '请选择 PDF 文件' });
+    const subject = String(req.body.subject || 'reading');
+    const uploadIds = [];
+    for (const f of files) {
+      const uploadId = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+      setUploadStatus(uploadId, { status: 'processing', fileName: f.originalname, parsedCount: 0, error: null, subject });
+      uploadIds.push({ uploadId, fileName: f.originalname });
+      batchParseQueue.push({ path: f.path, uploadId, subject, fileName: f.originalname, audioUrl: null });
+    }
+    res.json({ code: 200, data: { uploadIds, message: `已接收 ${files.length} 个文件，后台逐个解析` } });
+    setImmediate(drainBatchParseQueue);
+  } catch (err) {
+    console.error('[Questions] 批量上传失败:', err);
+    res.status(500).json({ code: 500, message: '上传失败: ' + err.message });
   }
 });
 
