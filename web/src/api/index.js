@@ -189,7 +189,9 @@ export const userAPI = {
   dashboard: () => http.get('/user/dashboard'),
   progress: () => http.get('/user/progress'),
   streak: () => http.get('/user/streak'),
+  getStreak: () => http.get('/user/streak'),
   updateStudy: (data) => http.post('/user/update-study', data),
+  getWeeklyReport: () => http.get('/user/weekly-report'),
 }
 
 // AI Tutor
@@ -201,7 +203,8 @@ export const aiTutorAPI = {
 
 // Vocabulary（生词本）
 export const vocabAPI = {
-  list: () => http.get('/vocab'),
+  list: (params) => http.get('/vocab', { params }),
+  listSets: () => http.get('/vocab/sets'),
   add: (data) => http.post('/vocab', data),
   review: () => http.get('/vocab/review'),
   submitReview: (id, rating) => http.post(`/vocab/${id}/review`, { rating }),
