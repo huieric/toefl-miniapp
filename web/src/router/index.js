@@ -440,6 +440,26 @@ const routes = [
     meta: { title: '薄弱点分析' },
   },
 
+  // Round 37: XP 等级系统 + 发音波形对比 + 语法纠错助手
+  {
+    path: '/xp-system',
+    name: 'XPSystem',
+    component: () => import('@/views/XPSystem.vue'),
+    meta: { title: 'XP 经验值与等级' },
+  },
+  {
+    path: '/pronunciation-comparison',
+    name: 'PronunciationComparison',
+    component: () => import('@/views/PronunciationComparison.vue'),
+    meta: { title: 'AI 发音对比' },
+  },
+  {
+    path: '/grammar-coach',
+    name: 'GrammarCoach',
+    component: () => import('@/views/GrammarCoach.vue'),
+    meta: { title: '语法纠错助手' },
+  },
+
   {
     path: '/:pathMatch(.*)*',
     redirect: '/',

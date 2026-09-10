@@ -145,6 +145,11 @@ app.use('/api/instant-feedback', require('./routes/instant-feedback'));
 app.use('/api/vocab-games', require('./routes/vocab-games'));
 app.use('/api/weak-points', require('./routes/weak-points'));
 
+// Round 37: XP 等级系统 + 发音波形对比 + 语法纠错助手
+app.use('/api/xp-system', require('./routes/xp-system'));
+app.use('/api/pronunciation-comparison', require('./routes/pronunciation-comparison'));
+app.use('/api/grammar-coach', require('./routes/grammar-coach'));
+
 // === 健康检查 ===
 app.get('/api/health', (req, res) => {
   res.json({

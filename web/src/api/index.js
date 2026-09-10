@@ -501,4 +501,24 @@ export const weakPointsAPI = {
   getRecommend: () => http.get('/weak-points/recommend'),
 }
 
+// Round 37: XP 等级系统
+export const xpSystemAPI = {
+  getOverview: () => http.get('/xp-system/overview'),
+  earn: (data) => http.post('/xp-system/earn', data),
+  getLeaderboard: () => http.get('/xp-system/leaderboard'),
+}
+
+// Round 37: AI 发音对比
+export const pronunciationComparisonAPI = {
+  getPhrases: () => http.get('/pronunciation-comparison/phrases'),
+  analyze: (data) => http.post('/pronunciation-comparison/analyze', data),
+  getStats: () => http.get('/pronunciation-comparison/stats'),
+}
+
+// Round 37: 语法纠错助手
+export const grammarCoachAPI = {
+  check: (data) => http.post('/grammar-coach/check', data),
+  getHistory: () => http.get('/grammar-coach/history'),
+}
+
 export default http

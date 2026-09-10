@@ -572,6 +572,45 @@
       </div>
     </div>
 
+    <!-- Round 37: XP 等级系统 -->
+    <div class="card round37-card">
+      <div class="round37-header">
+        <div class="round37-info">
+          <span class="round37-title">⚡ XP 经验值与等级</span>
+          <span class="round37-sub">Duolingo 式激励 · 排行榜 · 持续学习动力</span>
+        </div>
+        <el-button type="warning" size="small" @click="$router.push('/xp-system')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- Round 37: AI 发音对比 -->
+    <div class="card round37-card">
+      <div class="round37-header">
+        <div class="round37-info">
+          <span class="round37-title">🎙️ AI 发音对比</span>
+          <span class="round37-sub">ELSA 式逐音素分析 · 节奏语调评分 · 发音改进建议</span>
+        </div>
+        <el-button type="primary" size="small" @click="$router.push('/pronunciation-comparison')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- Round 37: 语法纠错助手 -->
+    <div class="card round37-card">
+      <div class="round37-header">
+        <div class="round37-info">
+          <span class="round37-title">📝 语法纠错助手</span>
+          <span class="round37-sub">Grammarly 式实时纠错 · 文体建议 · 正式程度检查</span>
+        </div>
+        <el-button type="success" size="small" @click="$router.push('/grammar-coach')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
     <!-- Subject Progress Rings -->
     <div class="card">
       <h3 class="section-title">四科练习进度</h3>
@@ -1820,4 +1859,15 @@ onMounted(async () => {
 .round36-info { display: flex; flex-direction: column; gap: 4px; }
 .round36-title { display: block; font-weight: 700; font-size: 15px; color: #1f2937; }
 .round36-sub { display: block; font-size: 11px; color: #9ca3af; }
+
+/* ==================== Round 37: 新功能入口 ==================== */
+.round37-card {
+  border-left: 3px solid #10b981;
+}
+.round37-card:nth-child(2) { border-left-color: #f59e0b; }
+.round37-card:nth-child(3) { border-left-color: #ef4444; }
+.round37-header { display: flex; justify-content: space-between; align-items: center; }
+.round37-info { display: flex; flex-direction: column; gap: 4px; }
+.round37-title { display: block; font-weight: 700; font-size: 15px; color: #1f2937; }
+.round37-sub { display: block; font-size: 11px; color: #9ca3af; }
 </style>
