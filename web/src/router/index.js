@@ -76,6 +76,12 @@ const routes = [
     meta: { title: '口语答题' },
   },
   {
+    path: '/speaking/practice',
+    name: 'SpeakingPractice',
+    component: () => import('@/views/SpeakingPractice.vue'),
+    meta: { title: 'AI 口语陪练' },
+  },
+  {
     path: '/writing',
     name: 'WritingList',
     component: () => import('@/views/WritingList.vue'),
@@ -122,6 +128,48 @@ const routes = [
     name: 'WrongBookRedo',
     component: () => import('@/views/WrongBookRedo.vue'),
     meta: { title: '重做错题' },
+  },
+  {
+    path: '/achievements',
+    name: 'Achievements',
+    component: () => import('@/views/Achievements.vue'),
+    meta: { title: '成就徽章' },
+  },
+  {
+    path: '/match-mode',
+    name: 'MatchMode',
+    component: () => import('@/views/MatchMode.vue'),
+    meta: { title: '配对游戏' },
+  },
+  {
+    path: '/weekly-report',
+    name: 'WeeklyReport',
+    component: () => import('@/views/WeeklyReport.vue'),
+    meta: { title: '学习周报' },
+  },
+  {
+    path: '/daily-challenge',
+    name: 'DailyChallenge',
+    component: () => import('@/views/DailyChallenge.vue'),
+    meta: { title: '每日闯关' },
+  },
+  {
+    path: '/focus-timer',
+    name: 'FocusTimer',
+    component: () => import('@/views/FocusTimer.vue'),
+    meta: { title: '专注森林' },
+  },
+  {
+    path: '/skill-mastery',
+    name: 'SkillMastery',
+    component: () => import('@/views/SkillMastery.vue'),
+    meta: { title: '技能掌握' },
+  },
+  {
+    path: '/streak-freeze',
+    name: 'StreakFreeze',
+    component: () => import('@/views/StreakFreeze.vue'),
+    meta: { title: '连续保护' },
   },
   {
     path: '/ai-talk',
@@ -198,9 +246,88 @@ const routes = [
   {
     path: '/vocab/review',
     name: 'VocabReview',
-    component: () => import('@/views/VocabReview.vue'),
+    component: () => import('@/views/VocabReviewEnhanced.vue'),
     meta: { title: '生词复习' },
   },
+  {
+    path: '/quiz-reaction',
+    name: 'QuizReaction',
+    component: () => import('@/views/QuizReaction.vue'),
+    meta: { title: '情感反馈' },
+  },
+  {
+    path: '/language-level',
+    name: 'LanguageLevel',
+    component: () => import('@/views/LanguageLevel.vue'),
+    meta: { title: '语言等级' },
+  },
+  {
+    path: '/daily-goals',
+    name: 'DailyGoals',
+    component: () => import('@/views/DailyGoals.vue'),
+    meta: { title: '每日目标' },
+  },
+
+  // Round 26: 学习热力图 + 语法助手 + 专注时间线
+  {
+    path: '/study-heatmap',
+    name: 'StudyHeatmap',
+    component: () => import('@/views/StudyHeatmap.vue'),
+    meta: { title: '学习热力图' },
+  },
+  {
+    path: '/grammar-assistant',
+    name: 'GrammarAssistant',
+    component: () => import('@/views/GrammarAssistant.vue'),
+    meta: { title: '语法助手' },
+  },
+  {
+    path: '/focus-session',
+    name: 'FocusSession',
+    component: () => import('@/views/FocusSession.vue'),
+    meta: { title: '专注时间线' },
+  },
+
+  // Round 27: ELSA 音素教练 + 速度阅读 + 题目收藏
+  {
+    path: '/phoneme-coach',
+    name: 'PhonemeCoach',
+    component: () => import('@/views/PhonemeCoach.vue'),
+    meta: { title: 'ELSA 音素教练' },
+  },
+  {
+    path: '/speed-reading',
+    name: 'SpeedReading',
+    component: () => import('@/views/SpeedReading.vue'),
+    meta: { title: '速度阅读训练' },
+  },
+  {
+    path: '/bookmarks',
+    name: 'BookmarkList',
+    component: () => import('@/views/BookmarkList.vue'),
+    meta: { title: '题目收藏' },
+  },
+
+  // Round 28: 联赛系统 + 间隔重复复习 + 分数预测
+  {
+    path: '/league',
+    name: 'League',
+    component: () => import('@/views/League.vue'),
+    meta: { title: '联赛系统' },
+  },
+  {
+    path: '/srs-review',
+    name: 'SRSReview',
+    component: () => import('@/views/SRSReview.vue'),
+    meta: { title: '间隔重复复习' },
+  },
+  {
+    path: '/score-predictor',
+    name: 'ScorePredictor',
+    component: () => import('@/views/ScorePredictor.vue'),
+    meta: { title: '托福分数预测' },
+  },
+
   // Admin routes (independent layout, no sidebar)
   {
     path: '/admin',
@@ -233,6 +360,45 @@ const routes = [
       },
     ],
   },
+  // Round 29: 全真模考 + 学习路径 + 每日碎片学习
+  {
+    path: '/mock-exam',
+    name: 'MockExam',
+    component: () => import('@/views/MockExam.vue'),
+    meta: { title: '全真模考', noLayout: true },
+  },
+  {
+    path: '/learning-path',
+    name: 'LearningPath',
+    component: () => import('@/views/LearningPath.vue'),
+    meta: { title: '学习路径' },
+  },
+  {
+    path: '/daily-micro',
+    name: 'DailyMicro',
+    component: () => import('@/views/DailyMicro.vue'),
+    meta: { title: '每日碎片学习' },
+  },
+
+  // Round 30: 听力精听 + 词汇图谱 + 成就徽章升级
+  {
+    path: '/intensive-listening',
+    name: 'IntensiveListening',
+    component: () => import('@/views/IntensiveListening.vue'),
+    meta: { title: '听力精听' },
+  },
+  {
+    path: '/vocab-graph',
+    name: 'VocabGraph',
+    component: () => import('@/views/VocabGraph.vue'),
+    meta: { title: '词汇图谱' },
+  },
+  {
+    path: '/enhanced-achievements',
+    name: 'EnhancedAchievements',
+    component: () => import('@/views/EnhancedAchievements.vue'),
+    meta: { title: '成就徽章' },
+  },
   {
     path: '/:pathMatch(.*)*',
     redirect: '/',
@@ -255,7 +421,7 @@ router.beforeEach((to, from, next) => {
     return
   }
   // 会员专享路由拦截
-  const premiumRoutes = ['/mock-exam', '/ai-talk']
+  const premiumRoutes = ['/mock-exam', '/ai-talk', '/speaking/practice', '/learning-path', '/daily-micro', '/intensive-listening', '/vocab-graph', '/enhanced-achievements']
   const isPremiumRoute = premiumRoutes.some(p => to.path.startsWith(p))
   if (isPremiumRoute && token) {
     try {

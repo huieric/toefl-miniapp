@@ -22,11 +22,18 @@ const adminRoutes = require('./routes/admin');
 const membershipRoutes = require('./routes/membership');
 const adsRoutes = require('./routes/ads');
 const aiTutorRoutes = require('./routes/ai-tutor');
+const aiSpeakRoutes = require('./routes/ai-speak');
+const aiConversationRoutes = require('./routes/ai-conversation');
+const reviewRoutes = require('./routes/review');
 const vocabRoutes = require('./routes/vocab');
 const aiRoutes = require('./routes/ai');
+const aiAnnotateRoutes = require('./routes/ai-annotate');
+const analysisRoutes = require('./routes/analysis');
+const ttsRoutes = require('./routes/tts');
+const achievementRoutes = require('./routes/achievements');
 
 // 确保 uploads 目录存在（multer 写文件的前提）
-const uploadsDir = path.join(__dirname, '..', 'uploads');
+const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
   console.log(`[TOEFL-Server] 创建目录: ${uploadsDir}`);
@@ -88,6 +95,45 @@ app.use('/api/ads', adsRoutes);
 app.use('/api/ai-tutor', aiTutorRoutes);
 app.use('/api/vocab', vocabRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/ai', aiAnnotateRoutes);
+app.use('/api/ai-speak', aiSpeakRoutes);
+app.use('/api/ai-conversation', aiConversationRoutes);
+app.use('/api/analysis', analysisRoutes);
+app.use('/api/review', reviewRoutes);
+app.use('/api/tts', ttsRoutes);
+app.use('/api/daily-challenge', require('./routes/daily-challenge'));
+app.use('/api/achievements', achievementRoutes);
+app.use('/api/focus-timer', require('./routes/focus-timer'));
+app.use('/api/skill-mastery', require('./routes/skill-mastery'));
+app.use('/api/streak-freeze', require('./routes/streak-freeze'));
+app.use('/api/quiz-reaction', require('./routes/quiz-reaction'));
+app.use('/api/language-level', require('./routes/language-level'));
+app.use('/api/daily-goals', require('./routes/daily-goals'));
+
+// Round 26: 学习热力图 + 语法检查 + 专注会话时间线
+app.use('/api/study-heatmap', require('./routes/study-heatmap'));
+app.use('/api/grammar-check', require('./routes/grammar-check'));
+app.use('/api/focus-session', require('./routes/focus-session'));
+
+// Round 27: ELSA 音素评分 + 速度阅读 + 题目收藏
+app.use('/api/phoneme-score', require('./routes/phoneme-scoring'));
+app.use('/api/speed-reading', require('./routes/speed-reading'));
+app.use('/api/bookmarks', require('./routes/bookmarks'));
+
+// Round 28: 联赛系统 + 间隔重复复习 + 分数预测
+app.use('/api/league', require('./routes/league'));
+app.use('/api/srs-review', require('./routes/srs-review'));
+app.use('/api/score-predictor', require('./routes/score-predictor'));
+
+// Round 29: 全真模考 + 学习路径 + 每日碎片学习
+app.use('/api/mock-exam', require('./routes/mock-exam'));
+app.use('/api/learning-path', require('./routes/learning-path'));
+app.use('/api/daily-micro', require('./routes/daily-micro'));
+
+// Round 30: 听力精听 + 词汇图谱 + 成就徽章升级
+app.use('/api/intensive-listening', require('./routes/intensive-listening'));
+app.use('/api/vocab-graph', require('./routes/vocab-graph'));
+// achievements.js already registered below
 
 // === 健康检查 ===
 app.get('/api/health', (req, res) => {
