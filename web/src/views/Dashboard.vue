@@ -611,6 +611,45 @@
       </div>
     </div>
 
+    <!-- Round 38: 听力听写训练 -->
+    <div class="card round38-card">
+      <div class="round38-header">
+        <div class="round38-info">
+          <span class="round38-title">🎧 听力听写训练</span>
+          <span class="round38-sub">Parroto 式听写 · 逐句听写 · 提升听力精度</span>
+        </div>
+        <el-button type="primary" size="small" @click="$router.push('/listening-dictation')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- Round 38: 学习数据报告 -->
+    <div class="card round38-card">
+      <div class="round38-header">
+        <div class="round38-info">
+          <span class="round38-title">📊 学习数据报告</span>
+          <span class="round38-sub">技能掌握地图 · 30 天曲线 · 周报分析</span>
+        </div>
+        <el-button type="warning" size="small" @click="$router.push('/learning-analytics')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- Round 38: 写作模板库 -->
+    <div class="card round38-card">
+      <div class="round38-header">
+        <div class="round38-info">
+          <span class="round38-title">📝 写作模板库</span>
+          <span class="round38-sub">独立写作 · 综合写作 · 学术写作框架</span>
+        </div>
+        <el-button type="success" size="small" @click="$router.push('/writing-templates')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
     <!-- Subject Progress Rings -->
     <div class="card">
       <h3 class="section-title">四科练习进度</h3>
@@ -1870,4 +1909,15 @@ onMounted(async () => {
 .round37-info { display: flex; flex-direction: column; gap: 4px; }
 .round37-title { display: block; font-weight: 700; font-size: 15px; color: #1f2937; }
 .round37-sub { display: block; font-size: 11px; color: #9ca3af; }
+
+/* ==================== Round 38: 新功能入口 ==================== */
+.round38-card {
+  border-left: 3px solid #8b5cf6;
+}
+.round38-card:nth-child(2) { border-left-color: #ec4899; }
+.round38-card:nth-child(3) { border-left-color: #06b6d4; }
+.round38-header { display: flex; justify-content: space-between; align-items: center; }
+.round38-info { display: flex; flex-direction: column; gap: 4px; }
+.round38-title { display: block; font-weight: 700; font-size: 15px; color: #1f2937; }
+.round38-sub { display: block; font-size: 11px; color: #9ca3af; }
 </style>

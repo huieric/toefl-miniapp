@@ -460,6 +460,26 @@ const routes = [
     meta: { title: '语法纠错助手' },
   },
 
+  // Round 38: 听力听写训练 + 学习数据报告 + 写作模板库
+  {
+    path: '/listening-dictation',
+    name: 'ListeningDictation',
+    component: () => import('@/views/ListeningDictation.vue'),
+    meta: { title: '听力听写训练' },
+  },
+  {
+    path: '/learning-analytics',
+    name: 'LearningAnalytics',
+    component: () => import('@/views/LearningAnalytics.vue'),
+    meta: { title: '学习数据报告' },
+  },
+  {
+    path: '/writing-templates',
+    name: 'WritingTemplates',
+    component: () => import('@/views/WritingTemplates.vue'),
+    meta: { title: '写作模板库' },
+  },
+
   {
     path: '/:pathMatch(.*)*',
     redirect: '/',

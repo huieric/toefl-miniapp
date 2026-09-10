@@ -150,6 +150,11 @@ app.use('/api/xp-system', require('./routes/xp-system'));
 app.use('/api/pronunciation-comparison', require('./routes/pronunciation-comparison'));
 app.use('/api/grammar-coach', require('./routes/grammar-coach'));
 
+// Round 38: 听力听写训练 + 学习数据报告 + 写作模板库
+app.use('/api/listening-dictation', require('./routes/listening-dictation'));
+app.use('/api/learning-analytics', require('./routes/learning-analytics'));
+app.use('/api/writing-templates', require('./routes/writing-templates'));
+
 // === 健康检查 ===
 app.get('/api/health', (req, res) => {
   res.json({

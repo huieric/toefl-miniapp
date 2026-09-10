@@ -521,4 +521,26 @@ export const grammarCoachAPI = {
   getHistory: () => http.get('/grammar-coach/history'),
 }
 
+// Round 38: 听力听写训练
+export const listeningDictationAPI = {
+  getSessions: () => http.get('/listening-dictation/sessions'),
+  getSession: (id) => http.get(`/listening-dictation/session/${id}`),
+  submit: (data) => http.post('/listening-dictation/submit', data),
+  getStats: () => http.get('/listening-dictation/stats'),
+}
+
+// Round 38: 学习数据报告
+export const learningAnalyticsAPI = {
+  getOverview: () => http.get('/learning-analytics/overview'),
+  getWeeklyReport: () => http.get('/learning-analytics/weekly-report'),
+  getSkillMap: () => http.get('/learning-analytics/skill-map'),
+}
+
+// Round 38: 写作模板库
+export const writingTemplatesAPI = {
+  getCategories: () => http.get('/writing-templates/categories'),
+  getList: (params) => http.get('/writing-templates/list', { params }),
+  getDetail: (id) => http.get(`/writing-templates/${id}`),
+}
+
 export default http
