@@ -689,6 +689,45 @@
       </div>
     </div>
 
+    <!-- Round 41: 单词书打卡 -->
+    <div class="card round41-card">
+      <div class="round41-header">
+        <div class="round41-info">
+          <span class="round41-title">📚 单词书打卡</span>
+          <span class="round41-sub">词书管理 · 每日签到 · 记忆曲线</span>
+        </div>
+        <el-button type="warning" size="small" @click="$router.push('/vocab-streak')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- Round 41: AI 写作批改 -->
+    <div class="card round41-card">
+      <div class="round41-header">
+        <div class="round41-info">
+          <span class="round41-title">✍️ AI 写作批改</span>
+          <span class="round41-sub">E-rater 评分 · 语法分析 · 详细反馈</span>
+        </div>
+        <el-button type="primary" size="small" @click="$router.push('/ai-writing')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- Round 41: 学习计划 -->
+    <div class="card round41-card">
+      <div class="round41-header">
+        <div class="round41-info">
+          <span class="round41-title">📋 学习计划</span>
+          <span class="round41-sub">三阶段规划 · 每日任务 · 进度追踪</span>
+        </div>
+        <el-button type="success" size="small" @click="$router.push('/study-plan')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
     <!-- Subject Progress Rings -->
     <div class="card">
       <h3 class="section-title">四科练习进度</h3>
@@ -1970,4 +2009,15 @@ onMounted(async () => {
 .round39-info { display: flex; flex-direction: column; gap: 4px; }
 .round39-title { display: block; font-weight: 700; font-size: 15px; color: #1f2937; }
 .round39-sub { display: block; font-size: 11px; color: #9ca3af; }
+
+/* ==================== Round 41: 新功能入口 ==================== */
+.round41-card {
+  border-left: 3px solid #f97316;
+}
+.round41-card:nth-child(2) { border-left-color: #ec4899; }
+.round41-card:nth-child(3) { border-left-color: #14b8a6; }
+.round41-header { display: flex; justify-content: space-between; align-items: center; }
+.round41-info { display: flex; flex-direction: column; gap: 4px; }
+.round41-title { display: block; font-weight: 700; font-size: 15px; color: #1f2937; }
+.round41-sub { display: block; font-size: 11px; color: #9ca3af; }
 </style>

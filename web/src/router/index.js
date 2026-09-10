@@ -500,6 +500,26 @@ const routes = [
     meta: { title: '口语流利度追踪' },
   },
 
+  // Round 41: 单词书打卡 + AI 写作批改 + 学习计划
+  {
+    path: '/vocab-streak',
+    name: 'VocabStreak',
+    component: () => import('@/views/VocabStreak.vue'),
+    meta: { title: '单词书打卡' },
+  },
+  {
+    path: '/ai-writing',
+    name: 'AiWriting',
+    component: () => import('@/views/AiWriting.vue'),
+    meta: { title: 'AI 写作批改' },
+  },
+  {
+    path: '/study-plan',
+    name: 'StudyPlan',
+    component: () => import('@/views/StudyPlan.vue'),
+    meta: { title: '学习计划' },
+  },
+
   {
     path: '/:pathMatch(.*)*',
     redirect: '/',

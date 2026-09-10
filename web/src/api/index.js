@@ -565,4 +565,29 @@ export const speakingFluencyAPI = {
   getStats: () => http.get('/speaking-fluency/stats'),
 }
 
+// Round 41: 单词书打卡
+export const vocabStreakAPI = {
+  getBooks: () => http.get('/vocab-streak/books'),
+  createBook: (data) => http.post('/vocab-streak/books', data),
+  getBookWords: (id) => http.get(`/vocab-streak/book/${id}/words`),
+  study: (data) => http.post('/vocab-streak/study', data),
+  checkin: () => http.post('/vocab-streak/checkin'),
+  getStats: () => http.get('/vocab-streak/stats'),
+}
+
+// Round 41: AI 写作批改
+export const aiWritingAPI = {
+  getPrompt: () => http.get('/ai-writing/prompt'),
+  submit: (data) => http.post('/ai-writing/submit', data),
+  getHistory: () => http.get('/ai-writing/history'),
+  getTrend: () => http.get('/ai-writing/trend'),
+}
+
+// Round 41: 学习计划
+export const studyPlanAPI = {
+  get: () => http.get('/study-plan'),
+  create: (data) => http.post('/study-plan/create', data),
+  completeTask: (id, completed) => http.post(`/study-plan/task/${id}/complete`, { completed }),
+}
+
 export default http

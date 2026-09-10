@@ -160,6 +160,11 @@ app.use('/api/ai-mock-exam', require('./routes/ai-mock-exam'));
 app.use('/api/reading-speed', require('./routes/reading-speed'));
 app.use('/api/speaking-fluency', require('./routes/speaking-fluency'));
 
+// Round 41: 单词书打卡 + AI 写作批改 + 学习计划
+app.use('/api/vocab-streak', require('./routes/vocab-streak'));
+app.use('/api/ai-writing', require('./routes/ai-writing'));
+app.use('/api/study-plan', require('./routes/study-plan'));
+
 // === 健康检查 ===
 app.get('/api/health', (req, res) => {
   res.json({
