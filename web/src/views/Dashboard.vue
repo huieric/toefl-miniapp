@@ -650,6 +650,45 @@
       </div>
     </div>
 
+    <!-- Round 39: AI 模拟考场 -->
+    <div class="card round39-card">
+      <div class="round39-header">
+        <div class="round39-info">
+          <span class="round39-title">🤖 AI 模拟考场</span>
+          <span class="round39-sub">全真模拟考试 · 四科连考 · AI 智能评分</span>
+        </div>
+        <el-button type="danger" size="small" @click="$router.push('/ai-mock-exam')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- Round 39: 阅读速度训练 -->
+    <div class="card round39-card">
+      <div class="round39-header">
+        <div class="round39-info">
+          <span class="round39-title">⚡ 阅读速度训练</span>
+          <span class="round39-sub">WPM 计时 · 理解度测试 · 进步追踪</span>
+        </div>
+        <el-button type="warning" size="small" @click="$router.push('/reading-speed')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- Round 39: 口语流利度追踪 -->
+    <div class="card round39-card">
+      <div class="round39-header">
+        <div class="round39-info">
+          <span class="round39-title">🎯 口语流利度追踪</span>
+          <span class="round39-sub">录音分析 · 流利度评分 · 趋势图表</span>
+        </div>
+        <el-button type="primary" size="small" @click="$router.push('/speaking-fluency')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
     <!-- Subject Progress Rings -->
     <div class="card">
       <h3 class="section-title">四科练习进度</h3>
@@ -1920,4 +1959,15 @@ onMounted(async () => {
 .round38-info { display: flex; flex-direction: column; gap: 4px; }
 .round38-title { display: block; font-weight: 700; font-size: 15px; color: #1f2937; }
 .round38-sub { display: block; font-size: 11px; color: #9ca3af; }
+
+/* ==================== Round 39: 新功能入口 ==================== */
+.round39-card {
+  border-left: 3px solid #ef4444;
+}
+.round39-card:nth-child(2) { border-left-color: #f59e0b; }
+.round39-card:nth-child(3) { border-left-color: #10b981; }
+.round39-header { display: flex; justify-content: space-between; align-items: center; }
+.round39-info { display: flex; flex-direction: column; gap: 4px; }
+.round39-title { display: block; font-weight: 700; font-size: 15px; color: #1f2937; }
+.round39-sub { display: block; font-size: 11px; color: #9ca3af; }
 </style>

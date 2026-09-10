@@ -480,6 +480,26 @@ const routes = [
     meta: { title: '写作模板库' },
   },
 
+  // Round 39: AI 模拟考场 + 阅读速度训练 + 口语流利度追踪
+  {
+    path: '/ai-mock-exam',
+    name: 'AiMockExam',
+    component: () => import('@/views/AiMockExam.vue'),
+    meta: { title: 'AI 模拟考场' },
+  },
+  {
+    path: '/reading-speed',
+    name: 'ReadingSpeed',
+    component: () => import('@/views/ReadingSpeed.vue'),
+    meta: { title: '阅读速度训练' },
+  },
+  {
+    path: '/speaking-fluency',
+    name: 'SpeakingFluency',
+    component: () => import('@/views/SpeakingFluency.vue'),
+    meta: { title: '口语流利度追踪' },
+  },
+
   {
     path: '/:pathMatch(.*)*',
     redirect: '/',

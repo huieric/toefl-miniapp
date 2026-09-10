@@ -155,6 +155,11 @@ app.use('/api/listening-dictation', require('./routes/listening-dictation'));
 app.use('/api/learning-analytics', require('./routes/learning-analytics'));
 app.use('/api/writing-templates', require('./routes/writing-templates'));
 
+// Round 39: AI 模拟考场 + 阅读速度训练 + 口语流利度追踪
+app.use('/api/ai-mock-exam', require('./routes/ai-mock-exam'));
+app.use('/api/reading-speed', require('./routes/reading-speed'));
+app.use('/api/speaking-fluency', require('./routes/speaking-fluency'));
+
 // === 健康检查 ===
 app.get('/api/health', (req, res) => {
   res.json({

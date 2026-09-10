@@ -543,4 +543,26 @@ export const writingTemplatesAPI = {
   getDetail: (id) => http.get(`/writing-templates/${id}`),
 }
 
+// Round 39: AI 模拟考场
+export const aiMockExamAPI = {
+  getConfig: () => http.get('/ai-mock-exam/config'),
+  start: (data) => http.post('/ai-mock-exam/start', data),
+  submit: (data) => http.post('/ai-mock-exam/submit', data),
+  getHistory: () => http.get('/ai-mock-exam/history'),
+}
+
+// Round 39: 阅读速度训练
+export const readingSpeedAPI = {
+  getPassage: () => http.get('/reading-speed/passage'),
+  submit: (data) => http.post('/reading-speed/submit', data),
+  getStats: () => http.get('/reading-speed/stats'),
+}
+
+// Round 39: 口语流利度追踪
+export const speakingFluencyAPI = {
+  getPrompts: () => http.get('/speaking-fluency/prompts'),
+  submit: (data) => http.post('/speaking-fluency/submit', data),
+  getStats: () => http.get('/speaking-fluency/stats'),
+}
+
 export default http
