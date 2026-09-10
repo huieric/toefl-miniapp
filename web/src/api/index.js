@@ -480,4 +480,25 @@ export const shadowPracticeAPI = {
   analyze: (data) => http.post('/shadow-practice/analyze', data),
 }
 
+// Round 36: AI 即时反馈
+export const instantFeedbackAPI = {
+  submit: (data) => http.post('/instant-feedback/submit', data),
+  getHistory: () => http.get('/instant-feedback/history'),
+}
+
+// Round 36: 词汇游戏
+export const vocabGamesAPI = {
+  getGames: () => http.get('/vocab-games'),
+  matching: (params) => http.post('/vocab-games/matching', params),
+  test: (params) => http.post('/vocab-games/test', params),
+  typing: (params) => http.post('/vocab-games/typing', params),
+  submit: (data) => http.post('/vocab-games/submit', data),
+}
+
+// Round 36: 薄弱点分析
+export const weakPointsAPI = {
+  getAnalysis: () => http.get('/weak-points'),
+  getRecommend: () => http.get('/weak-points/recommend'),
+}
+
 export default http

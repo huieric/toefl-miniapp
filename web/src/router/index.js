@@ -420,6 +420,26 @@ const routes = [
     meta: { title: '口语跟读练习' },
   },
 
+  // Round 36: AI 即时反馈 + 词汇游戏 + 薄弱点分析
+  {
+    path: '/instant-feedback',
+    name: 'InstantFeedback',
+    component: () => import('@/views/InstantFeedback.vue'),
+    meta: { title: 'AI 即时解题' },
+  },
+  {
+    path: '/vocab-games',
+    name: 'VocabGames',
+    component: () => import('@/views/VocabGames.vue'),
+    meta: { title: '词汇游戏' },
+  },
+  {
+    path: '/weak-points',
+    name: 'WeakPoints',
+    component: () => import('@/views/WeakPoints.vue'),
+    meta: { title: '薄弱点分析' },
+  },
+
   {
     path: '/:pathMatch(.*)*',
     redirect: '/',

@@ -140,6 +140,11 @@ app.use('/api/question-explanation', require('./routes/question-explanation'));
 app.use('/api/writing-enhanced', require('./routes/writing-enhanced'));
 app.use('/api/shadow-practice', require('./routes/shadow-practice'));
 
+// Round 36: AI 即时反馈 + 词汇游戏 + 薄弱点分析
+app.use('/api/instant-feedback', require('./routes/instant-feedback'));
+app.use('/api/vocab-games', require('./routes/vocab-games'));
+app.use('/api/weak-points', require('./routes/weak-points'));
+
 // === 健康检查 ===
 app.get('/api/health', (req, res) => {
   res.json({

@@ -533,6 +533,45 @@
       </div>
     </div>
 
+    <!-- Round 36: AI 即时反馈 -->
+    <div class="card round36-card">
+      <div class="round36-header">
+        <div class="round36-info">
+          <span class="round36-title">⚡ AI 即时解题</span>
+          <span class="round36-sub">Sidekick 式即时反馈 · 每题解析 · 快速掌握</span>
+        </div>
+        <el-button type="primary" size="small" @click="$router.push('/instant-feedback')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- Round 36: 词汇游戏 -->
+    <div class="card round36-card">
+      <div class="round36-header">
+        <div class="round36-info">
+          <span class="round36-title">🎮 词汇游戏</span>
+          <span class="round36-sub">Quizlet 式配对 · 测试模式 · 拼写挑战</span>
+        </div>
+        <el-button type="success" size="small" @click="$router.push('/vocab-games')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- Round 36: 薄弱点分析 -->
+    <div class="card round36-card">
+      <div class="round36-header">
+        <div class="round36-info">
+          <span class="round36-title">🎯 薄弱点分析</span>
+          <span class="round36-sub">Khan Academy 式自适应推荐 · 智能练习建议</span>
+        </div>
+        <el-button type="warning" size="small" @click="$router.push('/weak-points')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
     <!-- Subject Progress Rings -->
     <div class="card">
       <h3 class="section-title">四科练习进度</h3>
@@ -1770,4 +1809,15 @@ onMounted(async () => {
 .round35-info { display: flex; flex-direction: column; gap: 4px; }
 .round35-title { display: block; font-weight: 700; font-size: 15px; color: #1f2937; }
 .round35-sub { display: block; font-size: 11px; color: #9ca3af; }
+
+/* ==================== Round 36: 新功能入口 ==================== */
+.round36-card {
+  border-left: 3px solid #ec4899;
+}
+.round36-card:nth-child(2) { border-left-color: #06b6d4; }
+.round36-card:nth-child(3) { border-left-color: #8b5cf6; }
+.round36-header { display: flex; justify-content: space-between; align-items: center; }
+.round36-info { display: flex; flex-direction: column; gap: 4px; }
+.round36-title { display: block; font-weight: 700; font-size: 15px; color: #1f2937; }
+.round36-sub { display: block; font-size: 11px; color: #9ca3af; }
 </style>
