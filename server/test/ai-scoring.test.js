@@ -33,13 +33,22 @@ test('scoreWriting: 解析 AI 返回 JSON 并限制分数 0-30', async () => {
   assert.equal(r3.score, 0);
 });
 
-test('scoreSpeaking: 解析 AI 返回并含三维度', async () => {
-  mockAI(JSON.stringify({ score: 22, delivery: 21, languageUse: 23, topicDevelopment: 22, feedback: '流利', suggestions: ['注意语调'] }));
+test('scoreSpeaking: 解析 AI 返回并含六维度', async () => {
+  mockAI(JSON.stringify({
+    score: 22,
+    pronunciation: 20, fluency: 23, intonation: 19, grammar: 22, vocabulary: 24, taskCompletion: 21,
+    feedback: '流利', suggestions: ['注意语调'], strengths: ['词汇丰富'], weaknesses: ['语调平淡'],
+  }));
   const r = await aiScoring.scoreSpeaking('题目', '回答', 30, { apiKey: 'sk-test' });
   assert.equal(r.score, 22);
-  assert.equal(r.detail.delivery, 21);
-  assert.equal(r.detail.languageUse, 23);
-  assert.equal(r.detail.topicDevelopment, 22);
+  assert.equal(r.detail.pronunciation, 20);
+  assert.equal(r.detail.fluency, 23);
+  assert.equal(r.detail.intonation, 19);
+  assert.equal(r.detail.grammar, 22);
+  assert.equal(r.detail.vocabulary, 24);
+  assert.equal(r.detail.taskCompletion, 21);
+  assert.ok(Array.isArray(r.strengths));
+  assert.ok(Array.isArray(r.weaknesses));
 });
 
 test('scoreWriting: AI 失败时回退默认分（不抛异常）', async () => {

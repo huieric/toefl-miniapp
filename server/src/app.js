@@ -135,6 +135,11 @@ app.use('/api/intensive-listening', require('./routes/intensive-listening'));
 app.use('/api/vocab-graph', require('./routes/vocab-graph'));
 // achievements.js already registered below
 
+// Round 35: AI 题目解析 + 写作评分增强 + 口语跟读练习
+app.use('/api/question-explanation', require('./routes/question-explanation'));
+app.use('/api/writing-enhanced', require('./routes/writing-enhanced'));
+app.use('/api/shadow-practice', require('./routes/shadow-practice'));
+
 // === 健康检查 ===
 app.get('/api/health', (req, res) => {
   res.json({

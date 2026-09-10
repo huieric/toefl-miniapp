@@ -173,12 +173,89 @@ onMounted(async () => {
 .q-num { font-weight: 700; color: var(--primary); }
 .options-group { width: 100%; }
 .option-item {
-  padding: 10px 14px; margin-bottom: 8px;
-  border: 1px solid var(--border); border-radius: 8px;
+  padding: 14px 14px;
+  margin-bottom: 8px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  min-height: 48px;
+  transition: border-color 0.2s, background 0.15s;
 }
-.option-item.selected { border-color: var(--primary); background: rgba(74,144,217,0.04); }
+.option-item.selected { border-color: var(--primary); background: var(--primary-soft); }
 .opt-letter { font-weight: 700; }
-.record-area, .write-area { padding: 20px; background: #f9fafb; border-radius: 8px; text-align: center; }
+.record-area, .write-area {
+  padding: 20px;
+  background: #F8F9FC;
+  border-radius: 8px;
+  text-align: center;
+}
 .hint-text { margin-bottom: 12px; color: var(--text-secondary); font-size: 14px; }
-.exam-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.exam-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+textarea {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .page-container { padding: 0 12px 80px; }
+  .page-header { margin-bottom: 14px; }
+  .page-header h2 { font-size: 20px; }
+
+  .exam-progress {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+    padding: 10px 14px;
+  }
+  .subject-tag { font-size: 12px; }
+
+  .question-area { margin: 16px 0; }
+  .question-stem { font-size: 15px; line-height: 1.6; }
+  .option-item {
+    padding: 14px 12px;
+    min-height: 52px;
+  }
+
+  .record-area, .write-area {
+    padding: 14px;
+    text-align: left;
+  }
+  .hint-text { font-size: 13px; }
+
+  .exam-actions {
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 14px;
+  }
+  .exam-actions .el-button {
+    width: 100%;
+    height: 44px;
+    font-size: 15px;
+  }
+
+  textarea {
+    min-height: 150px;
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 769px) {
+  .page-container { max-width: 700px; }
+}
 </style>

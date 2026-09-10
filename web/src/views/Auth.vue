@@ -1,6 +1,9 @@
 <template>
   <div class="auth-page" :class="{ 'is-desktop': !isMobile }">
     <div class="auth-card">
+      <div class="auth-logo">
+        <el-icon :size="30"><Notebook /></el-icon>
+      </div>
       <h2 class="auth-title">托福备考助手</h2>
       <p class="auth-subtitle">手机号登录</p>
       <el-form :model="form" :rules="rules" ref="formRef" size="large" @submit.prevent="handleLogin">
@@ -31,6 +34,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Notebook } from '@element-plus/icons-vue'
 import { authAPI } from '@/api'
 
 const router = useRouter()
@@ -137,18 +141,90 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #4A90D9 0%, #6BA5E7 100%);
+  background:
+    radial-gradient(900px 500px at 100% -10%, rgba(124, 92, 255, 0.28), transparent 60%),
+    radial-gradient(700px 420px at -10% 110%, rgba(66, 85, 255, 0.25), transparent 55%),
+    #F2F3FA;
   padding: 20px;
 }
 .auth-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 40px 32px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 24px;
+  padding: 44px 36px;
   width: 100%;
-  max-width: 400px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  max-width: 420px;
+  box-shadow: 0 24px 64px rgba(50, 65, 196, 0.18);
 }
-.auth-title { text-align: center; font-size: 24px; margin-bottom: 4px; }
-.auth-subtitle { text-align: center; color: var(--text-secondary); margin-bottom: 32px; font-size: 14px; }
-.auth-tip { text-align: center; color: var(--text-secondary); font-size: 12px; }
+.auth-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: var(--grad-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 18px;
+  box-shadow: 0 8px 24px rgba(66, 85, 255, 0.4);
+}
+.auth-title { text-align: center; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 4px; }
+.auth-subtitle { text-align: center; color: var(--text-secondary); margin-bottom: 28px; font-size: 14px; }
+.auth-tip { text-align: center; color: var(--text-muted); font-size: 12px; margin-top: 18px; }
+
+/* ===== 移动端适配 ===== */
+@media (max-width: 768px) {
+  .auth-page {
+    padding: 16px;
+  }
+  .auth-card {
+    padding: 36px 24px;
+    border-radius: 20px;
+  }
+  .auth-logo {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    margin-bottom: 16px;
+  }
+  .auth-title {
+    font-size: 20px;
+  }
+  .auth-subtitle {
+    font-size: 13px;
+    margin-bottom: 22px;
+  }
+  .auth-tip {
+    font-size: 11px;
+  }
+  .auth-page :deep(.el-input) {
+    height: 44px;
+  }
+  .auth-page :deep(.el-input__wrapper) {
+    padding: 0 12px;
+  }
+  .auth-page :deep(.el-form-item__content .el-button) {
+    height: 44px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-page {
+    padding: 12px;
+    padding-top: 20vh;
+  }
+  .auth-card {
+    padding: 28px 18px;
+    border-radius: 16px;
+  }
+  .auth-logo {
+    width: 48px;
+    height: 48px;
+  }
+  .auth-title {
+    font-size: 18px;
+  }
+}
 </style>

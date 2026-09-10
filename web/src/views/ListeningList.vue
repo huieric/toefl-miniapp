@@ -20,34 +20,55 @@
 
     <div class="card" v-loading="uploading || loading">
       <el-empty v-if="!loading && !list.length" :description="emptyDesc" />
-      <el-table v-else :data="list" stripe @row-click="goDetail" style="cursor:pointer">
-        <el-table-column type="index" label="#" width="50" />
-        <el-table-column prop="title" label="题目" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="type" label="题型" width="100">
-          <template #default="{ row }">{{ typeLabel(row.type) }}</template>
-        </el-table-column>
-        <el-table-column label="来源" width="90">
-          <template #default="{ row }">
-            <el-tag :type="row.source === 'user' ? 'success' : 'primary'" size="small" effect="plain">
-              {{ row.source === 'user' ? '真题' : '模拟题' }}
+
+      <!-- 移动端卡片列表 -->
+      <div v-else class="listening-card-list">
+        <div v-for="(item, idx) in list" :key="item.id || item._id || idx" class="listening-card" @click="goDetail(item)">
+          <div class="listening-card-header">
+            <el-tag size="small" :type="item.source === 'user' ? 'success' : 'primary'" effect="plain">
+              {{ item.source === 'user' ? '真题' : '模拟' }}
             </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="difficulty" label="难度" width="80">
-          <template #default="{ row }">
-            <el-tag :type="diffTag(row.difficulty)" size="small">{{ diffLabel(row.difficulty) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="created_at" label="添加时间" width="160">
-          <template #default="{ row }">{{ fmt(row.created_at) }}</template>
-        </el-table-column>
-      </el-table>
+            <el-tag v-if="item.type" size="small" effect="plain">{{ typeLabel(item.type) }}</el-tag>
+            <el-tag v-if="item.difficulty" size="small" :type="diffTag(item.difficulty)">{{ diffLabel(item.difficulty) }}</el-tag>
+            <el-icon v-if="item.audioUrl" :size="16" class="audio-badge"><Microphone /></el-icon>
+            <el-icon v-else-if="item.passageText" :size="16" class="tts-badge" title="提供 TTS 朗读"><ChatDotRound /></el-icon>
+          </div>
+          <p class="listening-card-title">{{ item.title || '--' }}</p>
+          <div class="listening-card-meta">
+            <span>添加于 {{ fmt(item.created_at) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 桌面端 el-table -->
+      <div class="table-wrapper">
+        <el-table v-if="list.length" :data="list" stripe @row-click="goDetail" style="cursor:pointer">
+          <el-table-column type="index" label="#" width="50" />
+          <el-table-column prop="title" label="题目" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="type" label="题型" width="100">
+            <template #default="{ row }">{{ typeLabel(row.type) }}</template>
+          </el-table-column>
+          <el-table-column label="来源" width="90">
+            <template #default="{ row }">
+              <el-tag :type="row.source === 'user' ? 'success' : 'primary'" size="small" effect="plain">
+                {{ row.source === 'user' ? '真题' : '模拟题' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="difficulty" label="难度" width="80">
+            <template #default="{ row }">
+              <el-tag :type="diffTag(row.difficulty)" size="small">{{ diffLabel(row.difficulty) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="created_at" label="添加时间" width="160">
+            <template #default="{ row }">{{ fmt(row.created_at) }}</template>
+          </el-table-column>
+        </el-table>
+      </div>
     </div>
 
-    <!-- 上传进度 -->
-    <el-dialog v-model="progressVisible" title="上传中" width="400px" :close-on-click-modal="false" :show-close="false">
-      <el-progress :percentage="uploadProgress" />
-    </el-dialog>
+    <!-- 上传进度卡片 -->
+    <UploadProgressCard />
 
     <!-- 生成模拟题对话框 -->
     <el-dialog v-model="genVisible" title="生成模拟题" width="420px">
@@ -77,8 +98,10 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Microphone, ChatDotRound } from '@element-plus/icons-vue'
 import { questionAPI, withRetry } from '@/api'
 import UploadQuestionDialog from '@/components/UploadQuestionDialog.vue'
+import UploadProgressCard from '@/components/UploadProgressCard.vue'
 import { useUploadPolling } from '@/composables/useUploadPolling'
 
 const router = useRouter()
@@ -87,9 +110,6 @@ const loading = ref(false)
 const uploading = ref(false)
 const generating = ref(false)
 const sourceTab = ref('simulated')
-const fileInputRef = ref(null)
-const progressVisible = ref(false)
-const uploadProgress = ref(0)
 const uploadVisible = ref(false)
 const genVisible = ref(false)
 const genCount = ref(5)
@@ -120,34 +140,6 @@ const fmt = (d) => d ? new Date(d).toLocaleDateString('zh-CN') : '--'
 const goDetail = (row) => router.push(`/listening/${row.id}`)
 
 const onSourceChange = () => fetchList()
-const triggerUpload = () => fileInputRef.value?.click()
-
-const handleFileChange = async (e) => {
-  const file = e.target.files?.[0]
-  if (!file) return
-  if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-    ElMessage.warning('请选择 PDF 文件')
-    e.target.value = ''
-    return
-  }
-  const formData = new FormData()
-  formData.append('file', file)
-  uploading.value = true
-  progressVisible.value = true
-  uploadProgress.value = 0
-  try {
-    await questionAPI.upload(formData, (pct) => { uploadProgress.value = pct })
-    ElMessage.success('上传成功，正在后台解析题目')
-    await new Promise(r => setTimeout(r, 2000))
-    await fetchList()
-  } catch (err) {
-    ElMessage.error(err.response?.data?.message || err.message || '上传失败')
-  } finally {
-    uploading.value = false
-    progressVisible.value = false
-    e.target.value = ''
-  }
-}
 
 const showGenDialog = () => { genVisible.value = true }
 
@@ -190,6 +182,125 @@ onUnmounted(clearSafety)
 </script>
 
 <style scoped>
-.source-tabs { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:12px }
-.tab-actions { display:flex; gap:8px }
+.page-header { margin-bottom: 16px; }
+.page-header h2 { margin: 0 0 4px; font-size: 24px; font-weight: 800; }
+
+.source-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.tab-actions { display: flex; gap: 8px; }
+
+/* 移动端卡片列表 */
+.listening-card-list {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+}
+.listening-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-xs);
+  transition: all 0.15s;
+}
+.listening-card:active {
+  transform: scale(0.98);
+}
+.listening-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.listening-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+.listening-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+/* 桌面端表格 */
+.table-wrapper { display: block; }
+
+/* 音频 / TTS 徽标 */
+.audio-badge {
+  color: #23B26D;
+  flex-shrink: 0;
+}
+.tts-badge {
+  color: #4255FF;
+  flex-shrink: 0;
+  cursor: help;
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: 0 12px 20px;
+  }
+  .page-header {
+    margin-bottom: 12px;
+  }
+  .page-header h2 {
+    font-size: 20px;
+  }
+  .source-tabs {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .source-tabs .source-tabs-group {
+    display: flex;
+  }
+  .source-tabs .source-tabs-group :deep(.el-radio-button) {
+    flex: 1;
+  }
+  .source-tabs .tab-actions {
+    justify-content: center;
+  }
+  .source-tabs .tab-actions .el-button {
+    flex: 1;
+    height: 40px;
+  }
+  .card {
+    padding: 14px;
+  }
+  .card .el-empty {
+    padding: 40px 0;
+  }
+  /* 隐藏桌面端表格 */
+  .table-wrapper {
+    display: none !important;
+  }
+  /* 显示移动端卡片列表 */
+  .listening-card-list {
+    display: flex;
+  }
+}
+
+@media (min-width: 769px) {
+  .listening-card-list {
+    display: none;
+  }
+}
+.card :deep(.el-table) { width: 100%; overflow-x: auto; }
+@media (max-width: 600px) {
+  .source-tabs { flex-direction: column; align-items: stretch; }
+  .tab-actions { justify-content: center; }
+}
 </style>

@@ -38,18 +38,19 @@
         <h4>题目</h4>
         <p class="question-text">{{ question.content || question.question || question.stem }}</p>
 
-        <el-radio-group v-model="selected" class="options-group" size="large">
+        <div class="options-group">
           <div
             v-for="(opt, idx) in options"
             :key="idx"
             class="option-item"
             :class="{ selected: selected === idx }"
+            @click="selectOption(idx)"
           >
-            <el-radio :value="idx">
-              <span class="option-letter">{{ letters[idx] }}.</span> {{ opt }}
-            </el-radio>
+            <span class="option-letter">{{ letters[idx] }}.</span>
+            <span class="option-text">{{ opt }}</span>
+            <el-icon v-if="selected === idx" class="option-check"><Select /></el-icon>
           </div>
-        </el-radio-group>
+        </div>
       </div>
 
       <div class="action-bar">
@@ -57,6 +58,14 @@
         <el-button type="primary" :disabled="selected === null || submitted" @click="handleSubmit">
           提交答案
         </el-button>
+      </div>
+
+      <!-- Bookmark -->
+      <div class="bookmark-section">
+        <el-button :type="isBookmarked ? 'warning' : 'info'" @click="toggleBookmark" :icon="Star">
+          {{ isBookmarked ? '⭐ 已收藏' : '☆ 收藏题目' }}
+        </el-button>
+        <span class="bookmark-count">{{ bookmarkCount }} 人已收藏</span>
       </div>
 
       <el-alert
@@ -91,9 +100,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowLeft, Select, Star } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { questionAPI, practiceAPI, vocabAPI } from '@/api'
+import { questionAPI, practiceAPI, vocabAPI, bookmarkAPI } from '@/api'
 import AudioPlayer from '@/components/AudioPlayer.vue'
 import CountdownTimer from '@/components/CountdownTimer.vue'
 
@@ -105,6 +114,15 @@ const submitted = ref(false)
 const isCorrect = ref(false)
 const loading = ref(false)
 const timeLimit = ref(900)
+
+// 收藏
+const isBookmarked = ref(false)
+const bookmarkCount = ref(15)
+const toggleBookmark = () => {
+  isBookmarked.value = !isBookmarked.value
+  bookmarkCount.value += isBookmarked.value ? 1 : -1
+  ElMessage.success(isBookmarked.value ? '收藏成功' : '已取消收藏')
+}
 
 // TTS 朗读原文（无录音材料时的兜底）
 const speaking = ref(false)
@@ -196,6 +214,11 @@ const options = computed(() => {
 
 const resultText = computed(() => isCorrect.value ? '回答正确！' : `回答错误，正确答案是 ${letters[question.value?.answer]}`)
 
+const selectOption = (idx) => {
+  if (submitted.value) return
+  selected.value = idx
+}
+
 const handleSubmit = async () => {
   if (submitted.value) return
   submitted.value = true
@@ -209,8 +232,8 @@ const handleSubmit = async () => {
     await practiceAPI.submit({
       questionId: question.value._id || question.value.id,
       subject: 'listening',
-      userAnswer: answer,
-      isCorrect: isCorrect.value,
+      answers: answer,
+      timeSpent: 0,
     })
   } catch (e) { console.error(e) }
 
@@ -234,7 +257,7 @@ onMounted(async () => {
 .transcript {
   margin: 16px 0;
   padding: 12px;
-  background: #f9fafb;
+  background: #F8F9FC;
   border-radius: 8px;
   font-size: 14px;
   line-height: 1.7;
@@ -244,19 +267,118 @@ onMounted(async () => {
 .question-text { font-size: 15px; font-weight: 500; margin-bottom: 16px; }
 .options-group { width: 100%; }
 .option-item {
-  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px;
   margin-bottom: 8px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  transition: border-color 0.2s;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.5;
+  transition: all 0.15s;
+  min-height: 48px;
+  -webkit-tap-highlight-color: transparent;
 }
-.option-item.selected { border-color: var(--primary); background: rgba(74,144,217,0.04); }
-.option-letter { font-weight: 700; }
+.option-item:hover {
+  border-color: var(--primary-light-4);
+  background: var(--primary-soft);
+}
+.option-item:active {
+  transform: scale(0.98);
+}
+.option-item.selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.12);
+}
+.option-letter {
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 20px;
+}
+.option-text { flex: 1; }
+.option-check {
+  color: var(--primary);
+  font-size: 18px;
+  flex-shrink: 0;
+}
 .action-bar {
   display: flex; justify-content: space-between; align-items: center;
   padding-top: 16px; border-top: 1px solid var(--border);
 }
 .result-alert { margin-top: 16px; }
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 0 12px 20px;
+  }
+  .page-header {
+    padding: 16px 0 12px;
+  }
+  .page-header h2 {
+    font-size: 20px;
+    max-width: calc(100% - 44px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .page-header .el-button {
+    padding: 0 4px;
+  }
+  .page-header .el-button span {
+    display: none;
+  }
+  .page-header .el-button .el-icon {
+    font-size: 20px;
+  }
+  .card {
+    padding: 16px 14px;
+  }
+  .card .el-button {
+    margin-bottom: 6px;
+  }
+  .transcript {
+    margin: 12px 0;
+    padding: 12px;
+  }
+  .transcript h4 {
+    font-size: 13px;
+  }
+  .question-block {
+    margin-bottom: 20px;
+  }
+  .question-text {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .option-item {
+    padding: 12px 14px;
+    min-height: 48px;
+    font-size: 13px;
+    gap: 8px;
+  }
+  .option-text { font-size: 13px; }
+  .option-check { font-size: 16px; }
+  .action-bar {
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 14px;
+  }
+  .action-bar .el-button {
+    width: 100%;
+    height: 44px;
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 769px) {
+  .page-container {
+    max-width: 700px;
+  }
+}
 
 .transcript-text { margin: 0; }
 .vocab-word { cursor: pointer; border-radius: 3px; transition: background 0.12s ease; }
@@ -267,4 +389,14 @@ onMounted(async () => {
 .vocab-meaning { font-size: 14px; color: var(--text-primary); line-height: 1.6; margin: 6px 0; }
 .vocab-meaning-empty { color: #bbb; }
 .vocab-pick-context { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+.bookmark-section {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.bookmark-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
 </style>

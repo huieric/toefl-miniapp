@@ -36,6 +36,10 @@ CREATE TABLE IF NOT EXISTS user_stats (
     avg_exam_score DECIMAL(5,2) DEFAULT 0.0,
     streak_days INTEGER DEFAULT 0,
     last_study_date DATE,
+    focus_minutes INTEGER DEFAULT 0,
+    total_focus_sessions INTEGER DEFAULT 0,
+    xp_points INTEGER DEFAULT 0,
+    streak_freeze_count INTEGER DEFAULT 0,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_user_stats_user ON user_stats(user_id);
@@ -235,7 +239,88 @@ CREATE INDEX IF NOT EXISTS idx_usage_events_user ON usage_events(user_id);
 CREATE INDEX IF NOT EXISTS idx_usage_events_type ON usage_events(event_type);
 CREATE INDEX IF NOT EXISTS idx_usage_events_date ON usage_events(created_at);
 
--- 12. 生词本（从做题中提取的生词，FSRS 间隔重复复习）
+-- 12. 每日挑战
+CREATE TABLE IF NOT EXISTS daily_challenges (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    challenge_date DATE NOT NULL,
+    tasks JSONB DEFAULT '[]',
+    completed BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, challenge_date)
+);
+CREATE INDEX IF NOT EXISTS idx_daily_challenges_user_date ON daily_challenges(user_id, challenge_date);
+
+-- 14. 专注计时器（Forest 专注森林）
+CREATE TABLE IF NOT EXISTS focus_sessions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    duration INTEGER NOT NULL,
+    actual_minutes INTEGER DEFAULT 0,
+    completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    finished_at TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_focus_sessions_user ON focus_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_focus_sessions_completed ON focus_sessions(completed);
+
+-- Round 26: Grammar Check 语法检查记录
+CREATE TABLE IF NOT EXISTS grammar_checks (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    question_id INTEGER,
+    text TEXT NOT NULL,
+    score INTEGER DEFAULT 100 CHECK (score BETWEEN 0 AND 100),
+    issue_count INTEGER DEFAULT 0,
+    issues_json JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_grammar_checks_user ON grammar_checks(user_id);
+CREATE INDEX IF NOT EXISTS idx_grammar_checks_question ON grammar_checks(question_id);
+
+-- 15. Streak Freeze 保护道具（Duolingo 连续打卡保护）
+CREATE TABLE IF NOT EXISTS streak_freezes (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    action VARCHAR(20) NOT NULL CHECK (action IN ('earn', 'use')),
+    source VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_freezes_user ON streak_freezes(user_id);
+
+-- 16. Quizizz 风格反应记录
+CREATE TABLE IF NOT EXISTS quiz_reactions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    question_id INTEGER,
+    emotion VARCHAR(20) NOT NULL CHECK (emotion IN ('excited', 'proud', 'relieved', 'confused', 'frustrated')),
+    score INTEGER DEFAULT 0,
+    is_correct BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_reactions_user ON quiz_reactions(user_id);
+
+-- 17. 每日目标（Todoist 风格）
+CREATE TABLE IF NOT EXISTS daily_goals (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    goal_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    study_minutes INTEGER DEFAULT 30,
+    target_questions INTEGER DEFAULT 20,
+    reading_count INTEGER DEFAULT 5,
+    listening_count INTEGER DEFAULT 5,
+    speaking_count INTEGER DEFAULT 2,
+    writing_count INTEGER DEFAULT 2,
+    completed BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (user_id, goal_date)
+);
+CREATE INDEX IF NOT EXISTS idx_goals_user_date ON daily_goals(user_id, goal_date);
+CREATE INDEX IF NOT EXISTS idx_goals_completed ON daily_goals(completed);
+
+-- 16. 生词本（从做题中提取的生词，FSRS 间隔重复复习）
 CREATE TABLE IF NOT EXISTS vocabulary (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

@@ -4,6 +4,12 @@ const db = require('../config/db');
 
 const router = express.Router();
 
+// 确保必要列存在（幂等操作，避免 wrong_questions 缺 updated_at/FSRS 列导致 500）
+db.query('ALTER TABLE wrong_questions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP').catch(() => {});
+db.query('ALTER TABLE wrong_questions ADD COLUMN IF NOT EXISTS fsrs_stability DOUBLE PRECISION').catch(() => {});
+db.query('ALTER TABLE wrong_questions ADD COLUMN IF NOT EXISTS fsrs_difficulty DOUBLE PRECISION').catch(() => {});
+db.query('ALTER TABLE wrong_questions ADD COLUMN IF NOT EXISTS last_review_at TIMESTAMP').catch(() => {});
+
 // GET /api/wrong - 错题列表
 router.get('/', auth, async (req, res) => {
   try {

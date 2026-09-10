@@ -1,0 +1,58 @@
+name: Database Backup
+
+on:
+  schedule:
+    # 每天 UTC 02:00 (北京时间 10:00)
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  backup:
+    name: Database Backup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PostgreSQL client
+        uses: ikalnytskyi/action-setup-postgres@v6
+        with:
+          postgresql version: '15'
+
+      - name: Run backup
+        run: |
+          # 创建备份目录
+          mkdir -p backups
+
+          # 备份命令（使用 pg_dump）
+          pg_dump \
+            -h ${{ secrets.DB_HOST || 'localhost' }} \
+            -p ${{ secrets.DB_PORT || '5432' }} \
+            -U ${{ secrets.DB_USER }} \
+            -d ${{ secrets.DB_NAME }} \
+            --format=custom \
+            --compress=9 \
+            --verbose \
+            --file=backups/toefl_db_backup_$(date +%Y%m%d_%H%M%S).dump
+
+          # 同时生成 SQL 格式备份
+          pg_dump \
+            -h ${{ secrets.DB_HOST || 'localhost' }} \
+            -p ${{ secrets.DB_PORT || '5432' }} \
+            -U ${{ secrets.DB_USER }} \
+            -d ${{ secrets.DB_NAME }} \
+            --format=plain \
+            --file=backups/toefl_db_sql_$(date +%Y%m%d_%H%M%S).sql
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-backup
+          path: backups/
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Cleanup old backups
+        run: |
+          echo "Removing backups older than 30 days..."
+          find backups/ -name "*.dump" -mtime +30 -delete
+          find backups/ -name "*.sql" -mtime +30 -delete

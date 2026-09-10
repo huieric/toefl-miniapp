@@ -494,6 +494,45 @@
       </div>
     </div>
 
+    <!-- Round 35: AI 题目解析 -->
+    <div class="card round35-card">
+      <div class="round35-header">
+        <div class="round35-info">
+          <span class="round35-title">📖 AI 题目解析</span>
+          <span class="round35-sub">Magoosh 式详细解析 · 选项分析 · 考点追踪</span>
+        </div>
+        <el-button type="primary" size="small" @click="$router.push('/writing-enhanced')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- Round 35: 写作评分增强 -->
+    <div class="card round35-card">
+      <div class="round35-header">
+        <div class="round35-info">
+          <span class="round35-title">📝 写作评分增强</span>
+          <span class="round35-sub">TOEFL 官方评分标准 · 四维维度分析 · 个性化改进建议</span>
+        </div>
+        <el-button type="success" size="small" @click="$router.push('/writing-enhanced')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
+    <!-- Round 35: 口语跟读练习 -->
+    <div class="card round35-card">
+      <div class="round35-header">
+        <div class="round35-info">
+          <span class="round35-title">🎙️ 口语跟读练习</span>
+          <span class="round35-sub">ELSA 式发音评分 · 逐词分析 · 智能录音反馈</span>
+        </div>
+        <el-button type="warning" size="small" @click="$router.push('/shadow-practice')">
+          立即体验 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+    </div>
+
     <!-- Subject Progress Rings -->
     <div class="card">
       <h3 class="section-title">四科练习进度</h3>
@@ -1720,4 +1759,15 @@ onMounted(async () => {
 .round30-title { display: block; font-weight: 700; font-size: 15px; color: #1f2937; }
 .round30-sub { display: block; font-size: 11px; color: #9ca3af; margin-top: 2px; }
 .round30-mini-stats { display: flex; gap: 12px; font-size: 11px; color: #6b7280; margin-top: 8px; }
+
+/* ==================== Round 35: 新功能入口 ==================== */
+.round35-card {
+  border-left: 3px solid #4a6cf7;
+}
+.round35-card:nth-child(2) { border-left-color: #10b981; }
+.round35-card:nth-child(3) { border-left-color: #f59e0b; }
+.round35-header { display: flex; justify-content: space-between; align-items: center; }
+.round35-info { display: flex; flex-direction: column; gap: 4px; }
+.round35-title { display: block; font-weight: 700; font-size: 15px; color: #1f2937; }
+.round35-sub { display: block; font-size: 11px; color: #9ca3af; }
 </style>

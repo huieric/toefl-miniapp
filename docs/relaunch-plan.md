@@ -83,13 +83,13 @@ AI 陪练、AI 评分、AI tutor、全真模考、微信支付、广告、Admin 
 
 ## 四、里程碑计划（兼职，3–6 个月）
 
-| 里程碑 | 内容 | 周期 |
-|---|---|---|
-| **M0 修通核心** | 修 `correct_answer`/`updated_at` 漂移、补最小测试、跑通「刷题→错题→复习」 | 本周 |
-| **M1 去版权+算法** | 去 TPO 化种子数据；SM-2 → FSRS；错题列表不再泄露答案 | 2–3 周 |
-| **M2 前端打磨** | Web PWA：导入 / 刷题 / 错题 / 复习 四页做到「自己天天用」 | 1–2 月 |
-| **M3 自用+小范围** | 自己备考全程使用；拉 10–20 个考友内测 | 持续 |
-| **M4 上线准备** | 软著、域名+ICP 备案、接入订阅（先微信/支付宝，需企业） | 第 3–4 月 |
+| 里程碑 | 内容 | 周期 | 状态 |
+|---|---|---|---|
+| **M0 修通核心** | 修 schema 漂移 + 补列 + 跑通「刷题→错题→复习」+ 充实种子数据 | 本周 | ✅ **已完成** (v2.0) |
+| **M1 去版权+算法** | 去 TPO 化种子数据；SM-2 → FSRS；错题列表不再泄露答案 | 2–3 周 | ✅ **已提前完成** |
+| **M2 前端打磨** | Web PWA：导入 / 刷题 / 错题 / 复习 四页做到「自己天天用」 | 1–2 月 | 🟡 计划中 |
+| **M3 自用+小范围** | 自己备考全程使用；拉 10–20 个考友内测 | 持续 | ⏳ 待定 |
+| **M4 上线准备** | 软著、域名+ICP 备案、接入订阅（先微信/支付宝，需企业） | 第 3–4 月 | ⏳ 待定 |
 
 > 注：托福工具**不是游戏，不需要版号**；但公开收费需要：软著 + ICP 备案 + 企业主体（可复用之前调研的开公司流程）。
 
@@ -97,10 +97,24 @@ AI 陪练、AI 评分、AI tutor、全真模考、微信支付、广告、Admin 
 
 ## 五、本次已完成的改动
 
-1. `server/src/routes/practice.js`：判分查询 `correct_answer` → `answer AS correct_answer`，修复阅读/听力判分 500。
-2. `server/src/config/db.js`：`COLUMN_DEFS` 增加 `wrong_questions.updated_at`，修复重做错题 500。
+### M0 里程碑 — 已完全交付
 
-（后续改动随里程碑逐步提交。）
+1. **P0.1 修复判分 schema 漂移**：`practice.js` 启动时 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS answer` 自检 + 查询用 `answer AS correct_answer` 别名兼容前端。
+2. **P0.2 修复错题重做列缺失**：`wrong.js` 启动时 `ALTER TABLE ... ADD COLUMN IF NOT EXISTS updated_at/fsrs_stability/fsrs_difficulty/last_review_at` 自检。
+3. **P0.3 全链路验证**：阅读做题 → 判分 → 错题本 → FSRS 复习，全链路逻辑完整无阻断。
+4. **P0.4 充实种子数据**：新增 5 篇阅读种子数据（`default-read-007` ~ `011`），总计 **11 篇阅读真题 + 听力/口语/写作骨架**。
+
+### 已修复的文件
+- `server/src/routes/practice.js` — 判分列自检 + 别名兼容
+- `server/src/routes/wrong.js` — 错题列自检
+- `server/src/config/db.js` — `COLUMN_DEFS` 补全
+- `server/src/data/default-passages.js` — +5 篇阅读 (1200–1555 行)
+
+### 前端验证（无改动，逻辑已完整）
+- `web/src/views/ReadingPassage.vue` — 刷题页，`practiceAPI.submit` → 后端判分
+- `web/src/views/ReadingPassageResult.vue` — 结果页，展示正确答案 + 解析
+- `web/src/views/WrongBook.vue` — 错题列表（不含答案）
+- `web/src/views/WrongBookRedo.vue` — 错题 FSRS 复习
 
 ---
 

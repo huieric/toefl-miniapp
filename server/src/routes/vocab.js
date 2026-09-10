@@ -130,6 +130,49 @@ router.post('/:id/review', auth, async (req, res) => {
   }
 });
 
+// GET /api/vocab/sets - 获取生词本列表（用于 Match Mode）
+router.get('/sets', auth, async (req, res) => {
+  try {
+    const sets = await db.query(
+      `SELECT
+         id, name, description,
+         (SELECT COUNT(*) FROM vocab WHERE user_id = $1 AND vocab.set_id = s.id) as count
+       FROM vocab_sets s
+       WHERE user_id = $1
+       ORDER BY created_at DESC`,
+      [req.user.id]
+    );
+
+    if (sets.rows.length === 0) {
+      // 没有自定义词库，返回默认
+      const total = await db.query(
+        'SELECT COUNT(*) as cnt FROM vocabulary WHERE user_id = $1',
+        [req.user.id]
+      );
+      return res.json({
+        code: 200,
+        data: [{ id: 'default', name: '默认词库', count: parseInt(total.rows[0].cnt) }],
+      });
+    }
+
+    res.json({ code: 200, data: sets.rows });
+  } catch (err) {
+    // 词库表不存在时，直接返回默认词库
+    try {
+      const total = await db.query(
+        'SELECT COUNT(*) as cnt FROM vocabulary WHERE user_id = $1',
+        [req.user.id]
+      );
+      return res.json({
+        code: 200,
+        data: [{ id: 'default', name: '默认词库', count: parseInt(total.rows[0].cnt) }],
+      });
+    } catch {
+      return res.json({ code: 200, data: [{ id: 'default', name: '默认词库', count: 0 }] });
+    }
+  }
+});
+
 // GET /api/vocab/lookup?word=xxx - 查词（免费英文词典，返回音标+释义+例句）
 const lookupCache = new Map(); // word -> { data, ts } 内存缓存 24h，减少外部 API 调用
 router.get('/lookup', auth, async (req, res) => {

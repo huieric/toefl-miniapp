@@ -399,6 +399,27 @@ const routes = [
     component: () => import('@/views/EnhancedAchievements.vue'),
     meta: { title: '成就徽章' },
   },
+
+  // Round 35: AI 题目解析 + 写作评分增强 + 口语跟读练习
+  {
+    path: '/question-explanation/:id',
+    name: 'QuestionExplanation',
+    component: () => import('@/views/QuestionExplanation.vue'),
+    meta: { title: 'AI 题目解析' },
+  },
+  {
+    path: '/writing-enhanced',
+    name: 'WritingEnhanced',
+    component: () => import('@/views/WritingEnhanced.vue'),
+    meta: { title: '写作评分增强' },
+  },
+  {
+    path: '/shadow-practice',
+    name: 'ShadowPractice',
+    component: () => import('@/views/ShadowPractice.vue'),
+    meta: { title: '口语跟读练习' },
+  },
+
   {
     path: '/:pathMatch(.*)*',
     redirect: '/',

@@ -55,10 +55,10 @@ import { User, Clock, Document, ChatDotRound } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 
 const statCards = ref([
-  { label: '用户总数', value: '12,847', color: '#4A90D9', icon: 'User' },
-  { label: '日活跃用户', value: '1,203', color: '#67C23A', icon: 'Clock' },
-  { label: '练习总时长(h)', value: '38,562', color: '#E6A23C', icon: 'Document' },
-  { label: 'AI陪练次数', value: '5,671', color: '#F56C6C', icon: 'ChatDotRound' },
+  { label: '用户总数', value: '12,847', color: '#4255FF', icon: 'User' },
+  { label: '日活跃用户', value: '1,203', color: '#23B26D', icon: 'Clock' },
+  { label: '练习总时长(h)', value: '38,562', color: '#FF8A2A', icon: 'Document' },
+  { label: 'AI陪练次数', value: '5,671', color: '#F0544F', icon: 'ChatDotRound' },
 ])
 
 const userChartRef = ref(null)
@@ -86,8 +86,8 @@ const initCharts = () => {
         type: 'line',
         smooth: true,
         data: [120, 98, 156, 134, 187, 210, 176],
-        areaStyle: { color: 'rgba(74,144,217,0.15)' },
-        itemStyle: { color: '#4A90D9' },
+        areaStyle: { color: 'rgba(66,85,255,0.15)' },
+        itemStyle: { color: '#4255FF' },
       }],
       grid: { left: 50, right: 20, top: 20, bottom: 30 },
     })
@@ -105,7 +105,7 @@ const initCharts = () => {
         name: 'DAU',
         type: 'bar',
         data: [890, 1020, 980, 1100, 1150, 1203, 1180],
-        itemStyle: { color: '#67C23A', borderRadius: [4, 4, 0, 0] },
+        itemStyle: { color: '#23B26D', borderRadius: [4, 4, 0, 0] },
       }],
       grid: { left: 50, right: 20, top: 20, bottom: 30 },
     })
@@ -124,7 +124,7 @@ const initCharts = () => {
         type: 'line',
         smooth: true,
         data: [4200, 5100, 4800, 5600, 6200, 5800, 6100],
-        itemStyle: { color: '#E6A23C' },
+        itemStyle: { color: '#FF8A2A' },
       }],
       grid: { left: 50, right: 20, top: 20, bottom: 30 },
     })
@@ -142,10 +142,10 @@ const initCharts = () => {
         radius: ['40%', '65%'],
         center: ['50%', '45%'],
         data: [
-          { value: 4230, name: '阅读', itemStyle: { color: '#4A90D9' } },
-          { value: 3890, name: '听力', itemStyle: { color: '#67C23A' } },
-          { value: 2150, name: '口语', itemStyle: { color: '#E6A23C' } },
-          { value: 2670, name: '写作', itemStyle: { color: '#F56C6C' } },
+          { value: 4230, name: '阅读', itemStyle: { color: '#4255FF' } },
+          { value: 3890, name: '听力', itemStyle: { color: '#23B26D' } },
+          { value: 2150, name: '口语', itemStyle: { color: '#FF8A2A' } },
+          { value: 2670, name: '写作', itemStyle: { color: '#F0544F' } },
         ],
         label: { formatter: '{b}\n{d}%', fontSize: 12 },
       }],
@@ -169,18 +169,25 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.admin-page-title { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
+.admin-page-title { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 2px; }
 .admin-page-desc { color: var(--text-secondary); font-size: 13px; margin-bottom: 20px; }
 .stat-row { margin-bottom: 20px; }
 .stat-card {
-  display: flex; align-items: center; gap: 12px;
-  background: #fff; border-radius: 10px; padding: 16px;
-  margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card-bg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px;
+  margin-bottom: 12px; box-shadow: var(--shadow-xs);
+  transition: all 0.18s ease;
 }
-.stat-icon { flex-shrink: 0; }
-.stat-value { font-size: 22px; font-weight: 700; }
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.stat-icon {
+  width: 46px; height: 46px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--primary-soft); flex-shrink: 0;
+}
+.stat-value { font-size: 24px; font-weight: 800; letter-spacing: -0.01em; }
 .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-.chart-card { padding: 16px; }
-.chart-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+.chart-card { padding: 18px; }
+.chart-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.01em; }
 .chart-box { width: 100%; height: 260px; }
 </style>

@@ -460,4 +460,24 @@ export const achievementsAPI = {
   getWall: () => http.get('/achievements/wall'),
 }
 
+// Round 35: AI 题目解析
+export const questionExplanationAPI = {
+  generate: (data) => http.post('/question-explanation/ai', data),
+  getHistory: (params) => http.get('/question-explanation/history', { params }),
+}
+
+// Round 35: 写作评分增强
+export const writingEnhancedAPI = {
+  score: (data) => http.post('/writing-enhanced/ai-score', data),
+  getHistory: (params) => http.get('/writing-enhanced/history', { params }),
+}
+
+// Round 35: 口语跟读练习
+export const shadowPracticeAPI = {
+  getPhrases: (params) => http.get('/shadow-practice/phrases', { params }),
+  record: (data) => http.post('/shadow-practice/record', data),
+  getStats: () => http.get('/shadow-practice/stats'),
+  analyze: (data) => http.post('/shadow-practice/analyze', data),
+}
+
 export default http

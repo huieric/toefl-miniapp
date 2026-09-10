@@ -105,23 +105,157 @@ const submitPlan = async () => {
 </script>
 
 <style scoped>
-.wizard-card { max-width: 600px; margin: 0 auto; }
-.step-content { margin-top: 32px; min-height: 200px; }
-.step-panel { text-align: center; }
-.step-panel h4 { font-size: 17px; margin-bottom: 20px; }
+.page-container {
+  padding: 20px 16px 48px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.page-header {
+  margin-bottom: 16px;
+}
+.page-header h2 {
+  font-size: 24px;
+  font-weight: 800;
+}
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  padding: 20px;
+}
+.wizard-card {
+  max-width: 100%;
+  margin: 0 auto;
+}
+.step-content {
+  margin-top: 32px;
+  min-height: 200px;
+}
+.step-panel {
+  text-align: center;
+}
+.step-panel h4 {
+  font-size: 17px;
+  margin-bottom: 20px;
+}
 .score-options {
-  display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .score-opt {
-  width: 60px; height: 60px; border-radius: 12px;
-  border: 2px solid var(--border); display: flex;
-  align-items: center; justify-content: center;
-  font-size: 18px; font-weight: 700; cursor: pointer;
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
   transition: all 0.2s;
+  min-height: 48px;
 }
 .score-opt:hover { border-color: var(--primary-light); }
 .score-opt.selected {
-  border-color: var(--primary); background: var(--primary); color: #fff;
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
 }
-.hours-slider { max-width: 400px; margin: 0 auto; padding: 20px 0; }
+.hours-slider {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+.card .el-button {
+  width: 100%;
+  height: 42px;
+  font-size: 14px;
+}
+
+/* ===== 移动端全面适配 ===== */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 0 12px 76px;
+    max-width: 100%;
+  }
+  .page-header {
+    margin-bottom: 12px;
+  }
+  .page-header h2 {
+    font-size: 20px;
+  }
+  .card {
+    padding: 16px;
+    border-radius: var(--radius-sm);
+  }
+  
+  /* 步骤条缩小 */
+  :deep(.el-steps) {
+    margin-top: 8px;
+  }
+  :deep(.el-step__title) {
+    font-size: 12px !important;
+  }
+  :deep(.el-step__icon) {
+    --el-step-icon-size: 28px !important;
+  }
+  
+  .step-content {
+    margin-top: 24px;
+  }
+  .step-panel h4 {
+    font-size: 15px;
+    margin-bottom: 16px;
+  }
+  
+  /* 分数选项 */
+  .score-options {
+    gap: 8px;
+  }
+  .score-opt {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    font-size: 16px;
+    min-height: 44px;
+  }
+  
+  /* 滑块 */
+  .hours-slider {
+    max-width: 100%;
+    padding: 16px 0;
+  }
+  :deep(.el-slider) {
+    margin: 0 10px;
+  }
+  :deep(.el-input-number) {
+    width: 70px !important;
+  }
+  
+  .card .el-button {
+    height: 44px;
+    font-size: 15px;
+  }
+  
+  /* 日期选择器 */
+  :deep(.el-date-picker) {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .score-opt {
+    width: 46px;
+    height: 46px;
+    font-size: 15px;
+  }
+  :deep(.el-step__title) {
+    font-size: 11px !important;
+  }
+}
 </style>

@@ -243,16 +243,18 @@ router.put('/daily/:date/task/:id', auth, async (req, res) => {
       [id, isCompleted === true]
     );
 
-    // 更新用户学习统计
+    // 更新用户学习统计（含正确 Streak 逻辑）
     if (isCompleted) {
       await db.query(
         `UPDATE user_stats SET
-          total_study_minutes = total_study_minutes + 30,
+          total_study_minutes = COALESCE(total_study_minutes, 0) + 30,
           last_study_date = CURRENT_DATE,
           updated_at = CURRENT_TIMESTAMP
         WHERE user_id = $1`,
         [req.user.id]
       );
+      // Streak 逻辑由 POST /api/user/update-study 统一处理
+      // 此处不再直接修改 streak_days
     }
 
     res.json({

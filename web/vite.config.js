@@ -14,7 +14,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://toefl-api-m1ue.onrender.com',
+        target: 'http://localhost:10000',
         changeOrigin: true,
       },
     },

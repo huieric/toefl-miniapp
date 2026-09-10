@@ -4,6 +4,34 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>托福备考助手</title>
+  <!-- PWA -->
+  <link rel="manifest" href="/toefl-miniapp/web/manifest.json" />
+  <meta name="theme-color" content="#4255FF" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="托福助手" />
+  <link rel="apple-touch-icon" href="/toefl-miniapp/web/icons/icon-192.png" />
+  <!-- Service Worker -->
+  <script type="module">
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/toefl-miniapp/web/sw.js', { scope: '/toefl-miniapp/web/' })
+          .then(reg => {
+            console.log('[PWA] SW registered:', reg.scope)
+            // 检测更新
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('[PWA] 新内容可用，刷新以更新')
+                }
+              })
+            })
+          })
+          .catch(err => console.error('[PWA] SW registration failed:', err))
+      })
+    }
+  </script>
   <style>
     .app-loading {
       position: fixed; inset: 0; display: flex; flex-direction: column;
@@ -25,6 +53,6 @@
       <div class="spin"></div>
     </div>
   </div>
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>

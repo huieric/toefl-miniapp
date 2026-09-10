@@ -908,4 +908,195 @@ router.post('/upload-batch', auth, upload.array('files', 20), async (req, res) =
   }
 });
 
+// === 智能题目推荐 ===
+// GET /api/questions/recommend?limit=10
+// 根据用户错题薄弱点推荐新题目
+router.get('/recommend', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 20);
+
+    // 1. 获取用户错题统计
+    const wrongStats = await db.query(
+      `SELECT q.subject, q.type, q.difficulty, COUNT(*) as error_count
+       FROM wrong_questions wq
+       JOIN questions q ON wq.question_id = q.id
+       WHERE wq.user_id = $1
+       GROUP BY q.subject, q.type, q.difficulty
+       ORDER BY error_count DESC`,
+      [userId]
+    );
+    const wrongData = wrongStats.rows;
+
+    // 2. 获取用户已做过的题目（从 wrong_questions 和 practice_logs 中获取）
+    const doneRes = await db.query(
+      `SELECT DISTINCT wq.question_id FROM wrong_questions wq WHERE wq.user_id = $1
+       UNION
+       SELECT DISTINCT pl.question_id FROM practice_logs pl WHERE pl.user_id = $1`,
+      [userId]
+    );
+    const doneIds = doneRes.rows.map(r => r.question_id);
+
+    let recommended = [];
+
+    if (wrongData.length > 0) {
+      // 有错题数据：根据薄弱点推荐
+      const weakSubjects = {};
+      wrongData.forEach(w => {
+        if (!weakSubjects[w.subject]) {
+          weakSubjects[w.subject] = { subjects: [], types: {} };
+        }
+        weakSubjects[w.subject].subjects.push(w);
+        weakSubjects[w.subject].types[w.type] = (weakSubjects[w.subject].types[w.type] || 0) + parseInt(w.error_count);
+      });
+
+      // 按错误数降序排序薄弱科目
+      const sortedSubjects = Object.entries(weakSubjects).sort(
+        (a, b) => Object.values(b[1].types).reduce((s, v) => s + v, 0) - Object.values(a[1].types).reduce((s, v) => s + v, 0)
+      );
+
+      // 从薄弱科目中找未做过的题目
+      for (const [subject, data] of sortedSubjects) {
+        if (recommended.length >= limit) break;
+
+        // 获取该科目未做过的题目
+        const subjectQs = await getUnseenQuestions(subject, doneIds, limit);
+        if (subjectQs.length > 0) {
+          // 混合 easy/medium/hard 难度，优先 medium
+          const balanced = balanceDifficulty(subjectQs, limit);
+          recommended = [...recommended, ...balanced];
+        }
+      }
+
+      // 如果还不够，从所有科目补充
+      if (recommended.length < limit) {
+        const remaining = limit - recommended.length;
+        const allQs = await getUnseenQuestions(null, doneIds, remaining * 2);
+        const balanced = balanceDifficulty(allQs, remaining);
+        // 去重
+        const existingIds = new Set(recommended.map(r => r.id));
+        balanced.forEach(q => { if (!existingIds.has(q.id)) recommended.push(q); });
+      }
+    } else {
+      // 没有错题数据：按科目均衡推荐
+      const subjects = ['reading', 'listening', 'speaking', 'writing'];
+      const perSubject = Math.ceil(limit / subjects.length);
+      for (const subject of subjects) {
+        const qs = await getUnseenQuestions(subject, doneIds, perSubject);
+        recommended = [...recommended, ...balanceDifficulty(qs, perSubject)];
+      }
+    }
+
+    // 3. 构建推荐结果
+    const weakPoints = wrongData.slice(0, 3).map(w => ({
+      subject: w.subject,
+      type: w.type,
+      errorCount: parseInt(w.error_count),
+    }));
+
+    res.json({
+      code: 200,
+      data: {
+        questions: recommended.slice(0, limit).map(q => ({
+          id: q.id,
+          subject: q.subject,
+          type: q.type,
+          difficulty: q.difficulty,
+          title: q.title,
+          content: q.content,
+          options: q.options,
+          passageText: q.passage_text,
+          timeLimit: q.time_limit,
+        })),
+        weakPoints,
+        totalRecommended: recommended.slice(0, limit).length,
+        reason: getRecommendationReason(weakPoints, recommended.slice(0, limit)),
+      }
+    });
+  } catch (err) {
+    console.error('[Recommend] 获取推荐失败:', err);
+    res.status(500).json({ code: 500, message: '推荐服务错误: ' + err.message });
+  }
+});
+
+/**
+ * 获取用户未做过的指定科目题目
+ */
+async function getUnseenQuestions(subject, doneIds, limit) {
+  if (!doneIds || doneIds.length === 0) {
+    doneIds = [0]; // 防止 NOT IN () 语法错误
+  }
+
+  const subQuery = `(SELECT question_id FROM wrong_questions WHERE user_id = ${req.user.id} UNION SELECT question_id FROM practice_logs WHERE user_id = ${req.user.id})`;
+
+  const whereClause = subject
+    ? `WHERE status = 'approved' AND subject = '${subject}' AND id NOT IN (${subQuery})`
+    : `WHERE status = 'approved' AND id NOT IN (${subQuery})`;
+
+  try {
+    const result = await db.query(
+      `SELECT id, subject, type, difficulty, title, content, options, passage_text, time_limit
+       FROM questions
+       ${whereClause}
+       ORDER BY CASE difficulty WHEN 'medium' THEN 0 WHEN 'easy' THEN 1 WHEN 'hard' THEN 2 ELSE 3 END
+       LIMIT $1`,
+      [limit]
+    );
+    return result.rows;
+  } catch (e) {
+    console.error('[Recommend] 查询未做题失败:', e.message);
+    return [];
+  }
+}
+
+/**
+ * 平衡难度分布（60% medium, 20% easy, 20% hard）
+ */
+function balanceDifficulty(questions, limit) {
+  if (!questions || questions.length === 0) return [];
+
+  const medium = questions.filter(q => q.difficulty === 'medium');
+  const easy = questions.filter(q => q.difficulty === 'easy');
+  const hard = questions.filter(q => q.difficulty === 'hard');
+
+  const total = Math.min(limit, medium.length + easy.length + hard.length);
+  const result = [];
+
+  const medCount = Math.floor(total * 0.6);
+  const easyCount = Math.floor(total * 0.2);
+  const hardCount = total - medCount - easyCount;
+
+  result.push(...medium.slice(0, medCount));
+  result.push(...easy.slice(0, easyCount));
+  result.push(...hard.slice(0, Math.max(0, hardCount)));
+
+  return result.slice(0, limit);
+}
+
+/**
+ * 生成推荐理由
+ */
+function getRecommendationReason(weakPoints, questions) {
+  if (weakPoints.length === 0) {
+    return '为您推荐各科均衡练习题';
+  }
+
+  const subjectCounts = {};
+  weakPoints.forEach(w => {
+    subjectCounts[w.subject] = (subjectCounts[w.subject] || 0) + w.errorCount;
+  });
+
+  const topSubject = Object.entries(subjectCounts).sort((a, b) => b[1] - a[1])[0];
+  const subjectNames = { reading: '阅读', listening: '听力', speaking: '口语', writing: '写作' };
+  const subjectName = subjectNames[topSubject[0]] || topSubject[0];
+
+  if (topSubject[1] > 10) {
+    return `您在${subjectName}方面错题较多，已为您精选未做过的同类题目进行强化练习`;
+  } else if (topSubject[1] > 5) {
+    return `系统在${subjectName}方面发现您的薄弱点，推荐以下题目进行针对性练习`;
+  } else {
+    return `基于您的做题记录，为您推荐${subjectName}相关新题目`;
+  }
+}
+
 module.exports = router;

@@ -931,6 +931,10 @@ function splitByBlankLines(text) {
 
 module.exports = {
   parseTOEFLReadingPDF,
+  // 公共工具方法 — 供其他服务复用
+  callAI,
+  resolveBackend,
+  extractJSON,
   _internals: {
     extractTextWithLayout,
     preProcessText,
@@ -939,8 +943,5 @@ module.exports = {
     parseAnswerKeyBlock,
     normalizeAnswer,
     guessQuestionType,
-    callAI,
-    resolveBackend,
-    extractJSON
   }
 };

@@ -99,18 +99,152 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+.page-container {
+  padding: 20px 16px 48px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.page-header {
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+}
+.page-header h2 {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+/* 统计卡片 */
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  text-align: center;
+  padding: 20px 16px;
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+.stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--primary);
+}
+.stat-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* 任务列表 */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  padding: 20px;
+}
 .card-header {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 16px; font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  font-weight: 600;
 }
 .task-list { display: flex; flex-direction: column; gap: 12px; }
 .task-item {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 14px; border-radius: 10px;
-  background: #f9fafb; border: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #F8F9FC;
+  border: 1px solid var(--border);
+  transition: all 0.15s;
+}
+.task-item:active {
+  transform: scale(0.98);
 }
 .task-item.done { opacity: 0.6; }
 .task-left { display: flex; align-items: center; gap: 12px; }
 .task-title { font-size: 14px; font-weight: 500; }
 .task-meta { display: flex; gap: 8px; align-items: center; margin-top: 4px; font-size: 12px; color: var(--text-secondary); }
+
+/* ===== 移动端全面适配 ===== */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 0 12px 80px;
+    max-width: 100%;
+  }
+  .page-header {
+    margin-bottom: 12px;
+  }
+  .page-header h2 {
+    font-size: 20px;
+  }
+  .stat-cards {
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .stat-card {
+    padding: 16px 12px;
+    border-radius: var(--radius-sm);
+  }
+  .stat-value {
+    font-size: 24px;
+  }
+  .stat-label {
+    font-size: 12px;
+  }
+  .card {
+    padding: 16px;
+    border-radius: var(--radius-sm);
+  }
+  .card-header {
+    margin-bottom: 12px;
+  }
+  .task-list {
+    gap: 8px;
+  }
+  .task-item {
+    padding: 12px 14px;
+    border-radius: 8px;
+  }
+  .task-title {
+    font-size: 13px;
+  }
+  .task-meta {
+    font-size: 11px;
+  }
+  .task-item .el-button {
+    height: 32px;
+    font-size: 12px;
+    padding: 0 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-container {
+    padding: 10px 10px 76px;
+  }
+  .page-header h2 {
+    font-size: 18px;
+  }
+  .stat-card {
+    padding: 14px 10px;
+  }
+  .stat-value {
+    font-size: 20px;
+  }
+  .card {
+    padding: 14px;
+  }
+  .task-item {
+    padding: 10px 12px;
+  }
+}
 </style>

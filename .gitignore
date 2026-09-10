@@ -1,10 +1,41 @@
+ï»¿# Node
 node_modules/
-.env
+server/node_modules/
+web/node_modules/
+package-lock.json
+server/package-lock.json
+web/package-lock.json
+
+# Build output
 dist/
-.cache/
+web/dist/
+admin/dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
 *.log
+logs/
+
+# OS
 .DS_Store
 Thumbs.db
-# ÓÃ»§ÉÏ´«µÄ PDF£¨²»Èë¿â£©
-server/uploads/
 
+# Uploads & temp
+server/uploads/
+server/temp/
+backups/
+
+# IDE
+.vscode/
+.idea/
+
+# Vite
+.webpack-cache/
+
+# Testing
+coverage/
+.nyc_output/

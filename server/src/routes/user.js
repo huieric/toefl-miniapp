@@ -85,6 +85,13 @@ router.get('/profile', auth, async (req, res) => {
       return res.status(404).json({ code: 404, message: '用户不存在' });
     }
 
+    const xp = (await db.query(
+      'SELECT xp_points FROM user_stats WHERE user_id = $1',
+      [req.user.id]
+    )).rows[0];
+
+    const level = xp ? Math.max(1, Math.floor(Math.log2(xp.xp_points / 100 + 1)) + 1) : 1;
+
     res.json({
       code: 200,
       data: {
@@ -96,6 +103,8 @@ router.get('/profile', auth, async (req, res) => {
         currentLevel: user.current_level,
         membership: user.membership || 'free',
         createdAt: user.created_at,
+        xpPoints: xp?.xp_points || 0,
+        level,
       },
     });
   } catch (err) {
@@ -147,6 +156,127 @@ router.get('/usage-limit', auth, async (req, res) => {
     res.json({ code: 200, data: quota });
   } catch (err) {
     console.error('[User] 获取额度失败:', err);
+    res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
+
+// POST /api/user/update-study - 更新学习统计（自动处理 Streak）
+router.post('/update-study', auth, async (req, res) => {
+  try {
+    const { minutes = 1, action } = req.body || {};
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    // 获取当前 stats
+    const existing = (await db.query(
+      `SELECT streak_days, last_study_date FROM user_stats WHERE user_id = $1`,
+      [req.user.id]
+    )).rows[0];
+
+    let newStreak = 0;
+    let lastDate = todayStr;
+
+    if (existing) {
+      const lastDateStr = existing.last_study_date ? new Date(existing.last_study_date).toISOString().split('T')[0] : null;
+      if (lastDateStr === todayStr) {
+        // 今天已打卡，只更新分钟
+        newStreak = existing.streak_days || 0;
+        lastDate = todayStr;
+      } else if (lastDateStr === yesterdayStr || !lastDateStr) {
+        // 昨天打的或首次学习
+        newStreak = existing.streak_days ? existing.streak_days + 1 : 1;
+        lastDate = todayStr;
+      } else {
+        // 断了，重置为 1
+        newStreak = 1;
+        lastDate = todayStr;
+      }
+
+      await db.query(
+        `UPDATE user_stats SET
+          total_study_minutes = COALESCE(total_study_minutes, 0) + $2,
+          total_questions = COALESCE(total_questions, 0) + 1,
+          streak_days = $3,
+          last_study_date = $4,
+          xp_points = COALESCE(xp_points, 0) + 5,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = $1`,
+        [req.user.id, minutes, newStreak, lastDate]
+      );
+    } else {
+      // 首次学习
+      newStreak = 1;
+      await db.query(
+        `INSERT INTO user_stats (user_id, total_study_minutes, total_questions, streak_days, last_study_date, xp_points)
+         VALUES ($1, $2, 1, $3, $4, 5)`,
+        [req.user.id, minutes, newStreak, lastDate]
+      );
+    }
+
+    res.json({
+      code: 200,
+      data: {
+        minutesAdded: minutes,
+        streakDays: newStreak,
+        action,
+      },
+    });
+  } catch (err) {
+    console.error('[User] 更新学习统计失败:', err);
+    res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
+
+// GET /api/user/streak - 获取 Streak 详情
+router.get('/streak', auth, async (req, res) => {
+  try {
+    const stats = (await db.query(
+      `SELECT streak_days, last_study_date, xp_points FROM user_stats WHERE user_id = $1`,
+      [req.user.id]
+    )).rows[0];
+
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    const lastDateStr = stats?.last_study_date ? new Date(stats.last_study_date).toISOString().split('T')[0] : null;
+    const isTodayChecked = lastDateStr === todayStr;
+    const isYesterdayChecked = lastDateStr === yesterdayStr;
+    const isStreakActive = stats?.streak_days > 0;
+
+    // 生成未来7天打卡日历
+    const weekCalendar = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const ds = d.toISOString().split('T')[0];
+      weekCalendar.push({
+        date: ds,
+        checked: ds === lastDateStr,
+        isToday: ds === todayStr,
+        isFuture: false,
+      });
+    }
+
+    res.json({
+      code: 200,
+      data: {
+        streakDays: stats?.streak_days || 0,
+        xpPoints: stats?.xp_points || 0,
+        isTodayChecked,
+        isYesterdayChecked,
+        isStreakActive,
+        lastStudyDate: lastDateStr,
+        weekCalendar: weekCalendar.reverse(),
+      },
+    });
+  } catch (err) {
+    console.error('[User] 获取 Streak 失败:', err);
     res.status(500).json({ code: 500, message: '服务器内部错误' });
   }
 });
@@ -204,6 +334,126 @@ router.get('/stats', auth, async (req, res) => {
     });
   } catch (err) {
     console.error('[User] 获取统计失败:', err);
+    res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
+
+// GET /api/user/weekly-report — 学习周报（近7天数据）
+router.get('/weekly-report', auth, async (req, res) => {
+  try {
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() - 6);
+    const startStr = startDate.toISOString().split('T')[0];
+    const endStr = now.toISOString().split('T')[0];
+
+    // 近7天每日学习时长（分钟）
+    const minutesRes = await db.query(
+      `SELECT 
+        created_at::date as day,
+        COALESCE(SUM(time_spent), 0) as minutes
+      FROM practice_records
+      WHERE user_id = $1 AND created_at::date BETWEEN $2 AND $3
+      GROUP BY created_at::date
+      ORDER BY day`,
+      [req.user.id, startStr, endStr]
+    );
+
+    // 近7天每日做题数
+    const questionsRes = await db.query(
+      `SELECT 
+        created_at::date as day,
+        COUNT(*) as total,
+        SUM(CASE WHEN is_correct THEN 1 ELSE 0 END) as correct
+      FROM practice_records
+      WHERE user_id = $1 AND created_at::date BETWEEN $2 AND $3
+      GROUP BY created_at::date
+      ORDER BY day`,
+      [req.user.id, startStr, endStr]
+    );
+
+    // 各科目本周数据
+    const subjectRes = await db.query(
+      `SELECT 
+        subject,
+        COUNT(*) as total,
+        SUM(CASE WHEN is_correct THEN 1 ELSE 0 END) as correct,
+        COALESCE(AVG(time_spent), 0) as avg_time
+      FROM practice_records
+      WHERE user_id = $1 AND created_at::date BETWEEN $2 AND $3
+      GROUP BY subject`,
+      [req.user.id, startStr, endStr]
+    );
+
+    // 考试本周数据
+    const examRes = await db.query(
+      `SELECT 
+        COUNT(*) as total_exams,
+        COALESCE(AVG(total_score), 0) as avg_score,
+        COALESCE(SUM(time_spent), 0) as total_exam_time
+      FROM exam_records
+      WHERE user_id = $1 AND created_at::date BETWEEN $2 AND $3`,
+      [req.user.id, startStr, endStr]
+    );
+
+    // 生词本周新增
+    const vocabRes = await db.query(
+      `SELECT COUNT(*) as new_words
+       FROM vocabulary
+       WHERE user_id = $1 AND created_at::date BETWEEN $2 AND $3`,
+      [req.user.id, startStr, endStr]
+    );
+
+    // 构建7天日历数据
+    const weekDays = [];
+    const daysMap = {};
+    minutesRes.rows.forEach(r => { daysMap[r.day] = { minutes: parseInt(r.minutes) }; });
+    questionsRes.rows.forEach(r => {
+      if (!daysMap[r.day]) daysMap[r.day] = {};
+      daysMap[r.day].questions = parseInt(r.total);
+      daysMap[r.day].correct = parseInt(r.correct);
+    });
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      const ds = d.toISOString().split('T')[0];
+      const label = i === 0 ? '今天' : i === 1 ? '昨天' : d.toLocaleDateString('zh-CN', { weekday: 'short' });
+      weekDays.push({
+        label,
+        date: ds,
+        minutes: daysMap[ds]?.minutes || 0,
+        questions: daysMap[ds]?.questions || 0,
+        correct: daysMap[ds]?.correct || 0,
+      });
+    }
+
+    const subjectStats = subjectRes.rows.map(s => ({
+      subject: s.subject,
+      total: parseInt(s.total),
+      correct: parseInt(s.correct),
+      accuracy: s.total > 0 ? Math.round((parseInt(s.correct) / parseInt(s.total)) * 100) : 0,
+      avgTime: Math.round(parseInt(s.avg_time)),
+    }));
+
+    res.json({
+      code: 200,
+      data: {
+        weekDays,
+        subjectStats,
+        weeklySummary: {
+          totalMinutes: weekDays.reduce((sum, d) => sum + d.minutes, 0),
+          totalQuestions: weekDays.reduce((sum, d) => sum + d.questions, 0),
+          totalCorrect: weekDays.reduce((sum, d) => sum + d.correct, 0),
+          avgAccuracy: weekDays.reduce((sum, d) => sum + (d.questions > 0 ? Math.round((d.correct / d.questions) * 100) : 0), 0) / 7,
+          newVocab: parseInt(vocabRes.rows[0]?.new_words || 0),
+          totalExams: parseInt(examRes.rows[0]?.total_exams || 0),
+          avgExamScore: parseFloat(examRes.rows[0]?.avg_score || 0),
+        },
+      },
+    });
+  } catch (err) {
+    console.error('[User] 获取学习周报失败:', err);
     res.status(500).json({ code: 500, message: '服务器内部错误' });
   }
 });

@@ -6,8 +6,11 @@ const aiScoring = require('../services/ai-scoring');
 
 const router = express.Router();
 
-// 确保 ai_result 列存在（幂等操作）
+// 确保必要列存在（幂等操作，生产环境自动补列，避免已知 schema 漂移 500）
 db.query('ALTER TABLE practice_records ADD COLUMN IF NOT EXISTS ai_result JSONB').catch(() => {});
+db.query('ALTER TABLE questions ADD COLUMN IF NOT EXISTS answer TEXT').catch(() => {});
+db.query('ALTER TABLE questions ADD COLUMN IF NOT EXISTS analysis TEXT').catch(() => {});
+db.query('ALTER TABLE questions ADD COLUMN IF NOT EXISTS passage_text TEXT').catch(() => {});
 
 // GET /api/practice/sets - 套题列表
 router.get('/sets', auth, async (req, res) => {
@@ -281,6 +284,17 @@ router.post('/submit', auth, async (req, res) => {
       );
     }
 
+    // 更新用户统计：答题数、正确数、XP
+    await db.query(
+      `UPDATE user_stats SET
+         total_questions = COALESCE(total_questions, 0) + 1,
+         correct_questions = COALESCE(correct_questions, 0) + $4,
+         xp_points = COALESCE(xp_points, 0) + CASE WHEN $4 = true THEN 3 ELSE 1 END,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE user_id = $1`,
+      [req.user.id, isCorrect ? 1 : 0]
+    );
+
     // 返回结果（含 AI 评分详情）
     res.json({
       code: 200,
@@ -384,6 +398,69 @@ router.get('/stats', auth, async (req, res) => {
   } catch (err) {
     console.error('[Practice] 获取统计失败:', err);
     res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
+});
+
+// POST /api/practice/brainstorm - AI 辅助构思（独立写作）
+router.post('/brainstorm', auth, async (req, res) => {
+  try {
+    const { question, type } = req.body;
+
+    if (!question) {
+      return res.status(400).json({ code: 400, message: '缺少题目内容' });
+    }
+
+    // 免费用户额度检查
+    const access = await membershipService.checkFeatureAccess(req.user.id, 'practice');
+    if (!access.allowed) {
+      return res.status(403).json({ code: 403, message: access.reason });
+    }
+
+    // 用户自带的 AI 配置
+    const aiConfig = {
+      provider: req.body.aiProvider,
+      apiKey: req.body.aiApiKey,
+      baseURL: req.body.aiBaseURL,
+      model: req.body.aiModel,
+    };
+
+    const aiBrainstorm = require('../services/ai-scoring').brainstorm;
+    const result = await aiBrainstorm(question, type || 'independent', aiConfig);
+
+    res.json({ code: 200, data: result });
+  } catch (err) {
+    console.error('[Practice] AI 构思失败:', err);
+    res.status(500).json({ code: 500, message: 'AI 构思失败: ' + err.message });
+  }
+});
+
+// POST /api/practice/polish - AI 写作润色
+router.post('/polish', auth, async (req, res) => {
+  try {
+    const { question, essay, type } = req.body;
+
+    if (!question || !essay) {
+      return res.status(400).json({ code: 400, message: '缺少题目内容或作文' });
+    }
+
+    // 免费用户额度检查
+    const access = await membershipService.checkFeatureAccess(req.user.id, 'practice');
+    if (!access.allowed) {
+      return res.status(403).json({ code: 403, message: access.reason });
+    }
+
+    const aiConfig = {
+      provider: req.body.aiProvider,
+      apiKey: req.body.aiApiKey,
+      baseURL: req.body.aiBaseURL,
+      model: req.body.aiModel,
+    };
+
+    const result = await aiScoring.polishEssay(question, essay, aiConfig);
+    res.json({ code: 200, data: result });
+  } catch (err) {
+    console.error('[Practice] AI 润色失败:', err);
+    res.status(500).json({ code: 500, message: 'AI 润色失败: ' + err.message });
   }
 });
 

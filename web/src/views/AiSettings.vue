@@ -103,5 +103,78 @@ onMounted(load)
 </script>
 
 <style scoped>
-.intro { font-size: 14px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 20px; }
+.page-container {
+  padding: 20px 16px 48px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.page-header {
+  margin-bottom: 16px;
+}
+.page-header h2 {
+  font-size: 24px;
+  font-weight: 800;
+}
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  padding: 20px;
+}
+.intro {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+.card :deep(.el-form) {
+  max-width: 100%;
+}
+.card :deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+.card :deep(.el-form-item__label) {
+  font-size: 14px;
+}
+.card .el-button {
+  width: 100%;
+  margin-bottom: 8px;
+  height: 42px;
+}
+
+/* ===== 移动端全面适配 ===== */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 0 12px 76px;
+    max-width: 100%;
+  }
+  .page-header {
+    margin-bottom: 12px;
+  }
+  .page-header h2 {
+    font-size: 20px;
+  }
+  .card {
+    padding: 16px;
+    border-radius: var(--radius-sm);
+  }
+  .intro {
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .card :deep(.el-form-item__label) {
+    font-size: 13px;
+  }
+  .card .el-button {
+    height: 44px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .intro {
+    font-size: 12px;
+  }
+}
 </style>

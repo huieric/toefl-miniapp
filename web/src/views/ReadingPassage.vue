@@ -36,6 +36,62 @@
             </el-icon>
           </div>
           <div v-show="!passageCollapsed" class="reading-panel-body">
+            <div class="reading-panel-tools">
+              <el-button size="small" type="primary" @click="loadAIAnnotation" :loading="loadingAnnotation" :disabled="!passageText">
+                <el-icon><MagicStick /></el-icon>
+                {{ annotationLoaded ? '重新标注' : 'AI 生词/长难句标注' }}
+              </el-button>
+            </div>
+            <!-- AI 标注面板 -->
+            <div v-if="annotationLoaded && (aiVocab.length || aiSentences.length)" class="annotation-panel">
+              <div v-if="aiVocab.length" class="annotation-section">
+                <h4 class="section-title"><el-icon><Collection /></el-icon> 生词表 ({{ aiVocab.length }})</h4>
+                <div class="vocab-list">
+                  <div v-for="(v, i) in aiVocab" :key="i" class="vocab-item">
+                    <span class="vocab-item-word">{{ v.word }}</span>
+                    <span class="vocab-item-pos">{{ v.pos }}</span>
+                    <span class="vocab-item-meaning">{{ v.meaning }}</span>
+                  </div>
+                </div>
+              </div>
+              <div v-if="aiSentences.length" class="annotation-section">
+                <h4 class="section-title"><el-icon><Document /></el-icon> 长难句深度解析 ({{ aiSentences.length }})</h4>
+                <div class="sentence-list">
+                  <div v-for="(s, i) in aiSentences" :key="i" class="sentence-item">
+                    <!-- 语法类型标签 -->
+                    <div v-if="s.grammarType" class="grammar-type-badge">{{ s.grammarType }}</div>
+                    
+                    <!-- 原句 -->
+                    <div class="sentence-text">{{ s.sentence }}</div>
+                    
+                    <!-- 主干提取 -->
+                    <div v-if="s.mainClause" class="sentence-main-clause">
+                      <span class="label">🔑 主干：</span>
+                      <span>{{ s.mainClause }}</span>
+                    </div>
+                    
+                    <!-- 从句拆分 -->
+                    <div v-if="s.clauses && s.clauses.length" class="clause-breakdown">
+                      <span class="label">🔀 从句拆解：</span>
+                      <ul>
+                        <li v-for="(c, ci) in s.clauses" :key="ci">
+                          <strong>{{ c.type }}：</strong>{{ c.content }}
+                        </li>
+                      </ul>
+                    </div>
+                    
+                    <!-- 语法结构分析 -->
+                    <div class="sentence-parsing">📐 {{ s.parsing }}</div>
+                    
+                    <!-- 语法要点 -->
+                    <div v-if="s.keyPoints" class="sentence-key-points">💡 {{ s.keyPoints }}</div>
+                    
+                    <!-- 翻译 -->
+                    <div class="sentence-translation">📝 {{ s.translation }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <article class="reading-article">
               <h1 class="article-title">{{ cleanTitle(passageTitle) }}</h1>
               <div class="article-text">
@@ -148,10 +204,37 @@
             <el-icon><InfoFilled /></el-icon>
             <span>选完所有题目后即可提交，答案将在提交后统一公布</span>
           </div>
+
+          <!-- 移动端：浮动提交按钮 -->
+          <el-button
+            v-if="allAnswered && isMobile"
+            class="floating-submit"
+            type="success"
+            @click="goResult"
+          >
+            <el-icon><Check /></el-icon>
+            提交并查看结果
+          </el-button>
         </main>
       </div>
 
       <el-empty v-if="!loading && !questions.length" description="该篇章没有题目" />
+    </div>
+
+    <!-- 移动端 Tab Bar -->
+    <div v-if="isMobile && !loading && questions.length" class="mobile-tab-bar">
+      <button class="mobile-tab-btn" :class="{ active: mobileActiveTab === 'passage' }" @click="mobileActiveTab = 'passage'">
+        <span class="tab-icon">📖</span>
+        <span class="tab-label">文章</span>
+      </button>
+      <button class="mobile-tab-btn" :class="{ active: mobileActiveTab === 'question' }" @click="mobileActiveTab = 'question'">
+        <span class="tab-icon">✏️</span>
+        <span class="tab-label">答题</span>
+      </button>
+      <button class="mobile-tab-btn" :class="{ active: mobileActiveTab === 'result' }" @click="goResult" v-if="allAnswered">
+        <span class="tab-icon">📊</span>
+        <span class="tab-label">提交</span>
+      </button>
     </div>
 
     <!-- 生词弹窗 -->
@@ -175,10 +258,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, ArrowDown, ArrowRight, Select, Check, InfoFilled } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowDown, ArrowRight, Select, Check, InfoFilled, MagicStick, Collection, Document } from '@element-plus/icons-vue'
 import { questionAPI, practiceAPI, vocabAPI } from '@/api'
 import { splitPassageParagraphs } from '@/utils/passageParagraphs'
 
@@ -197,6 +280,17 @@ const passageCollapsed = ref(false)
 const windowWidth = ref(window.innerWidth)
 const isMobile = computed(() => windowWidth.value < 768)
 const mobileView = ref('question') // 'passage' | 'question'
+const mobileActiveTab = ref('question') // mobile tab: 'passage' | 'question' | 'result'
+
+// 移动端 Tab 切换时同步视图
+watch(mobileActiveTab, (tab) => {
+  if (tab === 'passage') {
+    mobileView.value = 'passage'
+    passageCollapsed.value = false
+  } else if (tab === 'question') {
+    mobileView.value = 'question'
+  }
+})
 const onResize = () => { windowWidth.value = window.innerWidth }
 onMounted(() => window.addEventListener('resize', onResize))
 onUnmounted(() => window.removeEventListener('resize', onResize))
@@ -262,6 +356,35 @@ const addToVocab = async () => {
     vocabDialog.value = false
   } catch (e) {
     ElMessage.error(e?.response?.data?.message || '加入失败')
+  }
+}
+
+// —— AI 标注：生词 + 长难句 ——
+const annotationLoaded = ref(false)
+const loadingAnnotation = ref(false)
+const aiVocab = ref([])
+const aiSentences = ref([])
+
+const loadAIAnnotation = async () => {
+  if (loadingAnnotation.value || annotationLoaded.value) return
+  loadingAnnotation.value = true
+  try {
+    const res = await practiceAPI.aiAnnotate({ questionId: passageId.value })
+    if (res.data?.data) {
+      aiVocab.value = res.data.data.vocabulary || []
+      aiSentences.value = res.data.data.longSentences || []
+      annotationLoaded.value = true
+      ElMessage.success(`标注完成：${aiVocab.value.length} 个生词，${aiSentences.value.length} 个长难句`)
+    }
+  } catch (e) {
+    if (e?.response?.data?.code !== 200) {
+      ElMessage.error(e?.response?.data?.message || '标注失败')
+    } else {
+      // 需要 API key
+      ElMessage.info('标注功能需要配置 AI API Key，请前往「个人中心 → AI 设置」配置')
+    }
+  } finally {
+    loadingAnnotation.value = false
   }
 }
 
@@ -354,19 +477,19 @@ const goResult = async () => {
   })
 
   try {
-    for (let i = 0; i < questions.value.length; i++) {
+    // 提交每道题的答案到后端判分（后端会对比 answer 字段自动判分）
+    await Promise.all(questions.value.map((q, i) => {
       const a = answers.value[i]
-      if (a) {
-        practiceAPI.submit({
-          questionId: questions.value[i].id,
-          subject: 'reading',
-          userAnswer: a.selected,
-          isCorrect: a.isCorrect,
-        }).catch(() => {})
-      }
-    }
+      if (!a) return Promise.resolve()
+      return practiceAPI.submit({
+        questionId: q.id,
+        subject: 'reading',
+        answers: a.selected,
+        timeSpent: 0,
+      })
+    }))
   } catch (e) {
-    console.error('提交答题记录失败:', e)
+    console.error('[Passage] 提交答题记录失败:', e)
   }
 
   try {
@@ -612,7 +735,7 @@ onMounted(loadPassageData)
   padding: 12px 24px;
   border-bottom: 1px solid var(--el-border-color-lighter);
   flex-shrink: 0;
-  background: #fafafa;
+  background: #F8F9FC;
 }
 .nav-dots {
   display: flex;
@@ -648,7 +771,7 @@ onMounted(loadPassageData)
 .nav-dot.answered {
   background: #f0f9eb;
   border-color: #b3e19d;
-  color: #67c23a;
+  color: #23B26D;
 }
 .nav-dot.answered.current {
   background: var(--el-color-primary);
@@ -785,7 +908,7 @@ onMounted(loadPassageData)
   justify-content: space-between;
   padding: 12px 24px;
   border-top: 1px solid var(--el-border-color-lighter);
-  background: #fafafa;
+  background: #F8F9FC;
   flex-shrink: 0;
   gap: 12px;
 }
@@ -819,7 +942,7 @@ onMounted(loadPassageData)
   font-size: 12px;
   color: var(--text-secondary);
   padding: 0 24px 10px;
-  background: #fafafa;
+  background: #F8F9FC;
   flex-shrink: 0;
 }
 
@@ -862,28 +985,299 @@ onMounted(loadPassageData)
   color: var(--text-muted, #bbb);
 }
 
-/* 移动端：文章/答题 切换 */
+/* AI 标注面板 */
+.reading-panel-tools {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border, #eee);
+  display: flex;
+  justify-content: flex-end;
+}
+.annotation-panel {
+  border-bottom: 1px solid var(--border, #eee);
+  background: #FAFBFC;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.annotation-section {
+  padding: 10px 14px;
+  border-bottom: 1px dashed #eee;
+}
+.annotation-section:last-child {
+  border-bottom: none;
+}
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.vocab-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.vocab-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 4px 6px;
+  background: white;
+  border-radius: 4px;
+}
+.vocab-item-word {
+  font-weight: 700;
+  color: var(--el-color-primary);
+  min-width: 70px;
+}
+.vocab-item-pos {
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: #F0F0F0;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+.vocab-item-meaning {
+  flex: 1;
+  color: var(--text);
+}
+.sentence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sentence-item {
+  padding: 8px 10px;
+  background: white;
+  border-radius: 4px;
+  border-left: 3px solid var(--el-color-primary);
+}
+.grammar-type-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  background: var(--el-color-primary);
+  padding: 1px 8px;
+  border-radius: 10px;
+  margin-bottom: 4px;
+}
+.sentence-text {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+.sentence-main-clause {
+  font-size: 12px;
+  color: var(--text-primary);
+  background: #E8F5E9;
+  padding: 4px 8px;
+  border-radius: 3px;
+  margin-bottom: 3px;
+}
+.sentence-main-clause .label {
+  font-weight: 700;
+  margin-right: 2px;
+}
+.clause-breakdown {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  margin-bottom: 3px;
+  line-height: 1.5;
+}
+.clause-breakdown .label {
+  font-weight: 700;
+  display: block;
+  margin-bottom: 1px;
+}
+.clause-breakdown ul {
+  margin: 2px 0 0;
+  padding-left: 16px;
+}
+.clause-breakdown li {
+  margin-bottom: 1px;
+}
+.sentence-parsing {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 2px;
+}
+.sentence-key-points {
+  font-size: 12px;
+  color: #E65100;
+  background: #FFF3E0;
+  padding: 4px 8px;
+  border-radius: 3px;
+  margin-bottom: 2px;
+  line-height: 1.5;
+}
+.sentence-translation {
+  font-size: 12px;
+  color: var(--text-primary);
+  background: #F5F5F5;
+  padding: 4px 6px;
+  border-radius: 3px;
+}
+
+/* 移动端：文章/答题 切换 — 底部 Tab Bar */
 .mobile-view-toggle { display: none; }
 .mobile-hidden { display: none !important; }
+.mobile-tab-bar { display: none; }
+
 @media (max-width: 767px) {
-  .mobile-view-toggle {
-    display: flex; gap: 8px; padding: 8px 12px;
-    background: #fafafa; border-bottom: 1px solid #e4e4e4; flex-shrink: 0;
+  /* 顶部栏紧凑化 */
+  .exam-topbar { padding: 8px 10px 6px; }
+  .topbar-title { font-size: 14px; max-width: 200px; }
+  .back-btn span { display: none; }
+  .back-btn .el-icon { font-size: 20px; }
+  .progress-pill { padding: 4px 10px; }
+  .pill-num { font-size: 16px; }
+  .pill-label { display: none; }
+
+  /* 移除顶部 toggle，改用底部 Tab Bar */
+  .mobile-view-toggle { display: none !important; }
+
+  /* 布局：全宽单列 */
+  .exam-content { height: calc(100vh - 88px); }
+  .exam-layout {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr !important;
   }
-  .mobile-view-toggle button {
-    flex: 1; height: 40px; border-radius: 10px;
-    border: 1px solid #e4e4e4; background: #fff;
-    font-size: 14px; font-weight: 600; color: #555;
+
+  /* 阅读面板：全宽，可滚动 */
+  .reading-panel {
+    width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid #e0ddd5 !important;
+    flex: none !important;
+    display: flex !important;
+    overflow: hidden;
   }
-  .mobile-view-toggle button.active {
-    background: var(--el-color-primary); color: #fff; border-color: var(--el-color-primary);
+  .reading-panel .reading-panel-header {
+    padding: 8px 14px;
+    min-height: 36px;
   }
-  .exam-layout { grid-template-rows: 1fr; }
-  .reading-panel { border-right: none; }
   .reading-panel-header { padding: 8px 14px; }
   .reading-panel-hint { font-size: 12px; }
-  .question-nav { padding: 8px 12px; }
-  .question-container { padding: 16px 14px; }
-  .nav-dot { width: 40px; height: 40px; }
+  .reading-article { padding: 10px 14px 16px; }
+  .article-title { font-size: 16px; margin-bottom: 8px; }
+  .article-para { font-size: 15px; line-height: 1.75; margin-bottom: 14px; }
+
+  /* 答题面板：全宽 */
+  .question-panel {
+    width: 100% !important;
+    overflow-y: auto !important;
+    padding: 0 !important;
+  }
+  .question-nav { padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .nav-dot {
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+  .question-container { padding: 16px 14px 100px; }
+  .question-text { font-size: 15px; line-height: 1.65; }
+
+  /* 选项触摸优化 */
+  .option-row {
+    padding: 14px 12px;
+    min-height: 48px;
+    gap: 10px;
+    transition: transform 0.1s, box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .option-row:active {
+    transform: scale(0.98);
+  }
+  .option-content { font-size: 14px; }
+  .option-marker {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* 底部操作栏：移动端用 Tab Bar 替代 */
+  .action-footer {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+  .nav-btn { font-size: 13px; padding: 8px 12px; min-height: 38px; }
+  .submit-btn { font-size: 14px; padding: 8px 20px; min-height: 40px; }
+  .remain-hint { font-size: 12px; }
+  .submit-hint { display: none; }
+
+  /* 移动端浮动提交按钮（已答完时） */
+  .floating-submit {
+    display: none !important;
+    position: fixed;
+    bottom: 60px;
+    left: 16px;
+    right: 16px;
+    max-width: 380px;
+    margin: 0 auto;
+    height: 48px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 14px;
+    z-index: 150;
+    box-shadow: 0 4px 20px rgba(64, 158, 255, 0.3);
+  }
+
+  /* 底部 Tab Bar */
+  .mobile-tab-bar {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: #fff;
+    border-top: 1px solid var(--el-border-color-lighter);
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+    z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .mobile-tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mobile-tab-btn.active {
+    color: var(--el-color-primary);
+  }
+  .mobile-tab-btn .tab-icon {
+    font-size: 20px;
+  }
+  .mobile-tab-btn .tab-label {
+    font-weight: 600;
+    font-size: 11px;
+  }
+
+  /* 答题区额外底部间距（避开 Tab Bar） */
+  .question-container {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0));
+  }
+}
+
+/* ===== 平板端 ===== */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .exam-layout {
+    grid-template-columns: 45fr 55fr;
+  }
+  .article-text { font-size: 14px; }
 }
 </style>

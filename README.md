@@ -150,6 +150,8 @@ $env:VITE_BASE='/'; $env:VITE_API_BASE='/api'; npm run build   # Windows
 
 ## 测试
 
+### 后端测试
+
 ```bash
 cd server
 node test/sm2.test.js          # SM-2
@@ -160,7 +162,20 @@ node test/ai-scoring.test.js   # AI 打分
 node scripts/regression.js     # 全量回归（pdf/ 下 222 个测试 PDF）
 ```
 
-当前 **26/26** 单元测试通过，PDF 全量回归 **222/222**。
+当前 **26/26** 后端单元测试通过，PDF 全量回归 **222/222**。
+
+### 前端测试（Round 19 新增）
+
+```bash
+cd web
+npx vitest run                 # Vitest 单元测试（51 测试点）
+npx vitest run --coverage      # 覆盖率报告
+npx playwright test            # Playwright E2E 测试（需前端服务运行中）
+```
+
+- **Vitest**: 覆盖 FSRS 算法 / i18n 语言检测 / 智能推荐算法
+- **Playwright**: 前端 E2E 自动化测试（Chromium）
+- **CI 集成**: GitHub Actions 自动运行 `vitest run --reporter=verbose`
 
 ---
 
@@ -169,8 +184,12 @@ node scripts/regression.js     # 全量回归（pdf/ 下 222 个测试 PDF）
 | 状态 | 内容 |
 |------|------|
 | ✅ | PDF 自导入（文字版+OCR）、FSRS 错题/生词复习、AI 打分、题集两级浏览、Tailscale/cpolar 访问 |
-| 🔄 | 上线收尾：数据备份、部署脚本、README |
-| 🔲 | 会员支付、广告、AI 陪练/导师 |
+| ✅ | 阅读/听力/口语/写作完整题库（908 题）、AI 阅读标注、听力 TTS、错题 AI 分析/归因、智能推荐 |
+| ✅ | AI 写作构思面板、AI 口语模拟对话、错题智能复习推送、PWA 离线缓存、多语言 i18n |
+| ✅ | 错题本移动端适配（响应式卡片列表）、CI/CD 自动化（GitHub Actions）、自动化测试（Vitest + Playwright） |
+| ✅ | AI 写作润色（逐句优化 + 词汇升级 + 结构建议 + 一键应用全文） |
+| 🔄 | AI 口语实时反馈 / AI 自适应学习路径 / AI 模考模拟 |
+| 🔲 | 小程序/原生 App、学习报告、游戏化互动、会员支付 |
 
 ---
 
@@ -180,4 +199,4 @@ MIT
 
 ---
 
-*最后更新：2026-08*
+*最后更新：2026-01*

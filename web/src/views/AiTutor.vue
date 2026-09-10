@@ -48,7 +48,7 @@
       <!-- Generate Analysis Button -->
       <div class="card" v-if="!analysis && !analysisLoading">
         <div class="generate-prompt">
-          <el-icon :size="48" color="#4A90D9"><MagicStick /></el-icon>
+          <el-icon :size="48" color="#4255FF"><MagicStick /></el-icon>
           <h3>生成你的专属学习分析</h3>
           <p>AI 导师将分析你的练习数据，预测托福分数，识别薄弱环节，并给出个性化备考建议</p>
           <el-button type="primary" size="large" :loading="analysisLoading" @click="loadAnalysis">
@@ -61,7 +61,7 @@
       <!-- Loading -->
       <div class="card" v-if="analysisLoading">
         <div class="loading-container">
-          <el-icon class="is-loading" :size="40" color="#4A90D9"><Loading /></el-icon>
+          <el-icon class="is-loading" :size="40" color="#4255FF"><Loading /></el-icon>
           <p>AI 导师正在分析你的学习数据...</p>
           <p class="loading-sub">这可能需要 10-20 秒，请耐心等待</p>
         </div>
@@ -70,7 +70,7 @@
       <!-- Needs More Data -->
       <div class="card" v-if="analysis && analysis.needsMoreData">
         <div class="empty-state">
-          <el-icon :size="48" color="#E6A23C"><WarningFilled /></el-icon>
+          <el-icon :size="48" color="#FF8A2A"><WarningFilled /></el-icon>
           <h3>数据不足</h3>
           <p>{{ analysis.message }}</p>
           <el-button type="primary" @click="$router.push('/reading')">去练习</el-button>
@@ -129,7 +129,7 @@
                 <div class="rec-title">{{ rec.title }}</div>
                 <p class="rec-desc">{{ rec.description }}</p>
                 <div class="rec-action">
-                  <el-icon :size="14" color="#4A90D9"><Aim /></el-icon>
+                  <el-icon :size="14" color="#4255FF"><Aim /></el-icon>
                   <span>{{ rec.action }}</span>
                 </div>
                 <div class="rec-time" v-if="rec.estimatedTime">
@@ -146,12 +146,12 @@
           <h3 class="section-title">本周学习计划</h3>
           <div class="study-plan">
             <div class="plan-goal">
-              <el-icon :size="18" color="#67C23A"><Flag /></el-icon>
+              <el-icon :size="18" color="#23B26D"><Flag /></el-icon>
               <span>{{ analysis.studyPlan.weeklyGoal }}</span>
             </div>
             <div class="plan-tasks" v-if="analysis.studyPlan.dailyTasks">
               <div v-for="(task, i) in analysis.studyPlan.dailyTasks" :key="i" class="plan-task">
-                <el-icon :size="14" color="#4A90D9"><CircleCheck /></el-icon>
+                <el-icon :size="14" color="#4255FF"><CircleCheck /></el-icon>
                 <span>{{ task }}</span>
               </div>
             </div>
@@ -160,7 +160,7 @@
 
         <!-- Encouragement -->
         <div class="card encouragement-card" v-if="analysis.encouragement">
-          <el-icon :size="24" color="#E6A23C"><Sunny /></el-icon>
+          <el-icon :size="24" color="#FF8A2A"><Sunny /></el-icon>
           <p>{{ analysis.encouragement }}</p>
         </div>
 
@@ -178,7 +178,7 @@
       <div class="card chat-card">
         <div class="chat-header">
           <div class="chat-header-info">
-            <el-icon :size="32" color="#4A90D9"><MagicStick /></el-icon>
+            <el-icon :size="32" color="#4255FF"><MagicStick /></el-icon>
             <div>
               <div class="chat-title">AI 备考导师</div>
               <div class="chat-subtitle">问我任何关于托福备考的问题</div>
@@ -188,7 +188,7 @@
 
         <div class="chat-messages" ref="chatContainer">
           <div v-if="!chatMessages.length" class="chat-welcome">
-            <el-icon :size="48" color="#4A90D9"><ChatDotRound /></el-icon>
+            <el-icon :size="48" color="#4255FF"><ChatDotRound /></el-icon>
             <h3>你好！我是你的 AI 备考导师</h3>
             <p>我可以根据你的学习数据，为你解答备考疑问、制定学习策略</p>
             <div class="quick-questions">
@@ -198,7 +198,7 @@
 
           <div v-for="(msg, i) in chatMessages" :key="i" class="chat-msg" :class="msg.role">
             <div class="msg-avatar">
-              <el-icon v-if="msg.role === 'assistant'" :size="20" color="#4A90D9"><MagicStick /></el-icon>
+              <el-icon v-if="msg.role === 'assistant'" :size="20" color="#4255FF"><MagicStick /></el-icon>
               <el-icon v-else :size="20" color="#999"><User /></el-icon>
             </div>
             <div class="msg-bubble">
@@ -208,7 +208,7 @@
 
           <div v-if="chatLoading" class="chat-msg assistant">
             <div class="msg-avatar">
-              <el-icon :size="20" color="#4A90D9"><MagicStick /></el-icon>
+              <el-icon :size="20" color="#4255FF"><MagicStick /></el-icon>
             </div>
             <div class="msg-bubble">
               <div class="typing-indicator">
@@ -258,13 +258,13 @@ const chatLoading = ref(false)
 const chatContainer = ref(null)
 
 const subjectNames = { reading: '阅读', listening: '听力', speaking: '口语', writing: '写作' }
-const subjectColors = { reading: '#4A90D9', listening: '#67C23A', speaking: '#E6A23C', writing: '#F56C6C' }
+const subjectColors = { reading: '#4255FF', listening: '#23B26D', speaking: '#FF8A2A', writing: '#F0544F' }
 
 const scoreSubjects = [
-  { key: 'reading', label: '阅读', color: '#4A90D9' },
-  { key: 'listening', label: '听力', color: '#67C23A' },
-  { key: 'speaking', label: '口语', color: '#E6A23C' },
-  { key: 'writing', label: '写作', color: '#F56C6C' },
+  { key: 'reading', label: '阅读', color: '#4255FF' },
+  { key: 'listening', label: '听力', color: '#23B26D' },
+  { key: 'speaking', label: '口语', color: '#FF8A2A' },
+  { key: 'writing', label: '写作', color: '#F0544F' },
 ]
 
 const quickQuestions = [
@@ -348,134 +348,814 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.subtitle { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
-.section-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+.page-container {
+  padding: 20px 16px 48px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.page-header {
+  margin-bottom: 16px;
+}
+.page-header h2 {
+  font-size: 24px;
+  font-weight: 800;
+}
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-top: 4px;
+}
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
 
 /* Tab Switch */
-.tab-switch { display: flex; gap: 8px; margin-bottom: 20px; }
-.tab-item {
-  flex: 1; text-align: center; padding: 12px; border-radius: 8px;
-  background: #fff; cursor: pointer; font-size: 14px; font-weight: 500;
-  transition: all 0.2s; border: 2px solid transparent;
+.tab-switch {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
 }
-.tab-item.active { background: #4A90D9; color: #fff; border-color: #4A90D9; }
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 12px;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tab-item.active {
+  background: #4255FF;
+  color: #fff;
+  border-color: #4255FF;
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  padding: 20px;
+  margin-bottom: 16px;
+}
 
 /* Overview */
-.overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-.overview-item { text-align: center; padding: 12px; background: #f9fafb; border-radius: 8px; }
-.overview-value { font-size: 28px; font-weight: 700; color: var(--primary); }
-.overview-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
-.subject-bars { display: flex; flex-direction: column; gap: 10px; }
-.subject-bar { display: flex; align-items: center; gap: 10px; }
-.bar-label { width: 40px; font-size: 13px; flex-shrink: 0; }
-.bar-track { flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
-.bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
-.bar-value { width: 60px; font-size: 12px; text-align: right; flex-shrink: 0; color: var(--text-secondary); }
-
-/* Generate Prompt */
-.generate-prompt { text-align: center; padding: 30px 20px; }
-.generate-prompt h3 { margin: 16px 0 8px; font-size: 18px; }
-.generate-prompt p { color: var(--text-secondary); margin-bottom: 20px; font-size: 14px; }
-.quota-hint { font-size: 12px; color: #E6A23C; margin-top: 12px; }
-
-/* Loading */
-.loading-container { text-align: center; padding: 40px 20px; }
-.loading-container p { margin-top: 16px; font-size: 14px; }
-.loading-sub { color: var(--text-secondary); font-size: 12px !important; }
-
-/* Empty State */
-.empty-state { text-align: center; padding: 30px 20px; }
-.empty-state h3 { margin: 16px 0 8px; }
-.empty-state p { color: var(--text-secondary); margin-bottom: 16px; }
-
-/* Score Card */
-.score-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
-.score-card .section-title { color: #fff; }
-.score-display { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
-.total-score { text-align: center; }
-.score-number { font-size: 56px; font-weight: 800; line-height: 1; }
-.score-max { font-size: 16px; opacity: 0.8; }
-.subject-scores { display: flex; gap: 16px; flex-wrap: wrap; }
-.sub-score-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.sub-score-circle {
-  width: 56px; height: 56px; border-radius: 50%; border: 3px solid;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,0.15);
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
 }
-.sub-score-value { font-size: 20px; font-weight: 700; }
-.sub-score-label { font-size: 12px; opacity: 0.9; }
-.default-badge { margin-top: 12px; }
-
-/* Weak Areas */
-.weak-areas { display: flex; flex-direction: column; gap: 12px; }
-.weak-area-item { padding: 14px; border-radius: 8px; border-left: 4px solid; }
-.weak-area-item.severity-high { border-color: #F56C6C; background: #fef0f0; }
-.weak-area-item.severity-medium { border-color: #E6A23C; background: #fdf6ec; }
-.weak-area-item.severity-low { border-color: #909399; background: #f4f4f5; }
-.weak-area-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.weak-area-subject { font-weight: 600; font-size: 14px; }
-.weak-area-issue { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
-.weak-area-suggestion { display: flex; align-items: flex-start; gap: 6px; font-size: 13px; color: #4A90D9; }
-
-/* Recommendations */
-.recommendations { display: flex; flex-direction: column; gap: 12px; }
-.rec-item { display: flex; gap: 12px; padding: 14px; background: #f9fafb; border-radius: 8px; }
-.rec-priority {
-  width: 28px; height: 28px; border-radius: 50%; background: #4A90D9; color: #fff;
-  display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700;
+.overview-item {
+  text-align: center;
+  padding: 12px;
+  background: #F8F9FC;
+  border-radius: 8px;
+}
+.overview-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.overview-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+.subject-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.subject-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.bar-label {
+  width: 40px;
+  font-size: 13px;
   flex-shrink: 0;
 }
-.rec-content { flex: 1; }
-.rec-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
-.rec-desc { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
-.rec-action, .rec-time { display: flex; align-items: center; gap: 6px; font-size: 12px; margin-top: 4px; }
-.rec-action { color: #4A90D9; }
-.rec-time { color: var(--text-secondary); }
+.bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+.bar-value {
+  width: 60px;
+  font-size: 12px;
+  text-align: right;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+/* Generate Prompt */
+.generate-prompt {
+  text-align: center;
+  padding: 30px 20px;
+}
+.generate-prompt h3 {
+  margin: 16px 0 8px;
+  font-size: 18px;
+}
+.generate-prompt p {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+.quota-hint {
+  font-size: 12px;
+  color: #FF8A2A;
+  margin-top: 12px;
+}
+
+/* Loading */
+.loading-container {
+  text-align: center;
+  padding: 40px 20px;
+}
+.loading-container p {
+  margin-top: 16px;
+  font-size: 14px;
+}
+.loading-sub {
+  color: var(--text-secondary);
+  font-size: 12px !important;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 30px 20px;
+}
+.empty-state h3 {
+  margin: 16px 0 8px;
+}
+.empty-state p {
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+/* Score Card */
+.score-card {
+  background: linear-gradient(135deg, #4255FF 0%, #7C5CFF 100%);
+  color: #fff;
+}
+.score-card .section-title {
+  color: #fff;
+}
+.score-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.total-score {
+  text-align: center;
+}
+.score-number {
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1;
+}
+.score-max {
+  font-size: 16px;
+  opacity: 0.8;
+}
+.subject-scores {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.sub-score-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.sub-score-circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 3px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.15);
+}
+.sub-score-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+.sub-score-label {
+  font-size: 12px;
+  opacity: 0.9;
+}
+.default-badge {
+  margin-top: 12px;
+}
+
+/* Weak Areas */
+.weak-areas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.weak-area-item {
+  padding: 14px;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+.weak-area-item.severity-high {
+  border-color: #F0544F;
+  background: #fef0f0;
+}
+.weak-area-item.severity-medium {
+  border-color: #FF8A2A;
+  background: #fdf6ec;
+}
+.weak-area-item.severity-low {
+  border-color: #909399;
+  background: #f4f4f5;
+}
+.weak-area-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.weak-area-subject {
+  font-weight: 600;
+  font-size: 14px;
+}
+.weak-area-issue {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.weak-area-suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  color: #4255FF;
+}
+
+/* Recommendations */
+.recommendations {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rec-item {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  background: #F8F9FC;
+  border-radius: 8px;
+}
+.rec-priority {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #4255FF;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.rec-content {
+  flex: 1;
+}
+.rec-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+.rec-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+.rec-action, .rec-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.rec-action {
+  color: #4255FF;
+}
+.rec-time {
+  color: var(--text-secondary);
+}
 
 /* Study Plan */
 .study-plan { }
-.plan-goal { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; margin-bottom: 16px; padding: 12px; background: #f0f9eb; border-radius: 8px; }
-.plan-tasks { display: flex; flex-direction: column; gap: 8px; }
-.plan-task { display: flex; align-items: center; gap: 8px; font-size: 14px; padding: 8px 12px; background: #f9fafb; border-radius: 6px; }
+.plan-goal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f0f9eb;
+  border-radius: 8px;
+}
+.plan-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.plan-task {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  padding: 8px 12px;
+  background: #F8F9FC;
+  border-radius: 6px;
+}
 
 /* Encouragement */
-.encouragement-card { display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #fef9e7 0%, #fef0e7 100%); }
-.encouragement-card p { font-size: 14px; color: #8B6914; font-style: italic; }
+.encouragement-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #fef9e7 0%, #fef0e7 100%);
+}
+.encouragement-card p {
+  font-size: 14px;
+  color: #8B6914;
+  font-style: italic;
+}
 
 /* Regenerate */
-.regenerate-section { text-align: center; margin-top: 20px; }
+.regenerate-section {
+  text-align: center;
+  margin-top: 20px;
+}
 
 /* Chat */
-.chat-card { display: flex; flex-direction: column; height: calc(100vh - 220px); min-height: 500px; }
-.chat-header { padding-bottom: 16px; border-bottom: 1px solid var(--border); }
-.chat-header-info { display: flex; align-items: center; gap: 12px; }
-.chat-title { font-size: 16px; font-weight: 700; }
-.chat-subtitle { font-size: 12px; color: var(--text-secondary); }
+.chat-card {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 220px);
+  min-height: 500px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius);
+}
+.chat-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.chat-header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.chat-title {
+  font-size: 16px;
+  font-weight: 700;
+}
+.chat-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
 
-.chat-messages { flex: 1; overflow-y: auto; padding: 16px 0; display: flex; flex-direction: column; gap: 16px; }
-.chat-welcome { text-align: center; padding: 30px 20px; }
-.chat-welcome h3 { margin: 16px 0 8px; }
-.chat-welcome p { color: var(--text-secondary); margin-bottom: 20px; font-size: 14px; }
-.quick-questions { display: flex; flex-direction: column; gap: 8px; max-width: 300px; margin: 0 auto; }
-.quick-q { padding: 10px 16px; background: #f0f5ff; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
-.quick-q:hover { background: #4A90D9; color: #fff; }
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.chat-welcome {
+  text-align: center;
+  padding: 30px 20px;
+}
+.chat-welcome h3 {
+  margin: 16px 0 8px;
+}
+.chat-welcome p {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+.quick-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+.quick-q {
+  padding: 10px 16px;
+  background: #f0f5ff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+}
+.quick-q:hover {
+  background: #4255FF;
+  color: #fff;
+}
 
-.chat-msg { display: flex; gap: 10px; }
-.chat-msg.user { flex-direction: row-reverse; }
-.msg-avatar { width: 36px; height: 36px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.msg-bubble { max-width: 75%; }
-.chat-msg.user .msg-bubble { text-align: right; }
-.msg-text { display: inline-block; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.6; text-align: left; white-space: pre-wrap; }
-.chat-msg.assistant .msg-text { background: #f4f4f5; border-top-left-radius: 4px; }
-.chat-msg.user .msg-text { background: #4A90D9; color: #fff; border-top-right-radius: 4px; }
+.chat-msg {
+  display: flex;
+  gap: 10px;
+  padding: 0 16px;
+}
+.chat-msg.user {
+  flex-direction: row-reverse;
+}
+.msg-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.msg-bubble {
+  max-width: 75%;
+}
+.chat-msg.user .msg-bubble {
+  text-align: right;
+}
+.msg-text {
+  display: inline-block;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.chat-msg.assistant .msg-text {
+  background: #f4f4f5;
+  border-top-left-radius: 4px;
+}
+.chat-msg.user .msg-text {
+  background: #4255FF;
+  color: #fff;
+  border-top-right-radius: 4px;
+}
 
-.typing-indicator { display: flex; gap: 4px; padding: 14px; }
-.typing-indicator span { width: 8px; height: 8px; border-radius: 50%; background: #ccc; animation: typing 1.4s infinite; }
-.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes typing { 0%, 60%, 100% { opacity: 0.3; } 30% { opacity: 1; } }
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 14px;
+}
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ccc;
+  animation: typing 1.4s infinite;
+}
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes typing {
+  0%, 60%, 100% { opacity: 0.3; }
+  30% { opacity: 1; }
+}
 
-.chat-input-area { display: flex; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
-.chat-input-area .el-input { flex: 1; }
-.chat-quota-hint { font-size: 12px; color: #E6A23C; text-align: center; margin-top: 8px; }
+.chat-input-area {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
+}
+.chat-input-area .el-input {
+  flex: 1;
+}
+.chat-quota-hint {
+  font-size: 12px;
+  color: #FF8A2A;
+  text-align: center;
+  margin-top: 8px;
+}
+
+/* ===== 移动端全面适配 ===== */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 0 12px 76px;
+    max-width: 100%;
+  }
+  .page-header {
+    margin-bottom: 12px;
+  }
+  .page-header h2 {
+    font-size: 20px;
+  }
+  .subtitle {
+    font-size: 12px;
+  }
+  .card {
+    padding: 16px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: 15px;
+  }
+  
+  /* Tab 切换 */
+  .tab-switch {
+    margin-bottom: 14px;
+  }
+  .tab-item {
+    padding: 10px 8px;
+    font-size: 13px;
+    border-radius: var(--radius-sm);
+    min-height: 42px;
+  }
+  
+  /* 数据概览 3 列 → 3 列 */
+  .overview-grid {
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .overview-item {
+    padding: 12px 8px;
+    border-radius: var(--radius-sm);
+  }
+  .overview-value {
+    font-size: 22px;
+  }
+  .overview-label {
+    font-size: 11px;
+  }
+  
+  /* 科目进度条 */
+  .subject-bar {
+    gap: 8px;
+  }
+  .bar-label {
+    width: 32px;
+    font-size: 12px;
+  }
+  .bar-value {
+    width: 50px;
+    font-size: 11px;
+  }
+  
+  /* 生成按钮卡片 */
+  .generate-prompt {
+    padding: 24px 16px;
+  }
+  .generate-prompt h3 {
+    font-size: 16px;
+  }
+  .generate-prompt p {
+    font-size: 13px;
+  }
+  .generate-prompt .el-button {
+    width: 100%;
+    height: 42px;
+    font-size: 14px;
+  }
+  
+  /* 加载状态 */
+  .loading-container {
+    padding: 30px 16px;
+  }
+  
+  /* 空状态 */
+  .empty-state {
+    padding: 24px 16px;
+  }
+  .empty-state h3 {
+    font-size: 16px;
+  }
+  .empty-state .el-button {
+    width: 100%;
+    height: 42px;
+  }
+  
+  /* 分数卡片 */
+  .score-card {
+    padding: 16px;
+  }
+  .score-display {
+    flex-direction: column;
+    align-items: center;
+  }
+  .score-number {
+    font-size: 48px;
+  }
+  .score-max {
+    font-size: 14px;
+  }
+  .sub-score-circle {
+    width: 48px;
+    height: 48px;
+  }
+  .sub-score-value {
+    font-size: 16px;
+  }
+  .sub-score-label {
+    font-size: 11px;
+  }
+  .default-badge .el-tag {
+    font-size: 11px;
+  }
+  
+  /* 薄弱环节 */
+  .weak-area-item {
+    padding: 12px;
+    border-radius: var(--radius-sm);
+  }
+  .weak-area-subject {
+    font-size: 13px;
+  }
+  .weak-area-issue {
+    font-size: 12px;
+  }
+  .weak-area-suggestion {
+    font-size: 12px;
+  }
+  
+  /* 建议 */
+  .rec-item {
+    padding: 12px;
+    gap: 10px;
+  }
+  .rec-title {
+    font-size: 13px;
+  }
+  .rec-desc {
+    font-size: 12px;
+  }
+  .rec-action, .rec-time {
+    font-size: 11px;
+  }
+  
+  /* 学习计划 */
+  .plan-goal {
+    font-size: 14px;
+    padding: 10px;
+  }
+  .plan-task {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+  
+  /* 鼓励卡片 */
+  .encouragement-card {
+    padding: 14px;
+    gap: 10px;
+  }
+  .encouragement-card p {
+    font-size: 13px;
+  }
+  
+  /* 重新生成 */
+  .regenerate-section .el-button {
+    width: 100%;
+    height: 42px;
+  }
+  
+  /* 聊天卡片 */
+  .chat-card {
+    height: calc(100vh - 160px);
+    border-radius: var(--radius-sm);
+    min-height: 400px;
+  }
+  .chat-header {
+    padding: 12px 14px;
+  }
+  .chat-title {
+    font-size: 15px;
+  }
+  .chat-subtitle {
+    font-size: 11px;
+  }
+  .chat-header-info .el-icon {
+    --el-icon-size: 24px;
+  }
+  
+  .chat-messages {
+    padding: 12px 0;
+    gap: 12px;
+  }
+  .chat-welcome {
+    padding: 20px 14px;
+  }
+  .chat-welcome h3 {
+    font-size: 16px;
+  }
+  .chat-welcome p {
+    font-size: 13px;
+  }
+  .chat-welcome .el-icon {
+    --el-icon-size: 36px;
+  }
+  .quick-questions {
+    max-width: 100%;
+    gap: 6px;
+  }
+  .quick-q {
+    padding: 8px 12px;
+    font-size: 12px;
+    min-height: 36px;
+  }
+  
+  .chat-msg {
+    padding: 0 12px;
+    gap: 8px;
+  }
+  .msg-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  .msg-avatar .el-icon {
+    --el-icon-size: 16px;
+  }
+  .msg-bubble {
+    max-width: 82%;
+  }
+  .msg-text {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .chat-input-area {
+    padding: 10px 12px;
+  }
+  .chat-input-area .el-button {
+    height: 36px;
+    min-width: 60px;
+  }
+  .chat-quota-hint {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-container {
+    padding: 0 10px 76px;
+  }
+  .page-header h2 {
+    font-size: 18px;
+  }
+  .overview-value {
+    font-size: 20px;
+  }
+  .score-number {
+    font-size: 42px;
+  }
+  .sub-score-circle {
+    width: 44px;
+    height: 44px;
+  }
+  .sub-score-value {
+    font-size: 15px;
+  }
+  .chat-msg {
+    padding: 0 8px;
+  }
+  .msg-text {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+}
 </style>

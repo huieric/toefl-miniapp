@@ -63,3 +63,63 @@ const submit = async () => {
   }
 }
 </script>
+
+<style scoped>
+.page-container {
+  padding: 20px 16px 48px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.page-header {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+}
+.page-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+}
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+  padding: 20px;
+}
+
+/* ===== 移动端全面适配 ===== */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 0 12px 76px;
+    max-width: 100%;
+  }
+  .page-header {
+    margin-bottom: 12px;
+  }
+  .page-header h2 {
+    font-size: 18px;
+  }
+  .card {
+    padding: 16px;
+    border-radius: var(--radius-sm);
+  }
+  .card :deep(.el-form-item) {
+    margin-bottom: 18px;
+  }
+  .card :deep(.el-form-item__label) {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  .card :deep(.el-textarea__inner) {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+}
+
+@media (max-width: 480px) {
+  .card :deep(.el-textarea__inner) {
+    font-size: 13px;
+    min-height: 140px;
+  }
+}
+</style>

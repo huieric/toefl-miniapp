@@ -124,11 +124,8 @@
       </div>
     </div>
 
-    <!-- 上传进度 -->
-    <el-dialog v-model="progressVisible" title="上传中" width="400px" :close-on-click-modal="false" :show-close="false">
-      <el-progress :percentage="uploadProgress" />
-      <template #footer><span style="color:var(--text-secondary);font-size:13px">正在上传，请稍候...</span></template>
-    </el-dialog>
+    <!-- 上传进度卡片（替代旧的弹窗） -->
+    <UploadProgressCard />
 
     <!-- 生成模拟题对话框 -->
     <el-dialog v-model="genVisible" title="生成模拟题" width="420px">
@@ -161,6 +158,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowRight, Edit, Delete } from '@element-plus/icons-vue'
 import { questionAPI, healthAPI, withRetry } from '@/api'
 import UploadQuestionDialog from '@/components/UploadQuestionDialog.vue'
+import UploadProgressCard from '@/components/UploadProgressCard.vue'
 import { useUploadPolling } from '@/composables/useUploadPolling'
 
 const router = useRouter()
@@ -172,9 +170,6 @@ const loading = ref(false)
 const uploading = ref(false)
 const generating = ref(false)
 const sourceTab = ref('user')
-const fileInputRef = ref(null)
-const progressVisible = ref(false)
-const uploadProgress = ref(0)
 const uploadVisible = ref(false)
 const genVisible = ref(false)
 const genCount = ref(5)
@@ -225,91 +220,6 @@ const typeIcons = (types) => {
 const goPassage = (passageId) => router.push(`/reading/passage/${passageId}`)
 
 const onSourceChange = () => fetchList()
-
-const triggerUpload = () => fileInputRef.value?.click()
-
-// ====== PDF 上传 ======
-const handleFileChange = async (e) => {
-  const file = e.target.files?.[0]
-  if (!file) return
-  if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-    ElMessage.warning('请选择 PDF 文件')
-    e.target.value = ''
-    return
-  }
-  const formData = new FormData()
-  formData.append('file', file)
-  uploading.value = true
-  progressVisible.value = true
-  uploadProgress.value = 0
-
-  try {
-    const res = await questionAPI.upload(formData, (pct) => { uploadProgress.value = pct })
-    const uploadId = res.data?.data?.uploadId
-    ElMessage.success('上传成功，正在后台解析题目...')
-    progressVisible.value = false
-
-    if (uploadId) {
-      let resolved = false
-      let lastParsedPassages = 0
-      // 立即刷新一次，先把已解析出的篇章显示出来
-      await fetchList()
-      ElMessage.info('开始后台解析，已解析出的题目会逐步显示，你可以先继续使用')
-
-      // 分段展示：轮询期间每次都刷新列表，新解析出的篇章会自动出现
-      for (let i = 0; i < 240; i++) {
-        await new Promise(r => setTimeout(r, 5000))
-        try {
-          const s = await questionAPI.uploadStatus(uploadId)
-          const st = s.data?.data
-          if (st?.status === 'completed') {
-            resolved = true
-            await fetchList()
-            if (st.parsedCount > 0) {
-              if (st.meta?.truncated) {
-                ElMessage.warning(`解析完成：已导入 ${st.parsedCount} 道题（${st.meta.passageCount} 篇）。文件较大仅解析前 ${st.meta.parsedPages || '-'} 页；若 PDF 是扫描图片（无文字层），其余内容无法解析，请用带文字层的 PDF 或拆分上传`)
-              } else {
-                ElMessage.success(`解析完成！共入库 ${st.parsedCount} 道题`)
-              }
-            } else if (st.meta?.skippedCount > 0) {
-              ElMessage.info('这些题目之前已经导入过了，已刷新列表')
-            } else {
-              ElMessage.warning('PDF解析完成但未提取到题目：可能是扫描件/图片型 PDF（无文字层），请使用带文字层的 PDF')
-            }
-            break
-          }
-          if (st?.status === 'failed') {
-            resolved = true
-            ElMessage.error(`解析失败: ${st.error || '未知错误'}`)
-            break
-          }
-          // 仍在解析中：刷新列表展示最新已解析的篇章，并提示进度
-          if (st?.status === 'processing') {
-            await fetchList()
-            const parsedP = st.meta?.parsedPassages || 0
-            if (parsedP > 0 && parsedP !== lastParsedPassages) {
-              lastParsedPassages = parsedP
-              ElMessage.info(`已解析 ${parsedP} 篇，剩余题目后台继续解析中，你可以先开始练习`)
-            }
-          }
-        } catch (_) {}
-      }
-      if (!resolved) {
-        await fetchList()
-        ElMessage.warning('解析仍在后台进行（大文件较慢），已解析出的内容已显示；可稍后刷新列表查看新增')
-      }
-    } else {
-      await new Promise(r => setTimeout(r, 5000))
-      await fetchList()
-    }
-  } catch (err) {
-    ElMessage.error(err.response?.data?.message || err.message || '上传失败')
-  } finally {
-    uploading.value = false
-    progressVisible.value = false
-    e.target.value = ''
-  }
-}
 
 const showGenDialog = () => { genVisible.value = true }
 
@@ -428,7 +338,7 @@ onMounted(fetchList)
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
   gap: 12px;
 }
@@ -445,27 +355,31 @@ onMounted(fetchList)
 
 .passage-card {
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  border: 1px solid var(--el-border-color-light);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
 }
 .passage-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary-soft-2);
 }
 .orphan-card {
-  opacity: 0.7;
+  opacity: 0.72;
 }
 .card-body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 .card-title {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary, #303133);
-  line-height: 1.4;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.45;
+  letter-spacing: -0.01em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -482,10 +396,13 @@ onMounted(fetchList)
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
 }
 .meta-qcount {
   font-size: 13px;
-  color: var(--text-secondary, #909399);
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 .meta-types {
   display: flex;
@@ -494,20 +411,20 @@ onMounted(fetchList)
 }
 .type-tag {
   font-size: 11px;
-  opacity: 0.8;
+  opacity: 0.85;
 }
 .card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 .card-date {
   font-size: 12px;
-  color: var(--text-placeholder, #c0c4cc);
+  color: var(--text-muted);
 }
 .card-arrow {
-  color: var(--text-placeholder, #c0c4cc);
+  color: var(--primary);
   font-size: 14px;
 }
 .orphans-divider {
@@ -525,15 +442,15 @@ onMounted(fetchList)
 }
 .set-name {
   font-size: 15px;
-  font-weight: 650;
-  color: var(--text-primary, #303133);
+  font-weight: 700;
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .set-meta {
   font-size: 12px;
-  color: var(--text-secondary, #909399);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 .passage-list {
@@ -546,31 +463,32 @@ onMounted(fetchList)
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
-  border: 1px solid var(--border, #e5e7eb);
-  border-radius: 8px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.15s;
 }
 .passage-row:hover {
-  border-color: var(--primary, #4a90d9);
-  background: rgba(74,144,217,0.04);
+  border-color: var(--primary-soft-2);
+  background: var(--primary-soft);
 }
 .passage-row-title {
   flex: 1;
   font-size: 14px;
-  color: var(--text-primary, #303133);
+  font-weight: 500;
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .passage-row-meta {
   font-size: 12px;
-  color: var(--text-secondary, #909399);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 .passage-row-arrow {
-  color: var(--text-placeholder, #c0c4cc);
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 .set-actions {
@@ -581,17 +499,84 @@ onMounted(fetchList)
 }
 .set-act {
   cursor: pointer;
-  color: var(--text-secondary, #909399);
+  color: var(--text-secondary);
   font-size: 15px;
   padding: 4px;
+  border-radius: 6px;
+  transition: all 0.15s;
 }
-.set-act:hover { color: var(--primary, #4a6cf7); }
-.set-act.danger:hover { color: var(--danger, #f56c6c); }
+.set-act:hover { color: var(--primary); background: var(--primary-soft); }
+.set-act.danger:hover { color: var(--danger); background: var(--danger-soft); }
 .passage-row-del {
   cursor: pointer;
-  color: var(--text-placeholder, #c0c4cc);
+  color: var(--text-muted);
   flex-shrink: 0;
   font-size: 14px;
+  border-radius: 6px;
+  transition: all 0.15s;
 }
-.passage-row-del:hover { color: var(--danger, #f56c6c); }
+.passage-row-del:hover { color: var(--danger); background: var(--danger-soft); }
+
+/* ===== 移动端适配 ===== */
+@media (max-width: 768px) {
+  .page-container { padding: 0 12px 20px; }
+  .page-header { margin-bottom: 12px; }
+  .page-header h2 { font-size: 20px; }
+  .source-tabs {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .source-tabs-group {
+    display: flex;
+  }
+  .source-tabs-group :deep(.el-radio-button) {
+    flex: 1;
+  }
+  .tab-actions { justify-content: center; }
+  .tab-actions .el-button {
+    flex: 1;
+    height: 40px;
+  }
+  .card { padding: 14px; }
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .card-header .el-button {
+    width: 100%;
+    height: 40px;
+    font-size: 14px;
+  }
+  .set-card {
+    padding: 14px 12px;
+  }
+  .set-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .set-card-actions {
+    margin-left: 0 !important;
+  }
+  .passage-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .passage-row {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+  }
+  .passage-row-info { flex: 1; }
+  .passage-row-arrow { display: none; }
+  .card :deep(.el-table) { width: 100%; overflow-x: auto; }
+}
+
+@media (max-width: 600px) {
+  .source-tabs { flex-direction: column; align-items: stretch; }
+  .tab-actions { justify-content: center; }
+}
 </style>
